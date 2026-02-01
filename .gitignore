@@ -1,0 +1,51 @@
+riderModule.iml
+/_ReSharper.Caches/
+
+# Игнорируемые файлы .NET
+bin/
+obj/
+.vs/
+TestResults/
+
+# Файлы пользователя
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Файлы редакторов кода
+.vscode/
+.idea/
+
+# Временные файлы
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Файлы пакетов NuGet
+/packages/
+*.nupkg
+
+# Файлы приложений
+appsettings.Development.json
+appsettings.Local.json
+
+# Docker volume
+postgres_data/
+
+# Миграции EF Core (файлы генерируемые)
+**/Migrations/
+
+# Скомпилированные файлы
+*.dll
+*.exe
+*.pdb
+
+# Специфичные для ОС
+.DS_Store
+Thumbs.db
+
+# Логи нашего приложения
+logs/*.log
+!logs/.gitkeep
