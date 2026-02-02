@@ -17,7 +17,7 @@ public class TradingPairConfiguration : IEntityTypeConfiguration<TradingPair>
             .HasMaxLength(20);
         
         builder.Property(p => p.BaseAsset)
-            .HasMaxLength(10);
+            .HasMaxLength(30);
         
         builder.Property(p => p.QuoteAsset)
             .HasMaxLength(10);
