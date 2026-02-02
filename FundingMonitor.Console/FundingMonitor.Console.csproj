@@ -13,10 +13,19 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.12" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.12" />
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\src\FundingMonitor.Core\FundingMonitor.Core.csproj" />
       <ProjectReference Include="..\src\FundingMonitor.Data\FundingMonitor.Data.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="appsettings.json" />
+      <Content Include="appsettings.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>
