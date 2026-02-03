@@ -78,7 +78,7 @@ try
     
     // 3. Сохраняем в БД
     Console.WriteLine("Save to database");
-    Console.WriteLine("─────────────────");
+    Console.WriteLine("────────────────");
     if (allRates.Any())
     {
         await repository.SaveRatesAsync(allRates);
@@ -92,8 +92,8 @@ try
     
     if (opportunities.Any())
     {
-        Console.WriteLine("💰 ARBITRAGE OPPORTUNITIES");
-        Console.WriteLine("──────────────────────────");
+        Console.WriteLine("ARBITRAGE OPPORTUNITIES");
+        Console.WriteLine("───────────────────────");
         
         foreach (var opp in opportunities.Take(10)) // Показываем топ-10
         {
@@ -116,7 +116,7 @@ try
     }
     else
     {
-        Console.WriteLine("🤷 No significant arbitrage opportunities found");
+        Console.WriteLine("No significant arbitrage opportunities found");
     }
 }
 catch (Exception ex)
