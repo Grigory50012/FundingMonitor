@@ -20,20 +20,22 @@ public class BinanceApiClient : BaseExchangeApiClient
     {
         var response = await GetAsync<List<BinancePremiumIndexResponse>>("/fapi/v1/premiumIndex");
         
-        return response.Select(r => new NormalizedFundingRate
-        {
-            Exchange = ExchangeType.Binance,
-            OriginalSymbol = r.Symbol,
-            NormalizedSymbol = SymbolNormalizer.Normalize(r.Symbol, ExchangeType),
-            BaseAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
-            QuoteAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Quote,
-            FundingRate = SafeParseDecimal(r.LastFundingRate),
-            NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.NextFundingTime).UtcDateTime,
-            MarkPrice = SafeParseDecimal(r.MarkPrice),
-            IndexPrice = SafeParseDecimal(r.IndexPrice),
-            DataTime = DateTime.UtcNow,
-            InstrumentType = "PERPETUAL"
-        }).ToList();
+        return response
+            .Where(r => r.Symbol.EndsWith("USDT"))
+            .Select(r => new NormalizedFundingRate
+            {
+                Exchange = ExchangeType.Binance,
+                OriginalSymbol = r.Symbol,
+                NormalizedSymbol = SymbolNormalizer.Normalize(r.Symbol, ExchangeType),
+                BaseAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
+                QuoteAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Quote,
+                FundingRate = SafeParseDecimal(r.LastFundingRate),
+                NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.NextFundingTime).UtcDateTime,
+                MarkPrice = SafeParseDecimal(r.MarkPrice),
+                IndexPrice = SafeParseDecimal(r.IndexPrice),
+                DataTime = DateTime.UtcNow,
+                InstrumentType = "PERPETUAL"
+            }).ToList();
     }
     
     public override async Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol)
