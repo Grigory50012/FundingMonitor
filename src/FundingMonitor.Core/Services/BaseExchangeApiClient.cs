@@ -8,10 +8,9 @@ namespace FundingMonitor.Core.Services;
 
 public abstract class BaseExchangeApiClient : IExchangeApiClient
 {
-    protected readonly HttpClient _httpClient;
-    protected readonly ILogger _logger;
-    protected readonly SymbolNormalizer _normalizer;
-    protected JsonSerializerOptions _jsonOptions = new JsonSerializerOptions();
+    private readonly HttpClient _httpClient;
+    private readonly ILogger _logger;
+    private JsonSerializerOptions _jsonOptions = new();
     
     private readonly List<DateTime> _requestTimes = new();
     private readonly int _rateLimit;
@@ -35,12 +34,10 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     
     protected BaseExchangeApiClient(
         HttpClient httpClient, 
-        ILogger logger,
-        SymbolNormalizer normalizer)
+        ILogger logger)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _normalizer = normalizer;
         _rateLimit = ExchangeType.GetRateLimitPerMinute();
         
         ConfigureHttpClient();

@@ -10,9 +10,8 @@ public class BinanceApiClient : BaseExchangeApiClient
     
     public BinanceApiClient(
         HttpClient httpClient,
-        ILogger<BinanceApiClient> logger,
-        SymbolNormalizer normalizer)
-        : base(httpClient, logger, normalizer)
+        ILogger<BinanceApiClient> logger)
+        : base(httpClient, logger)
     {
     }
     

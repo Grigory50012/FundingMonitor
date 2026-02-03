@@ -10,9 +10,8 @@ public class BybitApiClient : BaseExchangeApiClient
     
     public BybitApiClient(
         HttpClient httpClient,
-        ILogger<BybitApiClient> logger,
-        SymbolNormalizer normalizer)
-        : base(httpClient, logger, normalizer)
+        ILogger<BybitApiClient> logger)
+        : base(httpClient, logger)
     {
     }
     
