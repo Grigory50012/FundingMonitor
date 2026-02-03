@@ -1,10 +1,11 @@
+using FundingMonitor.Core.Enums;
 using FundingMonitor.Core.Models;
 
 namespace FundingMonitor.Core.Interfaces;
 
 public interface IFundingDataService
 {
-    Task<List<FundingRateComparison>> CompareFundingRatesAsync(List<string>? symbols = null);
-    Task UpdateDatabaseFromExchangesAsync();
-    Task<List<TradingPairInfo>> GetAvailablePairsFromExchangeAsync(string exchangeName);
+    Task<List<NormalizedFundingRate>> CollectAllRatesAsync();
+    List<ArbitrageOpportunity> FindArbitrageOpportunitiesAsync(List<NormalizedFundingRate> rates);
+    Task<Dictionary<ExchangeType, bool>> CheckExchangesStatusAsync();
 }

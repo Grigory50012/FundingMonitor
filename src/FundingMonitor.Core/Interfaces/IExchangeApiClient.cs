@@ -1,20 +1,17 @@
+using FundingMonitor.Core.Enums;
 using FundingMonitor.Core.Models;
 
 namespace FundingMonitor.Core.Interfaces;
 
 public interface IExchangeApiClient
 {
-    string ExchangeName { get; }
+    ExchangeType ExchangeType { get; }
     
-    // Получить все доступные пары
-    Task<List<TradingPairInfo>> GetAvailablePairsAsync();
+    Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync();
+    Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol);
+    Task<bool> IsAvailableAsync();
     
-    // Получить текущую ставку финансирования для пары
-    Task<FundingRateInfo> GetCurrentFundingRateAsync(string symbol);
-    
-    // Получить историю ставок финансирования
-    Task<List<FundingRateInfo>> GetFundingRateHistoryAsync(string symbol, int limit = 100);
-    
-    // Получить предсказанную ставку финансирования
-    Task<decimal?> GetPredictedFundingRateAsync(string symbol);
+    // Статистика
+    int RequestsMade { get; }
+    bool IsRateLimited { get; }
 }

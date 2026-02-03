@@ -5,21 +5,21 @@ namespace FundingMonitor.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<Exchange> Exchanges { get; set; }
-    public DbSet<TradingPair> TradingPairs { get; set; }
-    public DbSet<FundingRate> FundingRates { get; set; }
+    public DbSet<NormalizedFundingRateEntity> FundingRates { get; set; }
     
-    public AppDbContext(DbContextOptions<AppDbContext> options) 
-        : base(options)
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-        
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-        
-        modelBuilder.HasDefaultSchema("public");
+        modelBuilder.Entity<NormalizedFundingRateEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange, e.DataTime });
+            entity.HasIndex(e => e.NormalizedSymbol);
+            entity.HasIndex(e => e.Exchange);
+            entity.HasIndex(e => e.DataTime);
+        });
     }
 }

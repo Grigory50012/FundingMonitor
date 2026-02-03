@@ -1,100 +1,59 @@
-using System.Globalization;
+using FundingMonitor.Core.Enums;
 using FundingMonitor.Core.Models;
 using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Core.Services;
 
-public class BinanceApiClient : BaseApiClient
+public class BinanceApiClient : BaseExchangeApiClient
 {
-    public override string ExchangeName => "Binance";
+    public override ExchangeType ExchangeType => ExchangeType.Binance;
     
-    public BinanceApiClient(HttpClient httpClient, ILogger<BinanceApiClient> logger) 
-        : base(httpClient, logger)
+    public BinanceApiClient(
+        HttpClient httpClient,
+        ILogger<BinanceApiClient> logger,
+        SymbolNormalizer normalizer)
+        : base(httpClient, logger, normalizer)
     {
-        _httpClient.BaseAddress = new Uri("https://fapi.binance.com");
     }
     
-    public override async Task<List<TradingPairInfo>> GetAvailablePairsAsync()
+    public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync()
     {
-        try
-        {
-            var response = await GetAsync<BinanceExchangeInfoResponse>("/fapi/v1/exchangeInfo");
-            
-            return response.Symbols
-                .Where(s => s.ContractType == "PERPETUAL" && s.Status == "TRADING")
-                .Select(s => new TradingPairInfo
-                {
-                    Symbol = s.Symbol,
-                    BaseAsset = s.BaseAsset,
-                    QuoteAsset = s.QuoteAsset
-                })
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting available pairs from Binance");
-            return new List<TradingPairInfo>();
-        }
-    }
-    
-    public override async Task<FundingRateInfo> GetCurrentFundingRateAsync(string symbol)
-    {
-        var response = await GetAsync<BinancePremiumIndexResponse>($"/fapi/v1/premiumIndex?symbol={symbol}");
+        var response = await GetAsync<List<BinancePremiumIndexResponse>>("/fapi/v1/premiumIndex");
         
-        return new FundingRateInfo
+        return response.Select(r => new NormalizedFundingRate
         {
-            Symbol = symbol,
-            Rate = SafeParseDecimal(response.LastFundingRate),
-            NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(response.NextFundingTime).UtcDateTime,
-            MarkPrice = SafeParseDecimal(response.MarkPrice),
-            IndexPrice = SafeParseDecimal(response.IndexPrice)
-        };
-    }
-    
-    private decimal SafeParseDecimal(string value, decimal defaultValue = 0m)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return defaultValue;
-    
-        if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
-            return result;
-    
-        _logger.LogWarning("Failed to parse decimal value: {Value}", value);
-        return defaultValue;
-    }
-    
-    public override async Task<List<FundingRateInfo>> GetFundingRateHistoryAsync(string symbol, int limit = 100)
-    {
-        var response = await GetAsync<List<BinanceFundingRateHistory>>(
-            $"/fapi/v1/fundingRate?symbol={symbol}&limit={limit}");
-        
-        return response.Select(r => new FundingRateInfo
-        {
-            Symbol = symbol,
-            Rate = decimal.Parse(r.FundingRate),
-            NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.FundingTime).UtcDateTime
+            Exchange = ExchangeType.Binance,
+            OriginalSymbol = r.Symbol,
+            NormalizedSymbol = SymbolNormalizer.Normalize(r.Symbol, ExchangeType),
+            BaseAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
+            QuoteAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Quote,
+            FundingRate = SafeParseDecimal(r.LastFundingRate),
+            NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.NextFundingTime).UtcDateTime,
+            MarkPrice = SafeParseDecimal(r.MarkPrice),
+            IndexPrice = SafeParseDecimal(r.IndexPrice),
+            DataTime = DateTime.UtcNow,
+            InstrumentType = "PERPETUAL"
         }).ToList();
     }
     
-    public override async Task<decimal?> GetPredictedFundingRateAsync(string symbol)
+    public override async Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol)
     {
-        // У Binance нет API для предсказанной ставки, возвращаем null
-        return null;
-    }
-    
-    // Классы для десериализации ответов Binance
-    private class BinanceExchangeInfoResponse
-    {
-        public List<BinanceSymbol> Symbols { get; set; } = new();
-    }
-    
-    private class BinanceSymbol
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string BaseAsset { get; set; } = string.Empty;
-        public string QuoteAsset { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string ContractType { get; set; } = string.Empty;
+        var response = await GetAsync<BinancePremiumIndexResponse>($"/fapi/v1/premiumIndex?symbol={symbol}");
+        
+        return new NormalizedFundingRate
+        {
+            Exchange = ExchangeType.Binance,
+            OriginalSymbol = response.Symbol,
+            NormalizedSymbol = SymbolNormalizer.Normalize(response.Symbol, ExchangeType),
+            BaseAsset = SymbolNormalizer.Parse(response.Symbol, ExchangeType).Base,
+            QuoteAsset = SymbolNormalizer.Parse(response.Symbol, ExchangeType).Quote,
+            FundingRate = SafeParseDecimal(response.LastFundingRate),
+            NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(response.NextFundingTime).UtcDateTime,
+            MarkPrice = SafeParseDecimal(response.MarkPrice),
+            IndexPrice = SafeParseDecimal(response.IndexPrice),
+            DataTime = DateTime.UtcNow,
+            InstrumentType = "PERPETUAL"
+        };
     }
     
     private class BinancePremiumIndexResponse
@@ -104,12 +63,5 @@ public class BinanceApiClient : BaseApiClient
         public string IndexPrice { get; set; } = string.Empty;
         public string LastFundingRate { get; set; } = string.Empty;
         public long NextFundingTime { get; set; }
-    }
-    
-    private class BinanceFundingRateHistory
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string FundingRate { get; set; } = string.Empty;
-        public long FundingTime { get; set; }
     }
 }

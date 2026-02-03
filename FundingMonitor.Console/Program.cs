@@ -6,12 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-// Настройка DI
 var services = new ServiceCollection();
 
 // Настройка логирования
 services.AddLogging(builder =>
 {
+    builder.ClearProviders();
     builder.SetMinimumLevel(LogLevel.Information);
 });
 
@@ -19,156 +19,118 @@ services.AddLogging(builder =>
 services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql("Host=localhost;Port=5432;Database=funding_monitor;Username=postgres;Password=postgres"));
     
-// Регистрация репозиториев
-services.AddScoped<IExchangeRepository, ExchangeRepository>();
+// Репозиторий
+services.AddScoped<IFundingRateRepository, FundingRateRepository>();
 
 // Настройка HttpClient
 services.AddHttpClient();
 
-// Регистрация API клиентов
-// Настройка HttpClient для Binance
-services.AddHttpClient<BinanceApiClient>(client =>
-{
-    client.BaseAddress = new Uri("https://fapi.binance.com");
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+// Вспомогательные сервисы
+services.AddSingleton<SymbolNormalizer>();
 
-// Настройка HttpClient для Bybit
-services.AddHttpClient<BybitApiClient>(client =>
-{
-    client.BaseAddress = new Uri("https://api.bybit.com");
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+// HttpClient для каждой биржи
+services.AddHttpClient<BinanceApiClient>();
+services.AddHttpClient<BybitApiClient>();
 
-// Регистрируем конкретные реализации
-services.AddTransient<BinanceApiClient>();
-services.AddTransient<BybitApiClient>();
+// API клиенты
+services.AddTransient<IExchangeApiClient, BinanceApiClient>();
+services.AddTransient<IExchangeApiClient, BybitApiClient>();
 
-// Регистрируем фабрику для IExchangeApiClient
-services.AddTransient<Func<string, IExchangeApiClient>>(serviceProvider => exchangeName =>
-{
-    return exchangeName.ToLower() switch
-    {
-        "binance" => serviceProvider.GetRequiredService<BinanceApiClient>(),
-        "bybit" => serviceProvider.GetRequiredService<BybitApiClient>(),
-        _ => throw new ArgumentException($"Unknown exchange: {exchangeName}")
-    };
-});
-
-// Регистрация сервисов
+// Основной сервис
 services.AddScoped<IFundingDataService, FundingDataService>();
 
 var serviceProvider = services.BuildServiceProvider();
 
-// Тестируем
+// Создаем scope для scoped сервисов
 using var scope = serviceProvider.CreateScope();
 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 var dataService = scope.ServiceProvider.GetRequiredService<IFundingDataService>();
+var repository = scope.ServiceProvider.GetRequiredService<IFundingRateRepository>();
 
-Console.WriteLine("🚀 Funding Monitor - Data Collection Test");
-Console.WriteLine("==========================================");
+Console.Clear();
+Console.WriteLine("╔══════════════════════════════════════════════════════╗");
+Console.WriteLine("║              FUNDING MONITOR v1.0                    ║");
+Console.WriteLine("║          Multi-Exchange Arbitrage Scanner            ║");
+Console.WriteLine("╚══════════════════════════════════════════════════════╝");
 Console.WriteLine();
 
 try
 {
-    // 1. Тестируем подключение к биржам
-    logger.LogInformation("Testing exchange connections...");
+    // 1. Проверяем доступность бирж
+    logger.LogInformation("Checking exchanges availability...");
+    var status = await dataService.CheckExchangesStatusAsync();
     
-    var binanceClient = scope.ServiceProvider.GetRequiredService<BinanceApiClient>();
-    var bybitClient = scope.ServiceProvider.GetRequiredService<BybitApiClient>();
-    
-    // 2. Получаем пары с бирж
-    logger.LogInformation("Fetching pairs from Binance...");
-    var binancePairs = await binanceClient.GetAvailablePairsAsync();
-    Console.WriteLine($"✅ Binance: {binancePairs.Count} perpetual pairs");
-    
-    logger.LogInformation("Fetching pairs from Bybit...");
-    var bybitPairs = await bybitClient.GetAvailablePairsAsync();
-    Console.WriteLine($"✅ Bybit: {bybitPairs.Count} perpetual pairs");
-    
-    // 3. Обновляем базу данных
-    logger.LogInformation("Updating database...");
-    await dataService.UpdateDatabaseFromExchangesAsync();
-    Console.WriteLine("✅ Database updated");
-    
-    // 4. Сравниваем ставки финансирования
-    logger.LogInformation("Comparing funding rates...");
-    var comparisons = await dataService.CompareFundingRatesAsync();
-    
-    Console.WriteLine();
-    Console.WriteLine("📊 FUNDING RATE COMPARISONS");
-    Console.WriteLine("=============================");
-    
-    if (comparisons.Any())
+    Console.WriteLine("EXCHANGE STATUS");
+    Console.WriteLine("───────────────");
+    foreach (var (exchange, isAvailable) in status)
     {
-        foreach (var comparison in comparisons.Take(5)) // Показываем топ-5
+        Console.WriteLine($"  {exchange,-10} : {(isAvailable ? "Available" : "Unavailable")}");
+    }
+    Console.WriteLine();
+    
+    // 2. Собираем данные
+    Console.WriteLine("FUNDING rates");
+    Console.WriteLine("─────────────");
+    var allRates = await dataService.CollectAllRatesAsync();
+    
+    Console.WriteLine($"Collected {allRates.Count} funding rates");
+    Console.WriteLine();
+    
+    // 3. Сохраняем в БД
+    Console.WriteLine("Save to database");
+    Console.WriteLine("─────────────────");
+    if (allRates.Any())
+    {
+        await repository.SaveRatesAsync(allRates);
+        Console.WriteLine("Saved to database");
+        Console.WriteLine();
+    }
+    
+    // 4. Ищем арбитражные возможности
+    logger.LogInformation("Scanning for arbitrage opportunities...");
+    var opportunities = dataService.FindArbitrageOpportunitiesAsync(allRates);
+    
+    if (opportunities.Any())
+    {
+        Console.WriteLine("💰 ARBITRAGE OPPORTUNITIES");
+        Console.WriteLine("──────────────────────────");
+        
+        foreach (var opp in opportunities.Take(10)) // Показываем топ-10
         {
             Console.WriteLine();
-            Console.WriteLine($"💰 {comparison.Symbol}");
-            Console.WriteLine($"   Binance:  {comparison.BinanceRate.Rate:P6}");
-            Console.WriteLine($"   Bybit:    {comparison.BybitRate.Rate:P6}");
-            Console.WriteLine($"   Difference: {comparison.Difference:P6} ({comparison.PotentialProfit:F2}% annual)");
-            Console.WriteLine($"   Action: {comparison.SuggestedAction}");
+            Console.WriteLine($"  {opp.Symbol}");
+            Console.WriteLine($"    Difference: {opp.MaxDifference:P4}");
+            Console.WriteLine($"    Annual yield: {opp.AnnualYieldPercent:F2}%");
+            Console.WriteLine($"    Action: {opp.Action}");
+            
+            foreach (var rate in opp.Rates.OrderBy(r => r.Exchange))
+            {
+                Console.WriteLine($"    {rate.Exchange,-10}: {rate.FundingRate:P6} ({rate.NextFundingTime:HH:mm})");
+            }
         }
         
-        if (comparisons.Count > 5)
+        if (opportunities.Count > 10)
         {
-            Console.WriteLine($"\n... and {comparisons.Count - 5} more opportunities");
+            Console.WriteLine($"\n  ... and {opportunities.Count - 10} more opportunities");
         }
     }
     else
     {
-        Console.WriteLine("No significant arbitrage opportunities found.");
-    }
-    
-    // 5. Показываем статистику из БД
-    Console.WriteLine();
-    Console.WriteLine("🗄️ DATABASE STATISTICS");
-    Console.WriteLine("======================");
-    
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    
-    var exchangeCount = await dbContext.Exchanges.CountAsync();
-    var pairCount = await dbContext.TradingPairs.CountAsync();
-    var rateCount = await dbContext.FundingRates.CountAsync();
-    
-    Console.WriteLine($"Exchanges: {exchangeCount}");
-    Console.WriteLine($"Trading pairs: {pairCount}");
-    Console.WriteLine($"Funding rates collected: {rateCount}");
-    
-    // Последние 5 ставок
-    var latestRates = await dbContext.FundingRates
-        .Include(f => f.Exchange)
-        .Include(f => f.Pair)
-        .OrderByDescending(f => f.CreatedAt)
-        .Take(5)
-        .Select(f => new
-        {
-            f.Exchange.Name,
-            f.Pair.Symbol,
-            f.Rate,
-            f.FundingTime
-        })
-        .ToListAsync();
-    
-    Console.WriteLine("\n📈 Latest funding rates:");
-    foreach (var rate in latestRates)
-    {
-        Console.WriteLine($"   {rate.Name} {rate.Symbol}: {rate.Rate:P6} (next: {rate.FundingTime:HH:mm})");
+        Console.WriteLine("🤷 No significant arbitrage opportunities found");
     }
 }
 catch (Exception ex)
 {
-    logger.LogError(ex, "Test failed");
-    Console.WriteLine($"❌ Error: {ex.Message}");
+    logger.LogError(ex, "Application error");
+    Console.WriteLine($"\nError: {ex.Message}");
     
     if (ex.InnerException != null)
     {
-        Console.WriteLine($"   Inner: {ex.InnerException.Message}");
+        Console.WriteLine($"Inner: {ex.InnerException.Message}");
     }
 }
 
 Console.WriteLine();
-Console.WriteLine("🎉 Test completed!");
+Console.WriteLine("Scan completed!");
 Console.WriteLine("\nPress any key to exit...");
 Console.ReadKey();
