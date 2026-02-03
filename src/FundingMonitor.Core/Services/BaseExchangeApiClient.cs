@@ -11,11 +11,11 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     protected readonly HttpClient _httpClient;
     protected readonly ILogger _logger;
     protected readonly SymbolNormalizer _normalizer;
-    protected JsonSerializerOptions _jsonOptions;
+    protected JsonSerializerOptions _jsonOptions = new JsonSerializerOptions();
     
     private readonly List<DateTime> _requestTimes = new();
     private readonly int _rateLimit;
-    private readonly Lock _lock = new();
+    private readonly object _lock = new();
     
     public abstract ExchangeType ExchangeType { get; }
     public int RequestsMade => _requestTimes.Count;
@@ -56,11 +56,8 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     
     private void ConfigureJsonOptions()
     {
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString
-        };
+        _jsonOptions.PropertyNameCaseInsensitive = true;
+        _jsonOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString;
     }
     
     protected async Task<T> GetAsync<T>(string endpoint, CancellationToken ct = default)
