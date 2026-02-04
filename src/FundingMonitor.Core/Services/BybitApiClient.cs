@@ -30,9 +30,9 @@ public class BybitApiClient : BaseExchangeApiClient
                 QuoteAsset = SymbolNormalizer.Parse(t.Symbol, ExchangeType).Quote,
                 FundingRate = SafeParseDecimal(t.FundingRate),
                 NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(t.NextFundingTime)).UtcDateTime,
-                PredictedNextRate = SafeParseDecimal(t.PredictedFundingRate),
                 MarkPrice = SafeParseDecimal(t.MarkPrice),
                 IndexPrice = SafeParseDecimal(t.IndexPrice),
+                Volume24h = SafeParseDecimal(t.Volume24h),
                 DataTime = DateTime.UtcNow,
                 InstrumentType = "PERPETUAL"
             }).ToList();
@@ -60,7 +60,7 @@ public class BybitApiClient : BaseExchangeApiClient
         public string MarkPrice { get; set; } = string.Empty;
         public string IndexPrice { get; set; } = string.Empty;
         public string FundingRate { get; set; } = string.Empty;
-        public string PredictedFundingRate { get; set; } = string.Empty;
         public string NextFundingTime { get; set; } = string.Empty;
+        public string Volume24h { get; set; } = string.Empty;
     }
 }
