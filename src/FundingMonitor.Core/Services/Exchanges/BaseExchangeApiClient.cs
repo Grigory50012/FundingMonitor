@@ -4,7 +4,7 @@ using FundingMonitor.Core.Interfaces;
 using FundingMonitor.Core.Models;
 using Microsoft.Extensions.Logging;
 
-namespace FundingMonitor.Core.Services;
+namespace FundingMonitor.Core.Services.Exchanges;
 
 public abstract class BaseExchangeApiClient : IExchangeApiClient
 {

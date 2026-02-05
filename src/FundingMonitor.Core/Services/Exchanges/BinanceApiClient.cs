@@ -2,16 +2,13 @@ using FundingMonitor.Core.Enums;
 using FundingMonitor.Core.Models;
 using Microsoft.Extensions.Logging;
 
-namespace FundingMonitor.Core.Services;
+namespace FundingMonitor.Core.Services.Exchanges;
 
 public class BinanceApiClient : BaseExchangeApiClient
 {
     public override ExchangeType ExchangeType => ExchangeType.Binance;
     
-    public BinanceApiClient(
-        HttpClient httpClient,
-        ILogger<BinanceApiClient> logger)
-        : base(httpClient, logger)
+    public BinanceApiClient(HttpClient httpClient, ILogger<BinanceApiClient> logger) : base(httpClient, logger)
     {
     }
     
@@ -27,7 +24,7 @@ public class BinanceApiClient : BaseExchangeApiClient
                 OriginalSymbol = r.Symbol,
                 NormalizedSymbol = SymbolNormalizer.Normalize(r.Symbol, ExchangeType),
                 BaseAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
-                QuoteAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Quote,
+                QuoteAsset = "USDT",
                 FundingRate = SafeParseDecimal(r.LastFundingRate),
                 NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.NextFundingTime).UtcDateTime,
                 MarkPrice = SafeParseDecimal(r.MarkPrice),

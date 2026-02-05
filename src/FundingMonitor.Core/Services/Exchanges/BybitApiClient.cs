@@ -2,16 +2,13 @@ using FundingMonitor.Core.Enums;
 using FundingMonitor.Core.Models;
 using Microsoft.Extensions.Logging;
 
-namespace FundingMonitor.Core.Services;
+namespace FundingMonitor.Core.Services.Exchanges;
 
 public class BybitApiClient : BaseExchangeApiClient
 {
     public override ExchangeType ExchangeType => ExchangeType.Bybit;
     
-    public BybitApiClient(
-        HttpClient httpClient,
-        ILogger<BybitApiClient> logger)
-        : base(httpClient, logger)
+    public BybitApiClient(HttpClient httpClient, ILogger<BybitApiClient> logger) : base(httpClient, logger)
     {
     }
     
@@ -27,7 +24,7 @@ public class BybitApiClient : BaseExchangeApiClient
                 OriginalSymbol = t.Symbol,
                 NormalizedSymbol = SymbolNormalizer.Normalize(t.Symbol, ExchangeType),
                 BaseAsset = SymbolNormalizer.Parse(t.Symbol, ExchangeType).Base,
-                QuoteAsset = SymbolNormalizer.Parse(t.Symbol, ExchangeType).Quote,
+                QuoteAsset = "USDT",
                 FundingRate = SafeParseDecimal(t.FundingRate),
                 NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(t.NextFundingTime)).UtcDateTime,
                 MarkPrice = SafeParseDecimal(t.MarkPrice),

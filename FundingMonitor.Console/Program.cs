@@ -1,5 +1,6 @@
 ﻿using FundingMonitor.Core.Interfaces;
 using FundingMonitor.Core.Services;
+using FundingMonitor.Core.Services.Exchanges;
 using FundingMonitor.Data;
 using FundingMonitor.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,7 @@ services.AddHttpClient<BybitApiClient>();
 // API клиенты
 services.AddTransient<IExchangeApiClient, BinanceApiClient>();
 services.AddTransient<IExchangeApiClient, BybitApiClient>();
+// services.AddTransient<IExchangeApiClient, OkxApiClient>();
 
 // Основной сервис
 services.AddScoped<IFundingDataService, FundingDataService>();
