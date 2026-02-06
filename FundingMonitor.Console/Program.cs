@@ -1,4 +1,5 @@
-﻿using FundingMonitor.Core.Interfaces;
+﻿using FundingMonitor.Core.Enums;
+using FundingMonitor.Core.Interfaces;
 using FundingMonitor.Core.Services;
 using FundingMonitor.Core.Services.Exchanges;
 using FundingMonitor.Data;
@@ -71,7 +72,7 @@ try
     Console.WriteLine();
     
     // 2. Собираем данные
-    Console.WriteLine("FUNDING rates");
+    Console.WriteLine("FUNDING RATES");
     Console.WriteLine("─────────────");
     var allRates = await dataService.CollectAllRatesAsync();
     
@@ -88,6 +89,20 @@ try
         Console.WriteLine();
     }
     
+    // 4. Запрашиваем данные по BTC
+    var btcRates = await repository.GetRatesAsync("BTC", new List<ExchangeType>() { ExchangeType.Bybit });
+    
+    foreach (var opp in btcRates) // Показываем топ-10
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  {opp.Exchange}");
+        Console.WriteLine($"    Price: {opp.MarkPrice}");
+        Console.WriteLine($"    Funding Rate: {opp.FundingRate*100:F3}");
+        Console.WriteLine($"    Number Of Payments Per Day: {opp.NumberOfPaymentsPerDay}");
+        Console.WriteLine($"    Next Funding Time: {opp.NextFundingTime}");
+        Console.WriteLine($"    APR: {opp.APR:F2} %");
+    }
+
     // 4. Ищем арбитражные возможности
     logger.LogInformation("Scanning for arbitrage opportunities...");
     var opportunities = dataService.FindArbitrageOpportunitiesAsync(allRates);
