@@ -101,7 +101,6 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     
     // Абстрактные методы
     public abstract Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync();
-    public abstract Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol);
     
     public virtual async Task<bool> IsAvailableAsync()
     {

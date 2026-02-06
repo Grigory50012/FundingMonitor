@@ -35,24 +35,6 @@ public class BinanceApiClient : BaseExchangeApiClient
             }).ToList();
     }
     
-    public override async Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol)
-    {
-        var response = await GetAsync<BinancePremiumIndexResponse>($"/fapi/v1/premiumIndex?symbol={symbol}");
-        
-        return new NormalizedFundingRate
-        {
-            Exchange = ExchangeType.Binance,
-            NormalizedSymbol = SymbolNormalizer.Normalize(response.Symbol, ExchangeType),
-            BaseAsset = SymbolNormalizer.Parse(response.Symbol, ExchangeType).Base,
-            QuoteAsset = SymbolNormalizer.Parse(response.Symbol, ExchangeType).Quote,
-            FundingRate = SafeParseDecimal(response.LastFundingRate),
-            NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(response.NextFundingTime).UtcDateTime,
-            MarkPrice = SafeParseDecimal(response.MarkPrice),
-            IndexPrice = SafeParseDecimal(response.IndexPrice),
-            LastCheck = DateTime.UtcNow,
-        };
-    }
-    
     private class BinancePremiumIndexResponse
     {
         public string Symbol { get; set; } = string.Empty;

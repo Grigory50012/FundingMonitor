@@ -80,57 +80,6 @@ public class OkxApiClient : BaseExchangeApiClient
         return results;
     }
     
-    public override async Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol)
-    {
-        try
-        {
-            // Получаем полный символ OKX (добавляем -SWAP если нужно)
-            var fullSymbol = symbol.Contains("-SWAP") ? symbol : $"{symbol}-SWAP";
-            
-            // 1. Получаем ставку финансирования
-            var fundingResponse = await GetAsync<OkxFundingRateResponse>(
-                $"/api/v5/public/funding-rate?instId={fullSymbol}");
-            
-            if (fundingResponse?.Data == null || fundingResponse.Data.Count == 0)
-                return null;
-            
-            var fundingData = fundingResponse.Data[0];
-            
-            // 2. Получаем тикер
-            var tickerResponse = await GetAsync<OkxTickersResponse>(
-                $"/api/v5/market/ticker?instId={fullSymbol}");
-            
-            if (tickerResponse?.Data == null || tickerResponse.Data.Count == 0)
-                return null;
-            
-            var ticker = tickerResponse.Data[0];
-            
-            // 4. Создаем нормализованный объект
-            var normalizedSymbol = SymbolNormalizer.Normalize(fullSymbol, ExchangeType);
-            var parsedSymbol = SymbolNormalizer.Parse(fullSymbol, ExchangeType);
-            
-            return new NormalizedFundingRate
-            {
-                Exchange = ExchangeType.OKX,
-                NormalizedSymbol = normalizedSymbol,
-                BaseAsset = parsedSymbol.Base,
-                QuoteAsset = parsedSymbol.Quote,
-                FundingRate = SafeParseDecimal(fundingData.FundingRate),
-                NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(
-                    long.Parse(fundingData.NextFundingTime)).UtcDateTime,
-                MarkPrice = SafeParseDecimal(ticker.MarkPx),
-                IndexPrice = SafeParseDecimal(ticker.IdxPx),
-                LastCheck = DateTime.UtcNow,
-                IsActive = true,
-                FundingIntervalHours = 8
-            };
-        }
-        catch (Exception ex)
-        {
-            return null;
-        }
-    }
-    
     private async Task<List<OkxInstrument>> GetAllInstrumentsAsync()
     {
         try
@@ -154,7 +103,6 @@ public class OkxApiClient : BaseExchangeApiClient
         public string InstId { get; set; } = string.Empty;
         public string MarkPx { get; set; } = string.Empty;
         public string IdxPx { get; set; } = string.Empty;
-        public string Vol24h { get; set; } = string.Empty;
     }
     
     private class OkxFundingRateResponse
@@ -166,17 +114,6 @@ public class OkxApiClient : BaseExchangeApiClient
     {
         public string FundingRate { get; set; } = string.Empty;
         public string NextFundingTime { get; set; } = string.Empty;
-    }
-    
-    private class OkxOpenInterestResponse
-    {
-        public List<OkxOpenInterest> Data { get; set; } = new();
-    }
-    
-    private class OkxOpenInterest
-    {
-        public string InstId { get; set; } = string.Empty;
-        public string OI { get; set; } = string.Empty;
     }
     
     private class OkxInstrumentsResponse

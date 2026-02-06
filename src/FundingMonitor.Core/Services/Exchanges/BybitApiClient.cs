@@ -35,12 +35,6 @@ public class BybitApiClient : BaseExchangeApiClient
             }).ToList();
     }
     
-    public override async Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol)
-    {
-        var rates = await GetAllFundingRatesAsync();
-        return rates.FirstOrDefault(r => r.NormalizedSymbol == symbol);
-    }
-    
     private class BybitTickersResponse
     {
         public BybitTickersResult Result { get; set; } = null!;
