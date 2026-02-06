@@ -35,12 +35,6 @@ public class OkxApiClient : BaseExchangeApiClient
             .Where(t => !string.IsNullOrEmpty(t.InstId))
             .ToDictionary(t => t.InstId, t => t);
         
-        // 3. Получаем Open Interest одним запросом
-        var oiResponse = await GetAsync<OkxOpenInterestResponse>("/api/v5/public/open-interest?instType=SWAP");
-        var oiDict = oiResponse?.Data?
-            .Where(oi => !string.IsNullOrEmpty(oi.InstId))
-            .ToDictionary(oi => oi.InstId, oi => oi.OI) ?? new Dictionary<string, string>();
-        
         // 4. Для каждого инструмента получаем ставку финансирования
         foreach (var instrument in usdtInstruments)
         {
@@ -64,7 +58,6 @@ public class OkxApiClient : BaseExchangeApiClient
             var rate = new NormalizedFundingRate
             {
                 Exchange = ExchangeType.OKX,
-                OriginalSymbol = instrument.InstId,
                 NormalizedSymbol = normalizedSymbol,
                 BaseAsset = parsedSymbol.Base,
                 QuoteAsset = parsedSymbol.Quote,
@@ -73,11 +66,7 @@ public class OkxApiClient : BaseExchangeApiClient
                     long.Parse(fundingData.NextFundingTime)).UtcDateTime,
                 MarkPrice = SafeParseDecimal(ticker.MarkPx),
                 IndexPrice = SafeParseDecimal(ticker.IdxPx),
-                OpenInterest = oiDict.TryGetValue(instrument.InstId, out var oi) ? 
-                    SafeParseDecimal(oi) : (decimal?)null,
-                Volume24h = SafeParseDecimal(ticker.Vol24h),
-                DataTime = DateTime.UtcNow,
-                InstrumentType = instrument.InstType,
+                LastCheck = DateTime.UtcNow,
                 IsActive = instrument.State == "live",
                 FundingIntervalHours = 8
             };
@@ -116,10 +105,6 @@ public class OkxApiClient : BaseExchangeApiClient
             
             var ticker = tickerResponse.Data[0];
             
-            // 3. Получаем Open Interest
-            var oiResponse = await GetAsync<OkxOpenInterestResponse>(
-                $"/api/v5/public/open-interest?instId={fullSymbol}");
-            
             // 4. Создаем нормализованный объект
             var normalizedSymbol = SymbolNormalizer.Normalize(fullSymbol, ExchangeType);
             var parsedSymbol = SymbolNormalizer.Parse(fullSymbol, ExchangeType);
@@ -127,7 +112,6 @@ public class OkxApiClient : BaseExchangeApiClient
             return new NormalizedFundingRate
             {
                 Exchange = ExchangeType.OKX,
-                OriginalSymbol = fullSymbol,
                 NormalizedSymbol = normalizedSymbol,
                 BaseAsset = parsedSymbol.Base,
                 QuoteAsset = parsedSymbol.Quote,
@@ -136,11 +120,7 @@ public class OkxApiClient : BaseExchangeApiClient
                     long.Parse(fundingData.NextFundingTime)).UtcDateTime,
                 MarkPrice = SafeParseDecimal(ticker.MarkPx),
                 IndexPrice = SafeParseDecimal(ticker.IdxPx),
-                OpenInterest = oiResponse?.Data?.FirstOrDefault()?.OI != null ? 
-                    SafeParseDecimal(oiResponse.Data[0].OI) : (decimal?)null,
-                Volume24h = SafeParseDecimal(ticker.Vol24h),
-                DataTime = DateTime.UtcNow,
-                InstrumentType = "SWAP",
+                LastCheck = DateTime.UtcNow,
                 IsActive = true,
                 FundingIntervalHours = 8
             };

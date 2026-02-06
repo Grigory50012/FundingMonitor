@@ -5,7 +5,7 @@ namespace FundingMonitor.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<NormalizedFundingRateEntity> FundingRates { get; set; }
+    public DbSet<NormalizedFundingRateEntity> FundingRateCurrent { get; set; }
     
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -16,10 +16,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<NormalizedFundingRateEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange, e.DataTime });
+            entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange });
             entity.HasIndex(e => e.NormalizedSymbol);
             entity.HasIndex(e => e.Exchange);
-            entity.HasIndex(e => e.DataTime);
         });
     }
 }

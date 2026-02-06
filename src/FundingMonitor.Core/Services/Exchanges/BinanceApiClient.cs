@@ -21,16 +21,17 @@ public class BinanceApiClient : BaseExchangeApiClient
             .Select(r => new NormalizedFundingRate
             {
                 Exchange = ExchangeType.Binance,
-                OriginalSymbol = r.Symbol,
                 NormalizedSymbol = SymbolNormalizer.Normalize(r.Symbol, ExchangeType),
-                BaseAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
-                QuoteAsset = "USDT",
-                FundingRate = SafeParseDecimal(r.LastFundingRate),
-                NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.NextFundingTime).UtcDateTime,
                 MarkPrice = SafeParseDecimal(r.MarkPrice),
                 IndexPrice = SafeParseDecimal(r.IndexPrice),
-                DataTime = DateTime.UtcNow,
-                InstrumentType = "PERPETUAL"
+                FundingRate = SafeParseDecimal(r.LastFundingRate),
+                // FundingIntervalHours = null; Binance не предоставляет Периодичность выплат.
+                NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.NextFundingTime).UtcDateTime,
+                LastCheck = DateTime.UtcNow,
+                
+                IsActive = true,
+                BaseAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
+                QuoteAsset = "USDT",
             }).ToList();
     }
     
@@ -41,7 +42,6 @@ public class BinanceApiClient : BaseExchangeApiClient
         return new NormalizedFundingRate
         {
             Exchange = ExchangeType.Binance,
-            OriginalSymbol = response.Symbol,
             NormalizedSymbol = SymbolNormalizer.Normalize(response.Symbol, ExchangeType),
             BaseAsset = SymbolNormalizer.Parse(response.Symbol, ExchangeType).Base,
             QuoteAsset = SymbolNormalizer.Parse(response.Symbol, ExchangeType).Quote,
@@ -49,8 +49,7 @@ public class BinanceApiClient : BaseExchangeApiClient
             NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(response.NextFundingTime).UtcDateTime,
             MarkPrice = SafeParseDecimal(response.MarkPrice),
             IndexPrice = SafeParseDecimal(response.IndexPrice),
-            DataTime = DateTime.UtcNow,
-            InstrumentType = "PERPETUAL"
+            LastCheck = DateTime.UtcNow,
         };
     }
     

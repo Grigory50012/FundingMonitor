@@ -21,24 +21,24 @@ public class BybitApiClient : BaseExchangeApiClient
             .Select(t => new NormalizedFundingRate
             {
                 Exchange = ExchangeType.Bybit,
-                OriginalSymbol = t.Symbol,
                 NormalizedSymbol = SymbolNormalizer.Normalize(t.Symbol, ExchangeType),
-                BaseAsset = SymbolNormalizer.Parse(t.Symbol, ExchangeType).Base,
-                QuoteAsset = "USDT",
-                FundingRate = SafeParseDecimal(t.FundingRate),
-                NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(t.NextFundingTime)).UtcDateTime,
                 MarkPrice = SafeParseDecimal(t.MarkPrice),
                 IndexPrice = SafeParseDecimal(t.IndexPrice),
-                Volume24h = SafeParseDecimal(t.Volume24h),
-                DataTime = DateTime.UtcNow,
-                InstrumentType = "PERPETUAL"
+                FundingRate = SafeParseDecimal(t.FundingRate),
+                FundingIntervalHours = Convert.ToInt32(t.FundingIntervalHour),
+                NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(t.NextFundingTime)).UtcDateTime,
+                LastCheck = DateTime.UtcNow,
+                
+                IsActive = true,
+                BaseAsset = SymbolNormalizer.Parse(t.Symbol, ExchangeType).Base,
+                QuoteAsset = "USDT",
             }).ToList();
     }
     
     public override async Task<NormalizedFundingRate?> GetFundingRateAsync(string symbol)
     {
         var rates = await GetAllFundingRatesAsync();
-        return rates.FirstOrDefault(r => r.OriginalSymbol == symbol || r.NormalizedSymbol == symbol);
+        return rates.FirstOrDefault(r => r.NormalizedSymbol == symbol);
     }
     
     private class BybitTickersResponse
@@ -57,7 +57,7 @@ public class BybitApiClient : BaseExchangeApiClient
         public string MarkPrice { get; set; } = string.Empty;
         public string IndexPrice { get; set; } = string.Empty;
         public string FundingRate { get; set; } = string.Empty;
+        public string FundingIntervalHour { get; set; } = string.Empty;
         public string NextFundingTime { get; set; } = string.Empty;
-        public string Volume24h { get; set; } = string.Empty;
     }
 }
