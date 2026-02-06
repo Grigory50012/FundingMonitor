@@ -1,5 +1,7 @@
 using FundingMonitor.Core.Interfaces;
+using FundingMonitor.Core.Models;
 using FundingMonitor.Data.Repositories;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,55 +13,175 @@ public class FundingDataBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FundingDataBackgroundService> _logger;
     private readonly PeriodicTimer _timer;
+    private readonly IConfiguration _configuration;
+    
+    // Статистика
+    private int _successfulCycles;
+    private int _failedCycles;
+    private DateTime _lastSuccessfulRun = DateTime.MinValue;
+    private readonly DateTime? _serviceStartTime;
 
     public FundingDataBackgroundService(
         IServiceScopeFactory scopeFactory,
-        ILogger<FundingDataBackgroundService> logger)
+        ILogger<FundingDataBackgroundService> logger,
+        IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
-        _timer = new PeriodicTimer(TimeSpan.FromMinutes(1)); // Интервал 1 минута
+        _configuration = configuration;
+        
+        var intervalMinutes = _configuration.GetValue("DataCollection:IntervalMinutes", 1);
+        _timer = new PeriodicTimer(TimeSpan.FromMinutes(intervalMinutes));
+        
+        _serviceStartTime = DateTime.UtcNow;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Funding Data Background Service started.");
+        _logger.LogInformation("Funding Data Background Service started. Interval: {Interval} minutes", 
+            _configuration.GetValue("DataCollection:IntervalMinutes", 1));
+        
+        // Первый запуск сразу после старта
+        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        await ProcessDataCollectionAsync();
         
         while (await _timer.WaitForNextTickAsync(stoppingToken))
         {
             try
             {
-                await ProcessDataCollectionAsync(stoppingToken);
+                await ProcessDataCollectionAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred during data collection");
-                // Не прерываем выполнение при ошибке, ждем следующей итерации
+                _failedCycles++;
+                _logger.LogError(ex, "Error occurred during data collection (Cycle #{Cycle})", 
+                    _successfulCycles + _failedCycles);
             }
         }
     }
 
-    private async Task ProcessDataCollectionAsync(CancellationToken cancellationToken)
+    private async Task ProcessDataCollectionAsync()
     {
+        var cycleNumber = _successfulCycles + _failedCycles + 1;
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        
+        _logger.LogInformation("Starting data collection cycle #{Cycle}", cycleNumber);
+        
         using var scope = _scopeFactory.CreateScope();
         
         var dataService = scope.ServiceProvider.GetRequiredService<IFundingDataService>();
         var repository = scope.ServiceProvider.GetRequiredService<IFundingRateRepository>();
         
-        _logger.LogInformation("Starting data collection cycle...");
-
-        // 1. Собираем данные
-        var allRates = await dataService.CollectAllRatesAsync();
-        _logger.LogInformation("Collected {Count} funding rates", allRates.Count);
-
-        // 2. Сохраняем в БД
-        if (allRates.Any())
+        try
         {
-            await repository.SaveRatesAsync(allRates);
-            _logger.LogInformation("Saved {Count} rates to database", allRates.Count);
+            // 1. Собираем данные
+            var allRates = await dataService.CollectAllRatesAsync();
+            var collectionTime = stopwatch.ElapsedMilliseconds;
+            
+            _logger.LogInformation("Collected {Count} funding rates in {Time}ms", 
+                allRates.Count, collectionTime);
+
+            // 2. Сохраняем в БД
+            if (allRates.Any())
+            {
+                await repository.SaveRatesAsync(allRates);
+                var saveTime = stopwatch.ElapsedMilliseconds - collectionTime;
+                
+                _logger.LogInformation("Saved {Count} rates to database in {Time}ms", 
+                    allRates.Count, saveTime);
+                
+                // 3. Ищем арбитражные возможности (опционально)
+                if (_configuration.GetValue("DataCollection:ScanArbitrage", true))
+                {
+                    var opportunities = dataService.FindArbitrageOpportunitiesAsync(allRates);
+                    if (opportunities.Any())
+                    {
+                        _logger.LogInformation("Found {Count} arbitrage opportunities", opportunities.Count);
+                        await ProcessArbitrageOpportunities(opportunities, scope.ServiceProvider);
+                    }
+                }
+            }
+            
+            _successfulCycles++;
+            _lastSuccessfulRun = DateTime.UtcNow;
+            
+            stopwatch.Stop();
+
+            _logger.LogInformation("Cycle #{Cycle} completed in {TotalTime}ms", 
+                cycleNumber, stopwatch.ElapsedMilliseconds);
+        
+            // Выводим статистику каждые 10 циклов
+            if (_successfulCycles % 10 == 0)
+            {
+                LogStatistics();
+            }
+        }
+        catch (Exception ex)
+        {
+            _failedCycles++;
+            _logger.LogError(ex, "Failed data collection cycle #{Cycle}", cycleNumber);
+            throw;
+        }
+    }
+    
+    private void LogStatistics()
+    {
+        var uptime = _serviceStartTime.HasValue 
+            ? DateTime.UtcNow - _serviceStartTime.Value 
+            : TimeSpan.Zero;
+        
+        var successRate = _successfulCycles + _failedCycles > 0 
+            ? (double)_successfulCycles / (_successfulCycles + _failedCycles) * 100 
+            : 0;
+        
+        _logger.LogInformation("""
+                               ========== SERVICE STATISTICS ==========
+                               Uptime: {Uptime}
+                               Total cycles: {TotalCycles}
+                               Successful: {Successful}
+                               Failed: {Failed}
+                               Success rate: {SuccessRate:F1}%
+                               Last successful run: {LastRun}
+                               ========================================
+                               """,
+            uptime.ToString(@"dd\.hh\:mm\:ss"),
+            _successfulCycles + _failedCycles,
+            _successfulCycles,
+            _failedCycles,
+            successRate,
+            _lastSuccessfulRun.ToString("yyyy-MM-dd HH:mm:ss"));
+    }
+    
+    private Task ProcessArbitrageOpportunities(
+        List<ArbitrageOpportunity> opportunities, 
+        IServiceProvider serviceProvider)
+    {
+        try
+        {
+            // Фильтруем значимые возможности
+            var significantOpps = opportunities
+                .Where(o => o.MaxDifference > 0.001m) // > 0.1% разницы
+                .Take(5) // Берем топ-5
+                .ToList();
+            
+            if (significantOpps.Any())
+            {
+                // Здесь можно добавить сохранение в БД или отправку уведомлений
+                var logger = serviceProvider.GetRequiredService<ILogger<FundingDataBackgroundService>>();
+                
+                foreach (var opp in significantOpps)
+                {
+                    logger.LogInformation("Significant arbitrage: {Symbol} - Diff: {Diff:P4}, APR: {APR:F2}%", 
+                        opp.Symbol, opp.MaxDifference, opp.AnnualYieldPercent);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing arbitrage opportunities");
         }
 
-        _logger.LogInformation("Data collection cycle completed");
+        return Task.CompletedTask;
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

@@ -10,7 +10,5 @@ public interface IExchangeApiClient
     Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync();
     Task<bool> IsAvailableAsync();
     
-    // Статистика
-    int RequestsMade { get; }
     bool IsRateLimited { get; }
 }
