@@ -19,6 +19,13 @@ internal class Program
     private static async Task Main(string[] args)
     {
         var host = Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((context, config) =>
+            {
+                config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true)
+                    .AddEnvironmentVariables()
+                    .AddCommandLine(args);
+            })
             .ConfigureServices((context, services) =>
             {
                 // Конфигурация
@@ -26,8 +33,7 @@ internal class Program
                 
                 // Настройка БД
                 services.AddDbContext<AppDbContext>(options =>
-                    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection") ??
-                                      "Host=localhost;Port=5432;Database=funding_monitor;Username=postgres;Password=postgres"));
+                    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
                 
                 // Репозиторий
                 services.AddScoped<IFundingRateRepository, FundingRateRepository>();
@@ -35,32 +41,8 @@ internal class Program
                 // Вспомогательные сервисы
                 services.AddSingleton<SymbolNormalizer>();
                 
-                // Базовый HttpClient без специфичных настроек
-                services.AddHttpClient();
-                
-                // HttpClient для каждой биржи с индивидуальными настройками и Polly политиками
-                services.AddHttpClient<BinanceApiClient>(client =>
-                    {
-                        client.BaseAddress = new Uri("https://fapi.binance.com");
-                        client.Timeout = TimeSpan.FromSeconds(30);
-                    })
-                    .AddPolicyHandler(GetRetryPolicy())
-                    .AddPolicyHandler(GetCircuitBreakerPolicy());
-                
-                services.AddHttpClient<BybitApiClient>(client =>
-                    {
-                        client.BaseAddress = new Uri("https://api.bybit.com");
-                        client.Timeout = TimeSpan.FromSeconds(30);
-                    })
-                    .AddPolicyHandler(GetRetryPolicy())
-                    .AddPolicyHandler(GetCircuitBreakerPolicy());
-                
-                // Именованный HttpClient для общего использования
-                services.AddHttpClient("ExchangeClient", client =>
-                    {
-                        client.Timeout = TimeSpan.FromSeconds(30);
-                    })
-                    .AddPolicyHandler(GetRetryPolicy());
+                // Настройка HTTP клиентов с Polly
+                ConfigureHttpClients(services, configuration);
                 
                 // API клиенты
                 services.AddTransient<IExchangeApiClient, BinanceApiClient>();
@@ -72,22 +54,96 @@ internal class Program
                 
                 // Сервис для фоновой работы
                 services.AddHostedService<FundingDataBackgroundService>();
+                
+                // Кэш для улучшения производительности
+                services.AddMemoryCache();
             })
             .ConfigureLogging((context, logging) =>
             {
                 logging.ClearProviders();
                 logging.AddConsole();
-                logging.SetMinimumLevel(LogLevel.Information);
+                logging.AddDebug();
+                
+                var logLevel = context.Configuration.GetValue("Logging:LogLevel:Default", LogLevel.Information);
+                logging.SetMinimumLevel(logLevel);
+                
                 logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
                 logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
             })
             .Build();
+        
+        // Проверяем миграции БД при старте
+        await EnsureDatabaseMigratedAsync(host.Services);
         
         // Отображаем стартовую информацию
         await ShowStartupInfoAsync(host.Services);
         
         // Запускаем хост
         await host.RunAsync();
+    }
+    
+    private static void ConfigureHttpClients(IServiceCollection services, IConfiguration configuration)
+    {
+        var retryCount = configuration.GetValue("DataCollection:RetryCount", 3);
+        
+        // Политика повторных попыток
+        var retryPolicy = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
+            .WaitAndRetryAsync(
+                retryCount: retryCount,
+                sleepDurationProvider: retryAttempt => 
+                    TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                onRetry: (_, timespan, retryCountArg, _) =>
+                {
+                    System.Console.WriteLine($"[HTTP] Retry {retryCountArg}/{retryCountArg} after {timespan.TotalSeconds:F1}s");
+                });
+        
+        // Circuit Breaker
+        var circuitBreakerPolicy = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(
+                handledEventsAllowedBeforeBreaking: 5,
+                durationOfBreak: TimeSpan.FromSeconds(30));
+        
+        // Binance клиент
+        var binanceConfig = configuration.GetSection("Exchanges:Binance");
+        services.AddHttpClient<BinanceApiClient>(client =>
+            {
+                client.BaseAddress = new Uri(binanceConfig["BaseUrl"] ?? "https://fapi.binance.com");
+                client.Timeout = TimeSpan.FromSeconds(binanceConfig.GetValue("TimeoutSeconds", 30));
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            })
+            .AddPolicyHandler(retryPolicy)
+            .AddPolicyHandler(circuitBreakerPolicy);
+        
+        // Bybit клиент
+        var bybitConfig = configuration.GetSection("Exchanges:Bybit");
+        services.AddHttpClient<BybitApiClient>(client =>
+            {
+                client.BaseAddress = new Uri(bybitConfig["BaseUrl"] ?? "https://api.bybit.com");
+                client.Timeout = TimeSpan.FromSeconds(bybitConfig.GetValue("TimeoutSeconds", 30));
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            })
+            .AddPolicyHandler(retryPolicy)
+            .AddPolicyHandler(circuitBreakerPolicy);
+    }
+    
+    private static async Task EnsureDatabaseMigratedAsync(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        
+        try
+        {
+            await dbContext.Database.MigrateAsync();
+            System.Console.WriteLine("Database migrations applied successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"Error applying migrations: {ex.Message}");
+            throw;
+        }
     }
 
     private static async Task ShowStartupInfoAsync(IServiceProvider serviceProvider)
@@ -125,39 +181,5 @@ internal class Program
             logger.LogError(ex, "Error showing startup info");
             System.Console.WriteLine($"Error: {ex.Message}");
         }
-    }
-    
-    // Политика повторных попыток
-    static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
-    {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-            .WaitAndRetryAsync(
-                retryCount: 3,
-                sleepDurationProvider: retryAttempt => 
-                    TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                onRetry: (outcome, timespan, retryCount, context) =>
-                {
-                    System.Console.WriteLine($"Retry {retryCount} after {timespan.TotalSeconds:F1}s due to: {outcome.Result?.StatusCode}");
-                });
-    }
-    
-    // Политика Circuit Breaker
-    static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
-    {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .CircuitBreakerAsync(
-                handledEventsAllowedBeforeBreaking: 5,
-                durationOfBreak: TimeSpan.FromSeconds(30),
-                onBreak: (outcome, breakDelay) =>
-                {
-                    System.Console.WriteLine($"Circuit breaker opened for {breakDelay.TotalSeconds}s due to: {outcome.Exception?.Message}");
-                },
-                onReset: () =>
-                {
-                    System.Console.WriteLine("Circuit breaker reset");
-                });
     }
 }
