@@ -11,7 +11,7 @@ namespace FundingMonitor.Console;
 public class FundingDataBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<FundingDataBackgroundService> _logger;
+    private readonly ILogger _logger;
     private readonly PeriodicTimer _timer;
     private readonly IConfiguration _configuration;
     
@@ -38,7 +38,7 @@ public class FundingDataBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Funding Data Background Service started. Interval: {Interval} minutes", 
+        _logger.LogInformation("Funding Data Background Service запущен. Интервал сбора данных: {Interval} м", 
             _configuration.GetValue("DataCollection:IntervalMinutes", 1));
         
         // Первый запуск сразу после старта
@@ -65,7 +65,7 @@ public class FundingDataBackgroundService : BackgroundService
         var cycleNumber = _successfulCycles + _failedCycles + 1;
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         
-        _logger.LogInformation("Starting data collection cycle #{Cycle}", cycleNumber);
+        _logger.LogInformation("Начало цикла сбора данных #{Cycle}", cycleNumber);
         
         using var scope = _scopeFactory.CreateScope();
         
@@ -75,52 +75,78 @@ public class FundingDataBackgroundService : BackgroundService
         try
         {
             // 1. Собираем данные
-            var allRates = await dataService.CollectAllRatesAsync();
-            var collectionTime = stopwatch.ElapsedMilliseconds;
-            
-            _logger.LogInformation("Collected {Count} funding rates in {Time}ms", 
-                allRates.Count, collectionTime);
+            using var cts = new CancellationTokenSource(
+                TimeSpan.FromSeconds(_configuration.GetValue("DataCollection:CollectionTimeoutSeconds", 15)));
+        
+            var collectionTask = dataService.CollectAllRatesAsync(cts.Token);
 
-            // 2. Сохраняем в БД
-            if (allRates.Any())
+            // Ждем завершения или таймаута
+            if (await Task.WhenAny(collectionTask, Task.Delay(Timeout.Infinite, cts.Token)) == collectionTask)
             {
-                await repository.SaveRatesAsync(allRates);
-                var saveTime = stopwatch.ElapsedMilliseconds - collectionTime;
-                
-                _logger.LogInformation("Saved {Count} rates to database in {Time}ms", 
-                    allRates.Count, saveTime);
-                
-                // 3. Ищем арбитражные возможности (опционально)
-                if (_configuration.GetValue("DataCollection:ScanArbitrage", true))
+                var allRates = await collectionTask;
+                var collectionTime = stopwatch.ElapsedMilliseconds;
+
+                _logger.LogInformation("Собрано  {Count} ставок финансирования за {Time}мс",
+                    allRates.Count, collectionTime);
+
+                // 2. Сохраняем в БД
+                if (allRates.Any())
                 {
-                    var opportunities = dataService.FindArbitrageOpportunitiesAsync(allRates);
-                    if (opportunities.Any())
+                    await repository.SaveRatesAsync(allRates);
+                    var saveTime = stopwatch.ElapsedMilliseconds - collectionTime;
+
+                    _logger.LogInformation("Сохранено {Count} ставок в базу данных за {Time}мс",
+                        allRates.Count, saveTime);
+
+                    // 3. Ищем арбитражные возможности (опционально)
+                    if (_configuration.GetValue("DataCollection:ScanArbitrage", true))
                     {
-                        _logger.LogInformation("Found {Count} arbitrage opportunities", opportunities.Count);
-                        await ProcessArbitrageOpportunities(opportunities, scope.ServiceProvider);
+                        var opportunities = dataService.FindArbitrageOpportunitiesAsync(allRates);
+                        if (opportunities.Any())
+                        {
+                            _logger.LogInformation("Found {Count} arbitrage opportunities", opportunities.Count);
+                            await ProcessArbitrageOpportunities(opportunities, scope.ServiceProvider);
+                        }
                     }
                 }
-            }
+                else
+                {
+                    _logger.LogWarning("No rates collected in cycle #{Cycle}", cycleNumber);
+                }
+                
+                _successfulCycles++;
+                _lastSuccessfulRun = DateTime.UtcNow;
             
-            _successfulCycles++;
-            _lastSuccessfulRun = DateTime.UtcNow;
-            
-            stopwatch.Stop();
+                stopwatch.Stop();
 
-            _logger.LogInformation("Cycle #{Cycle} completed in {TotalTime}ms", 
-                cycleNumber, stopwatch.ElapsedMilliseconds);
-        
-            // Выводим статистику каждые 10 циклов
-            if (_successfulCycles % 10 == 0)
-            {
-                LogStatistics();
+                _logger.LogInformation("Цикл #{Cycle} завершен за {TotalTime}мс", 
+                    cycleNumber, stopwatch.ElapsedMilliseconds);
             }
+            else
+            {
+                await cts.CancelAsync();
+                throw new TimeoutException("Data collection timed out after 2 minutes");
+            }
+        }
+        catch (TimeoutException ex)
+        {
+            _failedCycles++;
+            _logger.LogError(ex, "Data collection timeout in cycle #{Cycle}", cycleNumber);
+            throw;
         }
         catch (Exception ex)
         {
             _failedCycles++;
             _logger.LogError(ex, "Failed data collection cycle #{Cycle}", cycleNumber);
             throw;
+        }
+        finally
+        {
+            // Выводим статистику каждые 10 циклов
+            if ((_successfulCycles + _failedCycles) % 10 == 0)
+            {
+                LogStatistics();
+            }
         }
     }
     

@@ -12,7 +12,7 @@ public class OkxApiClient : BaseExchangeApiClient
     {
     }
     
-    public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync()
+    public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
     {
         var results = new List<NormalizedFundingRate>();
        

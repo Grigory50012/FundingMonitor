@@ -39,10 +39,6 @@ public class FundingRateRepository : IFundingRateRepository
             
             if (existingEntities.TryGetValue(key, out var existingEntity))
             {
-                // Обновляем существующую
-                if (!ShouldUpdateEntity(existingEntity, rate)) 
-                    continue;
-                
                 UpdateEntity(existingEntity, rate);
                 entitiesToUpdate.Add(existingEntity);
             }
@@ -111,17 +107,6 @@ public class FundingRateRepository : IFundingRateRepository
         };
     }
 
-    private static bool ShouldUpdateEntity(NormalizedFundingRateEntity entity, NormalizedFundingRate rate)
-    {
-        // Обновляем только если данные изменились или прошло достаточно времени
-        return entity.FundingRate != rate.FundingRate ||
-               entity.MarkPrice != rate.MarkPrice ||
-               entity.IndexPrice != rate.IndexPrice ||
-               entity.PredictedNextRate != rate.PredictedNextRate ||
-               entity.NextFundingTime != rate.NextFundingTime ||
-               entity.LastCheck.AddMinutes(5) < DateTime.UtcNow; // Обновляем минимум раз в 5 минут
-    }
-    
     private static void UpdateEntity(NormalizedFundingRateEntity entity, NormalizedFundingRate rate)
     {
         entity.MarkPrice = rate.MarkPrice;

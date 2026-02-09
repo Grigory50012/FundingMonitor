@@ -113,6 +113,9 @@ internal class Program
                 client.BaseAddress = new Uri(binanceConfig["BaseUrl"] ?? "https://fapi.binance.com");
                 client.Timeout = TimeSpan.FromSeconds(binanceConfig.GetValue("TimeoutSeconds", 30));
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
+                
+                client.DefaultRequestVersion = HttpVersion.Version20;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
             })
             .AddPolicyHandler(retryPolicy)
             .AddPolicyHandler(circuitBreakerPolicy);
@@ -124,6 +127,9 @@ internal class Program
                 client.BaseAddress = new Uri(bybitConfig["BaseUrl"] ?? "https://api.bybit.com");
                 client.Timeout = TimeSpan.FromSeconds(bybitConfig.GetValue("TimeoutSeconds", 30));
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
+                
+                client.DefaultRequestVersion = HttpVersion.Version20;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
             })
             .AddPolicyHandler(retryPolicy)
             .AddPolicyHandler(circuitBreakerPolicy);
@@ -161,20 +167,27 @@ internal class Program
         
         try
         {
-            System.Console.WriteLine("Checking exchanges availability...");
+            System.Console.WriteLine("CHECKING EXCHANGE STATUS...");
             var status = await dataService.CheckExchangesStatusAsync();
             
             System.Console.WriteLine("\nEXCHANGE STATUS");
             System.Console.WriteLine("───────────────");
             foreach (var (exchange, isAvailable) in status)
             {
-                System.Console.WriteLine($"  {exchange,-10} : {(isAvailable ? "✅ Available" : "❌ Unavailable")}");
+                System.Console.WriteLine($"  {exchange,-10} : {(isAvailable ? "Available" : "Unavailable")}");
             }
             
-            System.Console.WriteLine($"\nBackground service started at: {DateTime.Now:HH:mm:ss}");
-            System.Console.WriteLine("Data will be collected every minute");
-            System.Console.WriteLine("\nPress Ctrl+C to stop...");
-            System.Console.WriteLine();
+            // Выводим статус БД
+            try
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var canConnect = await dbContext.Database.CanConnectAsync();
+                System.Console.WriteLine($"Database: {(canConnect ? "Connected" : "Not connected")}");
+            }
+            catch
+            {
+                System.Console.WriteLine("Database: Connection error");
+            }
         }
         catch (Exception ex)
         {

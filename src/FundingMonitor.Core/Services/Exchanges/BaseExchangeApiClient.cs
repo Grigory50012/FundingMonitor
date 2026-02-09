@@ -10,14 +10,13 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
-    private JsonSerializerOptions _jsonOptions = new();
+    private readonly JsonSerializerOptions _jsonOptions = new();
     
     private readonly List<DateTime> _requestTimes = new();
     private readonly int _rateLimit;
     private readonly object _lock = new();
     
     public abstract ExchangeType ExchangeType { get; }
-    public int RequestsMade => _requestTimes.Count;
     
     public bool IsRateLimited
     {
@@ -95,12 +94,18 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     {
         lock (_lock)
         {
-            _requestTimes.Add(DateTime.UtcNow);
+            var now = DateTime.UtcNow;
+            _requestTimes.Add(now);
+            
+            if (_requestTimes.Count > _rateLimit * 2) // Храним максимум в 2 раза больше лимита
+            {
+                _requestTimes.RemoveAll(t => t < now.AddMinutes(-2));
+            }
         }
     }
     
     // Абстрактные методы
-    public abstract Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync();
+    public abstract Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken  cancellationToken);
     
     public virtual async Task<bool> IsAvailableAsync()
     {
