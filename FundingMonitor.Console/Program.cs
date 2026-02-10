@@ -3,7 +3,6 @@ using FundingMonitor.Application.Interfaces.Clients;
 using FundingMonitor.Application.Interfaces.Repositories;
 using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Application.Services;
-using FundingMonitor.Application.Utilities;
 using FundingMonitor.Console.Services;
 using FundingMonitor.Infrastructure.Data;
 using FundingMonitor.Infrastructure.Data.Repositories;
@@ -42,8 +41,6 @@ internal class Program
                 // Репозиторий
                 services.AddScoped<IFundingRateRepository, FundingRateRepository>();
                 
-                // Вспомогательные сервисы
-                services.AddSingleton<SymbolNormalizer>();
                 
                 // Настройка HTTP клиентов с Polly
                 ConfigureHttpClients(services, configuration);
@@ -57,6 +54,7 @@ internal class Program
                 services.AddScoped<IDataCollector, DataCollector>();
                 services.AddScoped<IArbitrageScanner, ArbitrageScanner>();
                 services.AddScoped<IExchangeHealthChecker, ExchangeHealthChecker>();
+                services.AddSingleton<ISymbolNormalizer, SymbolNormalizer>();
                 
                 // Сервис для фоновой работы
                 services.AddHostedService<FundingDataBackgroundService>();

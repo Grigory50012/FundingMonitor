@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using FundingMonitor.Application.Utilities;
+using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -10,10 +10,16 @@ public class BinanceApiClient : BaseExchangeApiClient
 {
     public override ExchangeType ExchangeType => ExchangeType.Binance;
     private readonly ILogger _logger;
+    private readonly ISymbolNormalizer _symbolNormalizer;
     
-    public BinanceApiClient(HttpClient httpClient, ILogger<BinanceApiClient> logger) : base(httpClient, logger)
+    public BinanceApiClient(
+        HttpClient httpClient, 
+        ILogger<BinanceApiClient> logger, 
+        ISymbolNormalizer symbolNormalizer) 
+        : base(httpClient, logger)
     {
         _logger = logger;
+        _symbolNormalizer = symbolNormalizer;
     }
     
     public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
@@ -30,7 +36,7 @@ public class BinanceApiClient : BaseExchangeApiClient
                 .Select(r => new NormalizedFundingRate
                 {
                     Exchange = ExchangeType.Binance,
-                    NormalizedSymbol = SymbolNormalizer.Normalize(r.Symbol, ExchangeType),
+                    NormalizedSymbol = _symbolNormalizer.Normalize(r.Symbol, ExchangeType),
                     MarkPrice = SafeParseDecimal(r.MarkPrice),
                     IndexPrice = SafeParseDecimal(r.IndexPrice),
                     FundingRate = SafeParseDecimal(r.LastFundingRate),
@@ -38,7 +44,7 @@ public class BinanceApiClient : BaseExchangeApiClient
                     LastCheck = DateTime.UtcNow,
 
                     IsActive = true,
-                    BaseAsset = SymbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
+                    BaseAsset = _symbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
                     QuoteAsset = "USDT"
                 })
                 .ToList();

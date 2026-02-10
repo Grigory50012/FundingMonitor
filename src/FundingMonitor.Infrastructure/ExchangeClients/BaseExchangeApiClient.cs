@@ -30,19 +30,6 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         ConfigureJsonOptions();
     }
 
-    public bool IsRateLimited
-    {
-        get
-        {
-            lock (_lock)
-            {
-                var minuteAgo = DateTime.UtcNow.AddMinutes(-1);
-                _requestTimes.RemoveAll(t => t < minuteAgo);
-                return _requestTimes.Count >= _rateLimit;
-            }
-        }
-    }
-    
     private void ConfigureHttpClient()
     {
         _httpClient.BaseAddress = new Uri(ExchangeType.GetApiBaseUrl());
@@ -87,6 +74,19 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         {
             _logger.LogDebug("[{Exchange}] Rate limited, waiting...", ExchangeType);
             await Task.Delay(1000, ct);
+        }
+    }
+    
+    public bool IsRateLimited
+    {
+        get
+        {
+            lock (_lock)
+            {
+                var minuteAgo = DateTime.UtcNow.AddMinutes(-1);
+                _requestTimes.RemoveAll(t => t < minuteAgo);
+                return _requestTimes.Count >= _rateLimit;
+            }
         }
     }
     

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using FundingMonitor.Application.Utilities;
+using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -9,12 +9,17 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 public class BybitApiClient : BaseExchangeApiClient
 {
     public override ExchangeType ExchangeType => ExchangeType.Bybit;
-    
     private readonly ILogger _logger;
+    private readonly ISymbolNormalizer _symbolNormalizer;
     
-    public BybitApiClient(HttpClient httpClient, ILogger<BybitApiClient> logger) : base(httpClient, logger)
+    public BybitApiClient(
+        HttpClient httpClient, 
+        ILogger<BybitApiClient> logger, 
+        ISymbolNormalizer symbolNormalizer) 
+        : base(httpClient, logger)
     {
         _logger = logger;
+        _symbolNormalizer = symbolNormalizer;
     }
     
     public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
@@ -31,7 +36,7 @@ public class BybitApiClient : BaseExchangeApiClient
                 .Select(t => new NormalizedFundingRate
                 {
                     Exchange = ExchangeType.Bybit,
-                    NormalizedSymbol = SymbolNormalizer.Normalize(t.Symbol, ExchangeType),
+                    NormalizedSymbol = _symbolNormalizer.Normalize(t.Symbol, ExchangeType),
                     MarkPrice = SafeParseDecimal(t.MarkPrice),
                     IndexPrice = SafeParseDecimal(t.IndexPrice),
                     FundingRate = SafeParseDecimal(t.FundingRate),
@@ -41,7 +46,7 @@ public class BybitApiClient : BaseExchangeApiClient
                     LastCheck = DateTime.UtcNow,
 
                     IsActive = true,
-                    BaseAsset = SymbolNormalizer.Parse(t.Symbol, ExchangeType).Base,
+                    BaseAsset = _symbolNormalizer.Parse(t.Symbol, ExchangeType).Base,
                     QuoteAsset = "USDT"
                 })
                 .ToList();

@@ -1,4 +1,4 @@
-using FundingMonitor.Application.Utilities;
+using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Core.Entities;
 using Microsoft.Extensions.Logging;
 
@@ -8,8 +8,18 @@ public class OkxApiClient : BaseExchangeApiClient
 {
     public override ExchangeType ExchangeType => ExchangeType.OKX;
     
-    public OkxApiClient(HttpClient httpClient, ILogger<OkxApiClient> logger) : base(httpClient, logger)
+    private readonly ILogger _logger;
+    private readonly ISymbolNormalizer _symbolNormalizer;
+    
+    public OkxApiClient(
+        HttpClient httpClient, 
+        ILogger<OkxApiClient> logger, 
+        ISymbolNormalizer symbolNormalizer, 
+        ILogger logger1) 
+        : base(httpClient, logger)
     {
+        _symbolNormalizer = symbolNormalizer;
+        _logger = logger1;
     }
     
     public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
@@ -52,8 +62,8 @@ public class OkxApiClient : BaseExchangeApiClient
                 continue;
             
             // 7. Создаем нормализованный объект
-            var normalizedSymbol = SymbolNormalizer.Normalize(instrument.InstId, ExchangeType);
-            var parsedSymbol = SymbolNormalizer.Parse(instrument.InstId, ExchangeType);
+            var normalizedSymbol = _symbolNormalizer.Normalize(instrument.InstId, ExchangeType);
+            var parsedSymbol = _symbolNormalizer.Parse(instrument.InstId, ExchangeType);
             
             var rate = new NormalizedFundingRate
             {
