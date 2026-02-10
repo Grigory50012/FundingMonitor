@@ -53,14 +53,14 @@ internal class Program
                 services.AddTransient<IExchangeApiClient, BybitApiClient>();
                 // services.AddTransient<IExchangeApiClient, OkxApiClient>();
                 
-                // Основной сервис
-                services.AddScoped<IFundingDataService, FundingDataService>();
+                // Services
+                services.AddScoped<IDataCollector, DataCollector>();
+                services.AddScoped<IArbitrageScanner, ArbitrageScanner>();
+                services.AddScoped<IExchangeHealthChecker, ExchangeHealthChecker>();
+                services.AddScoped<IFundingDataService, FundingDataOrchestrator>();
                 
                 // Сервис для фоновой работы
                 services.AddHostedService<FundingDataBackgroundService>();
-                
-                // Кэш для улучшения производительности
-                services.AddMemoryCache();
             })
             .ConfigureLogging((context, logging) =>
             {
