@@ -10,8 +10,6 @@ public static class FundingRateMapper
         if (domainModel == null)
             throw new ArgumentNullException(nameof(domainModel), "Domain model cannot be null");
         
-        ValidateDomainModel(domainModel);
-
         return new NormalizedFundingRateEntity
         {
             Id = 0, // Будет сгенерирован БД
@@ -31,30 +29,6 @@ public static class FundingRateMapper
         };
     }
     
-    public static NormalizedFundingRate ToDomain(NormalizedFundingRateEntity entity)
-    {
-        if (entity == null)
-            throw new ArgumentNullException(nameof(entity), "Entity cannot be null");
-        
-        ValidateEntity(entity);
-
-        return new NormalizedFundingRate
-        {
-            Exchange = ParseExchange(entity.Exchange),
-            NormalizedSymbol = entity.NormalizedSymbol,
-            BaseAsset = entity.BaseAsset,
-            QuoteAsset = entity.QuoteAsset,
-            MarkPrice = entity.MarkPrice ?? 0,
-            IndexPrice = entity.IndexPrice ?? 0,
-            FundingRate = entity.FundingRate,
-            FundingIntervalHours = entity.FundingIntervalHours,
-            NextFundingTime = entity.NextFundingTime,
-            LastCheck = entity.LastCheck,
-            PredictedNextRate = entity.PredictedNextRate,
-            IsActive = entity.IsActive
-        };
-    }
-    
     public static void UpdateEntity(NormalizedFundingRateEntity entity, NormalizedFundingRate domainModel)
     {
         if (entity == null)
@@ -63,8 +37,6 @@ public static class FundingRateMapper
         if (domainModel == null)
             throw new ArgumentNullException(nameof(domainModel), "Domain model cannot be null");
         
-        ValidateDomainModel(domainModel);
-
         // Проверяем, что обновляем правильную запись
         if (entity.Exchange != domainModel.Exchange.ToString() || 
             entity.NormalizedSymbol != domainModel.NormalizedSymbol)
@@ -83,42 +55,6 @@ public static class FundingRateMapper
         entity.LastCheck = domainModel.LastCheck;
         entity.PredictedNextRate = domainModel.PredictedNextRate;
         entity.IsActive = domainModel.IsActive;
-    }
-    
-    public static IReadOnlyList<NormalizedFundingRate> ToDomainList(
-        IEnumerable<NormalizedFundingRateEntity> entities)
-    {
-        if (entities == null)
-            throw new ArgumentNullException(nameof(entities));
-        
-        return entities
-            .Select(ToDomain)
-            .ToList()
-            .AsReadOnly();
-    }
-    
-    public static IReadOnlyList<NormalizedFundingRateEntity> ToEntityList(
-        IEnumerable<NormalizedFundingRate> domainModels)
-    {
-        if (domainModels == null)
-            throw new ArgumentNullException(nameof(domainModels));
-        
-        return domainModels
-            .Select(ToEntity)
-            .ToList()
-            .AsReadOnly();
-    }
-    
-    public static NormalizedFundingRateEntity ToEntityOrUpdate(
-        NormalizedFundingRate domainModel, 
-        NormalizedFundingRateEntity? existingEntity = null)
-    {
-        if (domainModel == null)
-            throw new ArgumentNullException(nameof(domainModel));
-        
-        return existingEntity == null 
-            ? ToEntity(domainModel) 
-            : UpdateAndReturnEntity(existingEntity, domainModel);
     }
     
     public static List<NormalizedFundingRate> ToDomainListFast(
@@ -171,34 +107,5 @@ public static class FundingRateMapper
             ExchangeType.OKX => 8,
             _ => 8 // По умолчанию 8 часов
         };
-    }
-    
-    private static void ValidateDomainModel(NormalizedFundingRate domainModel)
-    {
-        if (string.IsNullOrWhiteSpace(domainModel.NormalizedSymbol))
-            throw new ArgumentException("NormalizedSymbol is required", nameof(domainModel));
-    }
-    
-    private static void ValidateEntity(NormalizedFundingRateEntity entity)
-    {
-        if (string.IsNullOrWhiteSpace(entity.NormalizedSymbol))
-            throw new ArgumentException($"Entity has invalid NormalizedSymbol: {entity.NormalizedSymbol}", 
-                nameof(entity));
-        
-        if (string.IsNullOrWhiteSpace(entity.Exchange))
-            throw new ArgumentException($"Entity has invalid Exchange: {entity.Exchange}", 
-                nameof(entity));
-        
-        if (entity.FundingIntervalHours <= 0 || entity.FundingIntervalHours > 24)
-            throw new ArgumentException($"Invalid FundingIntervalHours: {entity.FundingIntervalHours}", 
-                nameof(entity));
-    }
-    
-    private static NormalizedFundingRateEntity UpdateAndReturnEntity(
-        NormalizedFundingRateEntity entity, 
-        NormalizedFundingRate domainModel)
-    {
-        UpdateEntity(entity, domainModel);
-        return entity;
     }
 }

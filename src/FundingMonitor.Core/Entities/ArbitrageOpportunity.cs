@@ -4,7 +4,6 @@ public class ArbitrageOpportunity
 {
     public string Symbol { get; set; } = string.Empty;
     public List<NormalizedFundingRate> Rates { get; set; } = new();
-    public DateTime DetectedAt { get; set; } = DateTime.UtcNow;
     
     // Расчетные свойства
     public decimal MaxDifference => Rates.Count < 2 ? 0 : 
