@@ -57,7 +57,6 @@ internal class Program
                 services.AddScoped<IDataCollector, DataCollector>();
                 services.AddScoped<IArbitrageScanner, ArbitrageScanner>();
                 services.AddScoped<IExchangeHealthChecker, ExchangeHealthChecker>();
-                services.AddScoped<IFundingDataService, FundingDataOrchestrator>();
                 
                 // Сервис для фоновой работы
                 services.AddHostedService<FundingDataBackgroundService>();
@@ -159,7 +158,7 @@ internal class Program
     private static async Task ShowStartupInfoAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
-        var dataService = scope.ServiceProvider.GetRequiredService<IFundingDataService>();
+        var healthChecker = scope.ServiceProvider.GetRequiredService<IExchangeHealthChecker>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         
         System.Console.Clear();
@@ -172,7 +171,7 @@ internal class Program
         try
         {
             System.Console.WriteLine("CHECKING EXCHANGE STATUS...");
-            var status = await dataService.CheckExchangesStatusAsync();
+            var status = await healthChecker.CheckAllExchangesAsync();
             
             System.Console.WriteLine("\nEXCHANGE STATUS");
             System.Console.WriteLine("───────────────");

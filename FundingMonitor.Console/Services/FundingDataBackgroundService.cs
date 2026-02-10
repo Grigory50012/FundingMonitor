@@ -54,7 +54,7 @@ public class FundingDataBackgroundService : BackgroundService
         
         using var scope = _scopeFactory.CreateScope();
         
-        var dataService = scope.ServiceProvider.GetRequiredService<IFundingDataService>();
+        var collector = scope.ServiceProvider.GetRequiredService<IDataCollector>();
         var repository = scope.ServiceProvider.GetRequiredService<IFundingRateRepository>();
         
         try
@@ -63,15 +63,15 @@ public class FundingDataBackgroundService : BackgroundService
             using var cts = new CancellationTokenSource(
                 TimeSpan.FromSeconds(_configuration.GetValue("DataCollection:CollectionTimeoutSeconds", 15)));
         
-            var collectionTask = dataService.CollectAllRatesAsync(cts.Token);
+            var collectionTask = collector.CollectAllRatesAsync(cts.Token);
 
             // Ждем завершения или таймаута
-            if (await Task.WhenAny(collectionTask, Task.Delay(Timeout.Infinite, cts.Token)) == collectionTask)
+            if (await Task.WhenAny(collectionTask, Task.Delay(TimeSpan.FromSeconds(30), cts.Token)) == collectionTask)
             {
                 var allRates = await collectionTask;
                 var collectionTime = stopwatch.ElapsedMilliseconds;
 
-                _logger.LogInformation("Собрано  {Count} ставок финансирования за {Time}мс",
+                _logger.LogInformation("Собрано {Count} ставок финансирования за {Time}мс",
                     allRates.Count, collectionTime);
 
                 // 2. Сохраняем в БД
