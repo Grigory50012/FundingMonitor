@@ -4,5 +4,5 @@ namespace FundingMonitor.Application.Interfaces.Services;
 
 public interface IExchangeHealthChecker
 {
-    Task<Dictionary<ExchangeType, bool>> CheckAllExchangesAsync();
+    Task<Dictionary<ExchangeType, bool>> CheckAllExchangesAsync(CancellationToken cancellationToken);
 }

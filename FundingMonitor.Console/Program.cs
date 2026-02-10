@@ -171,7 +171,8 @@ internal class Program
         try
         {
             System.Console.WriteLine("CHECKING EXCHANGE STATUS...");
-            var status = await healthChecker.CheckAllExchangesAsync();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var status = await healthChecker.CheckAllExchangesAsync(cts.Token);
             
             System.Console.WriteLine("\nEXCHANGE STATUS");
             System.Console.WriteLine("───────────────");

@@ -13,11 +13,11 @@ public class ExchangeHealthChecker : IExchangeHealthChecker
         _clients = clients;
     }
 
-    public async Task<Dictionary<ExchangeType, bool>> CheckAllExchangesAsync()
+    public async Task<Dictionary<ExchangeType, bool>> CheckAllExchangesAsync(CancellationToken cancellationToken)
     {
         var tasks = _clients.ToDictionary(
             client => client.ExchangeType,
-            client => client.IsAvailableAsync());
+            client => client.IsAvailableAsync(cancellationToken));
         
         await Task.WhenAll(tasks.Values);
         

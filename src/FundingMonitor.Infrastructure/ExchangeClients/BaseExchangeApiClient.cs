@@ -18,6 +18,18 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     
     public abstract ExchangeType ExchangeType { get; }
     
+    protected BaseExchangeApiClient(
+        HttpClient httpClient, 
+        ILogger logger)
+    {
+        _httpClient = httpClient;
+        _logger = logger;
+        _rateLimit = ExchangeType.GetRateLimitPerMinute();
+        
+        ConfigureHttpClient();
+        ConfigureJsonOptions();
+    }
+
     public bool IsRateLimited
     {
         get
@@ -29,18 +41,6 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
                 return _requestTimes.Count >= _rateLimit;
             }
         }
-    }
-    
-    protected BaseExchangeApiClient(
-        HttpClient httpClient, 
-        ILogger logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-        _rateLimit = ExchangeType.GetRateLimitPerMinute();
-        
-        ConfigureHttpClient();
-        ConfigureJsonOptions();
     }
     
     private void ConfigureHttpClient()
@@ -107,11 +107,11 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     // Абстрактные методы
     public abstract Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken  cancellationToken);
     
-    public virtual async Task<bool> IsAvailableAsync()
+    public virtual async Task<bool> IsAvailableAsync(CancellationToken  cancellationToken)
     {
         try
         {
-            await _httpClient.GetAsync("/", CancellationToken.None);
+            await _httpClient.GetAsync("/", cancellationToken);
             return true;
         }
         catch
