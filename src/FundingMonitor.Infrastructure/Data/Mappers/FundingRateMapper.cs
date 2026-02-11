@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Infrastructure.Data.Entities;
 
@@ -5,6 +6,8 @@ namespace FundingMonitor.Infrastructure.Data.Mappers;
 
 public static class FundingRateMapper
 {
+    private static readonly ConcurrentDictionary<string, ExchangeType> ExchangeCache = new();
+    
     public static NormalizedFundingRateEntity ToEntity(NormalizedFundingRate domainModel)
     {
         if (domainModel == null)
@@ -69,7 +72,7 @@ public static class FundingRateMapper
         {
             result.Add(new NormalizedFundingRate
             {
-                Exchange = ParseExchange(entity.Exchange),
+                Exchange = ParseExchangeCached(entity.Exchange),
                 NormalizedSymbol = entity.NormalizedSymbol,
                 BaseAsset = entity.BaseAsset,
                 QuoteAsset = entity.QuoteAsset,
@@ -87,15 +90,19 @@ public static class FundingRateMapper
         return result;
     }
     
-    private static ExchangeType ParseExchange(string exchangeName)
+    private static ExchangeType ParseExchangeCached(string exchangeName)
     {
         if (string.IsNullOrWhiteSpace(exchangeName))
             throw new ArgumentException("Exchange name cannot be empty", nameof(exchangeName));
-        
-        return Enum.TryParse<ExchangeType>(exchangeName, true, out var result)
-            ? result
-            : throw new InvalidOperationException($"Unknown exchange: '{exchangeName}'. " +
-                                                  $"Valid values: {string.Join(", ", Enum.GetNames<ExchangeType>())}");
+            
+        return ExchangeCache.GetOrAdd(exchangeName, name => 
+        {
+            if (Enum.TryParse<ExchangeType>(name, true, out var result))
+                return result;
+            
+            throw new InvalidOperationException(
+                $"Unknown exchange: '{name}'. Valid values: {string.Join(", ", Enum.GetNames<ExchangeType>())}");
+        });
     }
     
     private static int GetDefaultFundingInterval(ExchangeType exchange)
