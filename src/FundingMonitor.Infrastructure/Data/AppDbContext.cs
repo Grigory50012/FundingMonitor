@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
                 .IsUnique();
             entity.HasIndex(e => e.NormalizedSymbol);
             entity.HasIndex(e => e.Exchange);
+            entity.HasIndex(e => new { e.BaseAsset, e.IsActive });
         });
     }
 }

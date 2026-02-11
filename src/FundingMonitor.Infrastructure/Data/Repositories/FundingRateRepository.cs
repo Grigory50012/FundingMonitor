@@ -65,7 +65,9 @@ public class FundingRateRepository : IFundingRateRepository
     public async Task<IEnumerable<NormalizedFundingRate>> GetRatesAsync(
         string? symbol, List<ExchangeType>? exchanges)
     {
-        var query = _context.FundingRateCurrent.AsQueryable();
+        var query = _context.FundingRateCurrent
+            .AsQueryable()
+            .AsQueryable();
     
         // Опциональный фильтр по exchanges
         if (exchanges != null && exchanges.Any())
