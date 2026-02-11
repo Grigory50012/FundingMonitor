@@ -1,6 +1,6 @@
+using EFCore.BulkExtensions;
 using FundingMonitor.Application.Interfaces.Repositories;
 using FundingMonitor.Core.Entities;
-using FundingMonitor.Infrastructure.Data.Entities;
 using FundingMonitor.Infrastructure.Data.Mappers;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,54 +18,48 @@ public class FundingRateRepository : IFundingRateRepository
     public async Task SaveRatesAsync(IEnumerable<NormalizedFundingRate> rates)
     {
         var rateList = rates.ToList();
-        if (!rateList.Any())
-            return;
-        
-        // Получаем ключи для поиска существующих записей
-        var keys = rateList
-            .Select(r => new { Exchange = r.Exchange.ToString(), r.NormalizedSymbol })
-            .Distinct()
+        if (!rateList.Any()) return;
+
+        // 1. Маппинг и Upsert
+        var entities = rateList.Select(FundingRateMapper.ToEntity).ToList();
+        var bulkConfig = new BulkConfig
+        {
+            UpdateByProperties = new List<string> { "Exchange", "NormalizedSymbol" },
+            UseTempDB = false,
+            TrackingEntities = false,
+            BatchSize = 4000
+        };
+
+        await _context.BulkInsertOrUpdateAsync(entities, bulkConfig);
+
+        // 2. Получаем все уникальные ключи из БД (только Exchange и NormalizedSymbol)
+        var existingKeys = await _context.FundingRateCurrent
+            .Select(r => new { r.Exchange, r.NormalizedSymbol })
+            .ToListAsync();
+
+        // 3. Множество ключей, которые должны остаться (из входящего списка)
+        var incomingKeys = entities
+            .Select(e => new { e.Exchange, e.NormalizedSymbol })
+            .ToHashSet();
+
+        // 4. Ключи, которые есть в БД, но отсутствуют во входящем списке → подлежат удалению
+        var keysToDelete = existingKeys
+            .Where(k => !incomingKeys.Contains(k))
             .ToList();
-        
-        // Ищем существующие записи одним запросом
-        var existingEntities = await _context.FundingRateCurrent
-            .Where(r => keys.Select(k => k.Exchange).Contains(r.Exchange) &&
-                        keys.Select(k => k.NormalizedSymbol).Contains(r.NormalizedSymbol))
-            .ToDictionaryAsync(r => new { r.Exchange, r.NormalizedSymbol });
-        
-        var entitiesToAdd = new List<NormalizedFundingRateEntity>();
-        var entitiesToUpdate = new List<NormalizedFundingRateEntity>();
-        
-        foreach (var rate in rateList)
+
+        if (keysToDelete.Any())
         {
-            var key = new { Exchange = rate.Exchange.ToString(), rate.NormalizedSymbol };
-            
-            if (existingEntities.TryGetValue(key, out var existingEntity))
-            {
-                // Обновляем существующую запись
-                FundingRateMapper.UpdateEntity(existingEntity, rate);
-                entitiesToUpdate.Add(existingEntity);
-            }
-            else
-            {
-                // Создаем новую запись
-                var entity = FundingRateMapper.ToEntity(rate);
-                entitiesToAdd.Add(entity);
-            }
+            // 5. BulkDelete по ключам (можно удалять через поиск по составному ключу)
+            var entitiesToDelete = await _context.FundingRateCurrent
+                .Where(r => keysToDelete
+                                .Select(k => k.Exchange)
+                                .Contains(r.Exchange) && 
+                            keysToDelete.Select(k => k.NormalizedSymbol)
+                                .Contains(r.NormalizedSymbol))
+                .ToListAsync();
+
+            await _context.BulkDeleteAsync(entitiesToDelete);
         }
-        
-        // Используем Bulk Operations для оптимизации
-        if (entitiesToAdd.Any())
-        {
-            await _context.FundingRateCurrent.AddRangeAsync(entitiesToAdd);
-        }
-        
-        if (entitiesToUpdate.Any())
-        {
-            _context.FundingRateCurrent.UpdateRange(entitiesToUpdate);
-        }
-        
-        await _context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<NormalizedFundingRate>> GetRatesAsync(

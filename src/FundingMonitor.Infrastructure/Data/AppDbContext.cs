@@ -16,7 +16,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<NormalizedFundingRateEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange });
+            entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange })
+                .IsUnique();
             entity.HasIndex(e => e.NormalizedSymbol);
             entity.HasIndex(e => e.Exchange);
         });
