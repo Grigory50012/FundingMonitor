@@ -18,14 +18,13 @@ public class FundingRateRepository : IFundingRateRepository
     public async Task SaveRatesAsync(IEnumerable<NormalizedFundingRate> rates)
     {
         var rateList = rates.ToList();
-        if (!rateList.Any()) return;
+        if (rateList.Count == 0) return;
 
         // 1. Маппинг и Upsert
         var entities = rateList.Select(FundingRateMapper.ToEntity).ToList();
         var bulkConfig = new BulkConfig
         {
             UpdateByProperties = new List<string> { "Exchange", "NormalizedSymbol" },
-            UseTempDB = false,
             TrackingEntities = false,
             BatchSize = 4000
         };
