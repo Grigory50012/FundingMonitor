@@ -49,13 +49,20 @@ public class FundingRateRepository : IFundingRateRepository
         if (keysToDelete.Count != 0)
         {
             // 5. BulkDelete по ключам (можно удалять через поиск по составному ключу)
+            var exchangesToDelete = keysToDelete.Select(k => k.Exchange).ToList();
+            var symbolsToDelete = keysToDelete.Select(k => k.NormalizedSymbol).ToList();
+
             var entitiesToDelete = await _context.FundingRateCurrent
-                .Where(r => keysToDelete
-                                .Select(k => k.Exchange)
-                                .Contains(r.Exchange) && 
-                            keysToDelete.Select(k => k.NormalizedSymbol)
-                                .Contains(r.NormalizedSymbol))
+                .Where(r => exchangesToDelete.Contains(r.Exchange) && 
+                            symbolsToDelete.Contains(r.NormalizedSymbol))
                 .ToListAsync();
+
+            // Дополнительная фильтрация в памяти для точного соответствия пар
+            entitiesToDelete = entitiesToDelete
+                .Where(e => keysToDelete.Any(k => 
+                    k.Exchange == e.Exchange && 
+                    k.NormalizedSymbol == e.NormalizedSymbol))
+                .ToList();
 
             await _context.BulkDeleteAsync(entitiesToDelete);
         }
@@ -69,7 +76,7 @@ public class FundingRateRepository : IFundingRateRepository
             .AsQueryable();
     
         // Опциональный фильтр по exchanges
-        if (exchanges != null && exchanges.Any())
+        if (exchanges != null && exchanges.Count != 0)
         {
             var exchangeNames = exchanges.Select(e => e.ToString()).ToList();
             query = query.Where(r => exchangeNames.Contains(r.Exchange));
