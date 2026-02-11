@@ -60,8 +60,8 @@ public class FundingDataBackgroundService : BackgroundService
         try
         {
             // 1. Собираем данные
-            using var cts = new CancellationTokenSource(
-                TimeSpan.FromSeconds(_configuration.GetValue("DataCollection:CollectionTimeoutSeconds", 15)));
+            var timeoutSeconds = _configuration.GetValue("DataCollection:CollectionTimeoutSeconds", 15);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
         
             var collectionTask = collector.CollectAllRatesAsync(cts.Token);
 
