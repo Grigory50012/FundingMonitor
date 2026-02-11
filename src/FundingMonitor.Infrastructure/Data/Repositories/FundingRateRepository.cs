@@ -46,7 +46,7 @@ public class FundingRateRepository : IFundingRateRepository
             .Where(k => !incomingKeys.Contains(k))
             .ToList();
 
-        if (keysToDelete.Any())
+        if (keysToDelete.Count != 0)
         {
             // 5. BulkDelete по ключам (можно удалять через поиск по составному ключу)
             var entitiesToDelete = await _context.FundingRateCurrent

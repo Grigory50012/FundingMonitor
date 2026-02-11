@@ -95,9 +95,9 @@ internal class Program
                 retryCount: retryCount,
                 sleepDurationProvider: retryAttempt => 
                     TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                onRetry: (_, timespan, retryCountArg, _) =>
+                onRetry: (_, timespan, retryAttempt, _) =>
                 {
-                    System.Console.WriteLine($"[HTTP] Retry {retryCountArg}/{retryCountArg} after {timespan.TotalSeconds:F1}s");
+                    System.Console.WriteLine($"[HTTP] Retry {retryAttempt}/{retryCount} after {timespan.TotalSeconds:F1}s");
                 });
         
         // Circuit Breaker
@@ -183,7 +183,7 @@ internal class Program
             try
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                var canConnect = await dbContext.Database.CanConnectAsync();
+                var canConnect = await dbContext.Database.CanConnectAsync(cts.Token);
                 System.Console.WriteLine($"Database: {(canConnect ? "Connected" : "Not connected")}");
             }
             catch
