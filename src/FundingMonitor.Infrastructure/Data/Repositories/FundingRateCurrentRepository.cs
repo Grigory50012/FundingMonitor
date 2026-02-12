@@ -17,11 +17,10 @@ public class FundingRateCurrentRepository : IFundingRateCurrentRepository
 
     public async Task UpdateRatesAsync(IEnumerable<CurrentFundingRate> rates)
     {
-        var rateList = rates.ToList();
-        if (rateList.Count == 0) return;
+        var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
+        if (entities.Count == 0) return;
 
         // 1. Маппинг и Upsert
-        var entities = rateList.Select(FundingRateMapper.ToEntity).ToList();
         var bulkConfig = new BulkConfig
         {
             UpdateByProperties = new List<string> { "Exchange", "NormalizedSymbol" },
@@ -48,23 +47,11 @@ public class FundingRateCurrentRepository : IFundingRateCurrentRepository
 
         if (keysToDelete.Count != 0)
         {
-            // 5. BulkDelete по ключам (можно удалять через поиск по составному ключу)
-            var exchangesToDelete = keysToDelete.Select(k => k.Exchange).ToList();
-            var symbolsToDelete = keysToDelete.Select(k => k.NormalizedSymbol).ToList();
-
-            var entitiesToDelete = await _context.CurrentFundingRate
-                .Where(r => exchangesToDelete.Contains(r.Exchange) &&
-                            symbolsToDelete.Contains(r.NormalizedSymbol))
-                .ToListAsync();
-
-            // Дополнительная фильтрация в памяти для точного соответствия пар
-            entitiesToDelete = entitiesToDelete
-                .Where(e => keysToDelete.Any(k =>
-                    k.Exchange == e.Exchange &&
-                    k.NormalizedSymbol == e.NormalizedSymbol))
-                .ToList();
-
-            await _context.BulkDeleteAsync(entitiesToDelete);
+            foreach (var key in keysToDelete)
+                await _context.CurrentFundingRate
+                    .Where(r => r.Exchange == key.Exchange &&
+                                r.NormalizedSymbol == key.NormalizedSymbol)
+                    .ExecuteDeleteAsync();
         }
     }
 

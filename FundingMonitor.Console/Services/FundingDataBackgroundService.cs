@@ -50,7 +50,6 @@ public class FundingDataBackgroundService : BackgroundService
     private async Task ProcessDataCollectionAsync()
     {
         var stopwatch = Stopwatch.StartNew();
-
         _logger.LogInformation("Начало цикла сбора данных");
 
         using var scope = _scopeFactory.CreateScope();
@@ -64,38 +63,34 @@ public class FundingDataBackgroundService : BackgroundService
             using var cts = new CancellationTokenSource(
                 TimeSpan.FromSeconds(_dataCollectionOptions.Value.CollectionTimeoutSeconds));
 
-            var collectionTask = collector.CollectAllCurrentRatesAsync(cts.Token);
+            var allRates = await collector.CollectAllCurrentRatesAsync(cts.Token);
+            var collectionTime = stopwatch.ElapsedMilliseconds;
 
-            // Ждем завершения или таймаута
-            if (await Task.WhenAny(collectionTask,
-                    Task.Delay(TimeSpan.FromSeconds(_dataCollectionOptions.Value.CollectionTimeoutSeconds),
-                        cts.Token)) == collectionTask)
-            {
-                var allRates = await collectionTask;
-                var collectionTime = stopwatch.ElapsedMilliseconds;
+            _logger.LogInformation("Собрано {Count} ставок финансирования за {Time}мс",
+                allRates.Count, collectionTime);
 
-                _logger.LogInformation("Собрано {Count} ставок финансирования за {Time}мс",
-                    allRates.Count, collectionTime);
+            // 2. Сохраняем в БД
+            await repository.UpdateRatesAsync(allRates);
+            var saveTime = stopwatch.ElapsedMilliseconds - collectionTime;
 
-                // 2. Сохраняем в БД
-                await repository.UpdateRatesAsync(allRates);
-                var saveTime = stopwatch.ElapsedMilliseconds - collectionTime;
-                _logger.LogInformation("Сохранено {Count} ставок в базу данных за {Time}мс",
-                    allRates.Count, saveTime);
+            _logger.LogInformation("Сохранено {Count} ставок в базу данных за {Time}мс",
+                allRates.Count, saveTime);
 
-                stopwatch.Stop();
-                _logger.LogInformation("Цикл сбора завершен за {TotalTime}мс", stopwatch.ElapsedMilliseconds);
-            }
-            else
-            {
-                await cts.CancelAsync();
-                throw new TimeoutException("Истекло время ожидания сбора данных в цикле");
-            }
+            _logger.LogInformation("Цикл сбора завершен за {TotalTime}мс",
+                stopwatch.ElapsedMilliseconds);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Сбор данных отменен по таймауту через {Time}мс", stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка в цикле сбора данных: {exMessage}", ex.Message);
             throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
         }
     }
 
