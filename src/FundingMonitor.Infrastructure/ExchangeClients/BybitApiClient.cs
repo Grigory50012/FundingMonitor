@@ -8,32 +8,33 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 
 public class BybitApiClient : BaseExchangeApiClient
 {
-    public override ExchangeType ExchangeType => ExchangeType.Bybit;
     private readonly ILogger<BybitApiClient> _logger;
     private readonly ISymbolNormalizer _symbolNormalizer;
-    
+
     public BybitApiClient(
-        HttpClient httpClient, 
-        ILogger<BybitApiClient> logger, 
-        ISymbolNormalizer symbolNormalizer) 
+        HttpClient httpClient,
+        ILogger<BybitApiClient> logger,
+        ISymbolNormalizer symbolNormalizer)
         : base(httpClient, logger)
     {
         _logger = logger;
         _symbolNormalizer = symbolNormalizer;
     }
-    
-    public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
+
+    public override ExchangeType ExchangeType => ExchangeType.Bybit;
+
+    public override async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
             var response = await GetAsync<BybitTickersResponse>(
-                "/v5/market/tickers?category=linear",  cancellationToken);
-            
+                "/v5/market/tickers?category=linear", cancellationToken);
+
             var result = response.Result.List
                 .Where(t => t.Symbol.EndsWith("USDT"))
-                .Select(t => new NormalizedFundingRate
+                .Select(t => new CurrentFundingRate
                 {
                     Exchange = ExchangeType.Bybit,
                     NormalizedSymbol = _symbolNormalizer.Normalize(t.Symbol, ExchangeType),
@@ -50,9 +51,10 @@ public class BybitApiClient : BaseExchangeApiClient
                     QuoteAsset = "USDT"
                 })
                 .ToList();
-            
+
             stopwatch.Stop();
-            _logger.LogInformation("[Bybit] собрано {Count} за {ElapsedMilliseconds} мс", result.Count, stopwatch.ElapsedMilliseconds);
+            _logger.LogInformation("[Bybit] собрано {Count} за {ElapsedMilliseconds} мс", result.Count,
+                stopwatch.ElapsedMilliseconds);
             return result;
         }
         catch (Exception ex)
@@ -62,7 +64,7 @@ public class BybitApiClient : BaseExchangeApiClient
             throw new ExchangeApiException(ExchangeType.Bybit, $"Binance API error: {ex.Message}");
         }
     }
-    
+
     public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {
         try
@@ -75,17 +77,17 @@ public class BybitApiClient : BaseExchangeApiClient
             return false;
         }
     }
-    
+
     private class BybitTickersResponse
     {
         public BybitTickersResult Result { get; set; } = null!;
     }
-    
+
     private class BybitTickersResult
     {
         public List<BybitTicker> List { get; set; } = new();
     }
-    
+
     private class BybitTicker
     {
         public string Symbol { get; set; } = string.Empty;

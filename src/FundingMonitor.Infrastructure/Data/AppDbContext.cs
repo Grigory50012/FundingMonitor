@@ -5,15 +5,15 @@ namespace FundingMonitor.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<NormalizedFundingRateEntity> FundingRateCurrent { get; set; }
-    
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
-    
+
+    public DbSet<CurrentFundingRateEntity> CurrentFundingRate { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<NormalizedFundingRateEntity>(entity =>
+        modelBuilder.Entity<CurrentFundingRateEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange })

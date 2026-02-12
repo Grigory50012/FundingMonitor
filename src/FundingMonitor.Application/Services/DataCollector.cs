@@ -15,15 +15,15 @@ public class DataCollector : IDataCollector
         _clients = clients;
         _logger = logger;
     }
-    
-    public async Task<List<NormalizedFundingRate>> CollectAllRatesAsync(CancellationToken ct)
+
+    public async Task<List<CurrentFundingRate>> CollectAllCurrentRatesAsync(CancellationToken ct)
     {
         var tasks = _clients.Select(client => CollectFromExchangeAsync(client, ct));
         var results = await Task.WhenAll(tasks);
         return results.SelectMany(r => r).ToList();
     }
-    
-    private async Task<List<NormalizedFundingRate>> CollectFromExchangeAsync(
+
+    private async Task<List<CurrentFundingRate>> CollectFromExchangeAsync(
         IExchangeApiClient client, CancellationToken ct)
     {
         try
@@ -33,7 +33,7 @@ public class DataCollector : IDataCollector
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to collect from {Exchange}", client.ExchangeType);
-            return new List<NormalizedFundingRate>();
+            return new List<CurrentFundingRate>();
         }
     }
 }

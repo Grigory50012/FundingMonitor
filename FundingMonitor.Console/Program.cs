@@ -36,43 +36,43 @@ internal class Program
                 // Основные секции конфигурации
                 services.Configure<DataCollectionOptions>(
                     context.Configuration.GetSection(DataCollectionOptions.SectionName));
-    
+
                 services.Configure<ConnectionStringsOptions>(
                     context.Configuration.GetSection(ConnectionStringsOptions.SectionName));
-    
+
                 // Конфигурация для каждой биржи
                 services.Configure<ExchangeOptions>(
                     ExchangeOptions.BinanceSection,
                     context.Configuration.GetSection(ExchangeOptions.BinanceSection));
-    
+
                 services.Configure<ExchangeOptions>(
                     ExchangeOptions.BybitSection,
                     context.Configuration.GetSection(ExchangeOptions.BybitSection));
-                
+
                 // Настройка БД
                 services.AddDbContext<AppDbContext>((sp, options) =>
                 {
                     var connectionStrings = sp.GetRequiredService<IOptions<ConnectionStringsOptions>>().Value;
                     options.UseNpgsql(connectionStrings.DefaultConnection);
                 });
-                
+
                 // Репозиторий
-                services.AddScoped<IFundingRateRepository, FundingRateRepository>();
-                
+                services.AddScoped<IFundingRateCurrentRepository, FundingRateCurrentRepository>();
+
                 // Настройка HTTP клиентов с Polly
                 ConfigureHttpClients(services, context.Configuration);
-                
-                services.AddTransient<IExchangeApiClient, BinanceApiClient>(sp => 
+
+                services.AddTransient<IExchangeApiClient, BinanceApiClient>(sp =>
                     sp.GetRequiredService<BinanceApiClient>());
-                services.AddTransient<IExchangeApiClient, BybitApiClient>(sp => 
+                services.AddTransient<IExchangeApiClient, BybitApiClient>(sp =>
                     sp.GetRequiredService<BybitApiClient>());
-                
+
                 // Services
                 services.AddScoped<IDataCollector, DataCollector>();
                 services.AddScoped<IArbitrageScanner, ArbitrageScanner>();
                 services.AddScoped<IExchangeHealthChecker, ExchangeHealthChecker>();
                 services.AddSingleton<ISymbolNormalizer, SymbolNormalizer>();
-                
+
                 // Сервис для фоновой работы
                 services.AddHostedService<FundingDataBackgroundService>();
             })
@@ -81,21 +81,21 @@ internal class Program
                 logging.ClearProviders();
                 logging.AddConsole();
                 logging.AddDebug();
-                
+
                 var logLevel = context.Configuration.GetValue("Logging:LogLevel:Default", LogLevel.Information);
                 logging.SetMinimumLevel(logLevel);
-                
+
                 logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
                 logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
             })
             .Build();
-        
+
         // Проверяем миграции БД при старте
         await EnsureDatabaseMigratedAsync(host.Services);
-        
+
         // Отображаем стартовую информацию
         await ShowStartupInfoAsync(host.Services);
-        
+
         // Запускаем хост
         await host.RunAsync();
     }
@@ -139,14 +139,14 @@ internal class Program
             .AddPolicyHandler(GetRateLimitPolicy(bybitConfig.RateLimitPerMinute))
             .AddPolicyHandler(GetCircuitBreakerPolicy());
     }
-    
+
     private static IAsyncPolicy<HttpResponseMessage> GetRateLimitPolicy(int permitsPerSecond)
     {
         return Policy.RateLimitAsync<HttpResponseMessage>(
             numberOfExecutions: permitsPerSecond,
             perTimeSpan: TimeSpan.FromMinutes(1));
     }
-    
+
     private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(int retryCount)
     {
         return HttpPolicyExtensions
@@ -157,10 +157,11 @@ internal class Program
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                 onRetry: (_, timespan, retryAttempt, _) =>
                 {
-                    System.Console.WriteLine($"[HTTP] Retry {retryAttempt}/{retryCount} after {timespan.TotalSeconds:F1}s");
+                    System.Console.WriteLine(
+                        $"[HTTP] Retry {retryAttempt}/{retryCount} after {timespan.TotalSeconds:F1}s");
                 });
     }
-    
+
     private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
     {
         return HttpPolicyExtensions
@@ -168,16 +169,16 @@ internal class Program
             .CircuitBreakerAsync(
                 handledEventsAllowedBeforeBreaking: 5,
                 durationOfBreak: TimeSpan.FromSeconds(30),
-                onBreak: (_, duration) => 
+                (_, duration) =>
                     System.Console.WriteLine($"[Circuit] Opened for {duration.TotalSeconds}s"),
                 onReset: () => System.Console.WriteLine("[Circuit] Closed"));
     }
-    
+
     private static async Task EnsureDatabaseMigratedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        
+
         try
         {
             await dbContext.Database.MigrateAsync();
@@ -195,27 +196,27 @@ internal class Program
         using var scope = serviceProvider.CreateScope();
         var healthChecker = scope.ServiceProvider.GetRequiredService<IExchangeHealthChecker>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        
+
         System.Console.Clear();
         System.Console.WriteLine("╔══════════════════════════════════════════════════════╗");
         System.Console.WriteLine("║              FUNDING MONITOR v1.0                    ║");
         System.Console.WriteLine("║          Multi-Exchange Arbitrage Scanner            ║");
         System.Console.WriteLine("╚══════════════════════════════════════════════════════╝");
         System.Console.WriteLine();
-        
+
         try
         {
             System.Console.WriteLine("CHECKING EXCHANGE STATUS...");
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             var status = await healthChecker.CheckAllExchangesAsync(cts.Token);
-            
+
             System.Console.WriteLine("\nEXCHANGE STATUS");
             System.Console.WriteLine("───────────────");
             foreach (var (exchange, isAvailable) in status)
             {
                 System.Console.WriteLine($"  {exchange,-10} : {(isAvailable ? "Available" : "Unavailable")}");
             }
-            
+
             // Выводим статус БД
             try
             {

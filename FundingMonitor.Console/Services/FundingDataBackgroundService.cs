@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FundingMonitor.Application.Interfaces.Repositories;
 using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Core.Configuration;
@@ -10,10 +11,10 @@ namespace FundingMonitor.Console.Services;
 
 public class FundingDataBackgroundService : BackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger _logger;
     private readonly IOptions<DataCollectionOptions> _dataCollectionOptions;
-    
+    private readonly ILogger _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
+
     public FundingDataBackgroundService(
         IServiceScopeFactory scopeFactory,
         ILogger<FundingDataBackgroundService> logger,
@@ -27,12 +28,12 @@ public class FundingDataBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Funding Data Background Service запущен.");
-        
+
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(_dataCollectionOptions.Value.IntervalMinutes));
-        
+
         // Первый запуск сразу после старта
         await ProcessDataCollectionAsync();
-        
+
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             try
@@ -48,26 +49,26 @@ public class FundingDataBackgroundService : BackgroundService
 
     private async Task ProcessDataCollectionAsync()
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
+        var stopwatch = Stopwatch.StartNew();
+
         _logger.LogInformation("Начало цикла сбора данных");
-        
+
         using var scope = _scopeFactory.CreateScope();
-        
+
         var collector = scope.ServiceProvider.GetRequiredService<IDataCollector>();
-        var repository = scope.ServiceProvider.GetRequiredService<IFundingRateRepository>();
-        
+        var repository = scope.ServiceProvider.GetRequiredService<IFundingRateCurrentRepository>();
+
         try
         {
             // 1. Собираем данные
             using var cts = new CancellationTokenSource(
                 TimeSpan.FromSeconds(_dataCollectionOptions.Value.CollectionTimeoutSeconds));
-        
-            var collectionTask = collector.CollectAllRatesAsync(cts.Token);
+
+            var collectionTask = collector.CollectAllCurrentRatesAsync(cts.Token);
 
             // Ждем завершения или таймаута
-            if (await Task.WhenAny(collectionTask, 
-                    Task.Delay(TimeSpan.FromSeconds(_dataCollectionOptions.Value.CollectionTimeoutSeconds), 
+            if (await Task.WhenAny(collectionTask,
+                    Task.Delay(TimeSpan.FromSeconds(_dataCollectionOptions.Value.CollectionTimeoutSeconds),
                         cts.Token)) == collectionTask)
             {
                 var allRates = await collectionTask;
@@ -77,11 +78,11 @@ public class FundingDataBackgroundService : BackgroundService
                     allRates.Count, collectionTime);
 
                 // 2. Сохраняем в БД
-                await repository.SaveRatesAsync(allRates);
+                await repository.UpdateRatesAsync(allRates);
                 var saveTime = stopwatch.ElapsedMilliseconds - collectionTime;
                 _logger.LogInformation("Сохранено {Count} ставок в базу данных за {Time}мс",
-                        allRates.Count, saveTime);
-                
+                    allRates.Count, saveTime);
+
                 stopwatch.Stop();
                 _logger.LogInformation("Цикл сбора завершен за {TotalTime}мс", stopwatch.ElapsedMilliseconds);
             }
@@ -97,7 +98,7 @@ public class FundingDataBackgroundService : BackgroundService
             throw;
         }
     }
-    
+
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Funding Data Background Service останавливается...");

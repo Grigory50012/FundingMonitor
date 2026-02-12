@@ -5,6 +5,7 @@ namespace FundingMonitor.Application.Interfaces.Clients;
 public interface IExchangeApiClient
 {
     ExchangeType ExchangeType { get; }
-    Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken);
+
+    Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken);
     Task<bool> IsAvailableAsync(CancellationToken cancellationToken);
 }

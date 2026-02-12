@@ -8,32 +8,33 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 
 public class BinanceApiClient : BaseExchangeApiClient
 {
-    public override ExchangeType ExchangeType => ExchangeType.Binance;
     private readonly ILogger<BinanceApiClient> _logger;
     private readonly ISymbolNormalizer _symbolNormalizer;
-    
+
     public BinanceApiClient(
-        HttpClient httpClient, 
-        ILogger<BinanceApiClient> logger, 
-        ISymbolNormalizer symbolNormalizer) 
+        HttpClient httpClient,
+        ILogger<BinanceApiClient> logger,
+        ISymbolNormalizer symbolNormalizer)
         : base(httpClient, logger)
     {
         _logger = logger;
         _symbolNormalizer = symbolNormalizer;
     }
-    
-    public override async Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
+
+    public override ExchangeType ExchangeType => ExchangeType.Binance;
+
+    public override async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-    
+
         try
         {
             var response = await GetAsync<List<BinancePremiumIndexResponse>>(
                 "/fapi/v1/premiumIndex", cancellationToken);
-            
+
             var result = response
                 .Where(r => r.Symbol.EndsWith("USDT"))
-                .Select(r => new NormalizedFundingRate
+                .Select(r => new CurrentFundingRate
                 {
                     Exchange = ExchangeType.Binance,
                     NormalizedSymbol = _symbolNormalizer.Normalize(r.Symbol, ExchangeType),
@@ -48,9 +49,10 @@ public class BinanceApiClient : BaseExchangeApiClient
                     QuoteAsset = "USDT"
                 })
                 .ToList();
-            
+
             stopwatch.Stop();
-            _logger.LogInformation("[Binance] собрано {Count} за {ElapsedMilliseconds} мс", result.Count, stopwatch.ElapsedMilliseconds);
+            _logger.LogInformation("[Binance] собрано {Count} за {ElapsedMilliseconds} мс", result.Count,
+                stopwatch.ElapsedMilliseconds);
             return result;
         }
         catch (Exception ex)
@@ -60,7 +62,7 @@ public class BinanceApiClient : BaseExchangeApiClient
             throw new ExchangeApiException(ExchangeType.Binance, $"Binance API error: {ex.Message}");
         }
     }
-    
+
     public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {
         try
@@ -73,7 +75,7 @@ public class BinanceApiClient : BaseExchangeApiClient
             return false;
         }
     }
-    
+
     private class BinancePremiumIndexResponse
     {
         public string Symbol { get; set; } = string.Empty;

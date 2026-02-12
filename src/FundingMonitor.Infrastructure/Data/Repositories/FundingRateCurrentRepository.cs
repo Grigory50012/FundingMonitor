@@ -6,16 +6,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FundingMonitor.Infrastructure.Data.Repositories;
 
-public class FundingRateRepository : IFundingRateRepository
+public class FundingRateCurrentRepository : IFundingRateCurrentRepository
 {
     private readonly AppDbContext _context;
-    
-    public FundingRateRepository(AppDbContext context)
+
+    public FundingRateCurrentRepository(AppDbContext context)
     {
         _context = context;
     }
-    
-    public async Task SaveRatesAsync(IEnumerable<NormalizedFundingRate> rates)
+
+    public async Task UpdateRatesAsync(IEnumerable<CurrentFundingRate> rates)
     {
         var rateList = rates.ToList();
         if (rateList.Count == 0) return;
@@ -32,7 +32,7 @@ public class FundingRateRepository : IFundingRateRepository
         await _context.BulkInsertOrUpdateAsync(entities, bulkConfig);
 
         // 2. Получаем все уникальные ключи из БД (только Exchange и NormalizedSymbol)
-        var existingKeys = await _context.FundingRateCurrent
+        var existingKeys = await _context.CurrentFundingRate
             .Select(r => new { r.Exchange, r.NormalizedSymbol })
             .ToListAsync();
 
@@ -52,15 +52,15 @@ public class FundingRateRepository : IFundingRateRepository
             var exchangesToDelete = keysToDelete.Select(k => k.Exchange).ToList();
             var symbolsToDelete = keysToDelete.Select(k => k.NormalizedSymbol).ToList();
 
-            var entitiesToDelete = await _context.FundingRateCurrent
-                .Where(r => exchangesToDelete.Contains(r.Exchange) && 
+            var entitiesToDelete = await _context.CurrentFundingRate
+                .Where(r => exchangesToDelete.Contains(r.Exchange) &&
                             symbolsToDelete.Contains(r.NormalizedSymbol))
                 .ToListAsync();
 
             // Дополнительная фильтрация в памяти для точного соответствия пар
             entitiesToDelete = entitiesToDelete
-                .Where(e => keysToDelete.Any(k => 
-                    k.Exchange == e.Exchange && 
+                .Where(e => keysToDelete.Any(k =>
+                    k.Exchange == e.Exchange &&
                     k.NormalizedSymbol == e.NormalizedSymbol))
                 .ToList();
 
@@ -68,32 +68,32 @@ public class FundingRateRepository : IFundingRateRepository
         }
     }
 
-    public async Task<IEnumerable<NormalizedFundingRate>> GetRatesAsync(
+    public async Task<IEnumerable<CurrentFundingRate>> GetRatesAsync(
         string? symbol, List<ExchangeType>? exchanges)
     {
-        var query = _context.FundingRateCurrent
+        var query = _context.CurrentFundingRate
             .AsQueryable()
             .AsQueryable();
-    
+
         // Опциональный фильтр по exchanges
         if (exchanges != null && exchanges.Count != 0)
         {
             var exchangeNames = exchanges.Select(e => e.ToString()).ToList();
             query = query.Where(r => exchangeNames.Contains(r.Exchange));
         }
-    
+
         // Опциональный фильтр по symbol
         if (!string.IsNullOrEmpty(symbol))
         {
             query = query.Where(r => r.BaseAsset == symbol);
         }
-    
+
         // Обязательный фильтр по активности
         query = query.Where(r => r.IsActive);
-        
+
         query = query.OrderBy(r => r.NormalizedSymbol)
             .ThenBy(r => r.Exchange);
-    
+
         return await query.ToDomainListAsync();
     }
 }

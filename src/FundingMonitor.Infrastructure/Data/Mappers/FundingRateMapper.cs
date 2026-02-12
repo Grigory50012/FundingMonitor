@@ -8,12 +8,12 @@ public static class FundingRateMapper
 {
     private static readonly ConcurrentDictionary<string, ExchangeType> ExchangeCache = new();
 
-    public static NormalizedFundingRateEntity ToEntity(NormalizedFundingRate domainModel)
+    public static CurrentFundingRateEntity ToEntity(CurrentFundingRate domainModel)
     {
         if (domainModel == null)
             throw new ArgumentNullException(nameof(domainModel), "Domain model cannot be null");
 
-        return new NormalizedFundingRateEntity
+        return new CurrentFundingRateEntity
         {
             Id = 0, // Будет сгенерирован БД
             Exchange = domainModel.Exchange.ToString(),
@@ -32,17 +32,17 @@ public static class FundingRateMapper
         };
     }
 
-    public static List<NormalizedFundingRate> ToDomainListFast(
-        List<NormalizedFundingRateEntity>? entities)
+    public static List<CurrentFundingRate> ToDomainListFast(
+        List<CurrentFundingRateEntity>? entities)
     {
         if (entities is null || entities.Count is 0)
-            return new List<NormalizedFundingRate>();
+            return new List<CurrentFundingRate>();
 
-        var result = new List<NormalizedFundingRate>(entities.Count);
+        var result = new List<CurrentFundingRate>(entities.Count);
 
         foreach (var entity in entities)
         {
-            result.Add(new NormalizedFundingRate
+            result.Add(new CurrentFundingRate
             {
                 Exchange = ParseExchangeCached(entity.Exchange),
                 NormalizedSymbol = entity.NormalizedSymbol,

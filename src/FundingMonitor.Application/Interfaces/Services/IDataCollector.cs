@@ -4,5 +4,5 @@ namespace FundingMonitor.Application.Interfaces.Services;
 
 public interface IDataCollector
 {
-    Task<List<NormalizedFundingRate>> CollectAllRatesAsync(CancellationToken cancellationToken);
+    Task<List<CurrentFundingRate>> CollectAllCurrentRatesAsync(CancellationToken cancellationToken);
 }
