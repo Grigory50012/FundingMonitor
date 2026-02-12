@@ -4,6 +4,7 @@ using FundingMonitor.Application.Interfaces.Repositories;
 using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Application.Services;
 using FundingMonitor.Console.Services;
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Infrastructure.Data;
 using FundingMonitor.Infrastructure.Data.Repositories;
 using FundingMonitor.Infrastructure.ExchangeClients;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
 
@@ -31,24 +33,39 @@ internal class Program
             })
             .ConfigureServices((context, services) =>
             {
-                // Конфигурация
-                var configuration = context.Configuration;
+                // Основные секции конфигурации
+                services.Configure<DataCollectionOptions>(
+                    context.Configuration.GetSection(DataCollectionOptions.SectionName));
+    
+                services.Configure<ConnectionStringsOptions>(
+                    context.Configuration.GetSection(ConnectionStringsOptions.SectionName));
+    
+                // Конфигурация для каждой биржи
+                services.Configure<ExchangeOptions>(
+                    ExchangeOptions.BinanceSection,
+                    context.Configuration.GetSection(ExchangeOptions.BinanceSection));
+    
+                services.Configure<ExchangeOptions>(
+                    ExchangeOptions.BybitSection,
+                    context.Configuration.GetSection(ExchangeOptions.BybitSection));
                 
                 // Настройка БД
-                services.AddDbContext<AppDbContext>(options =>
-                    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+                services.AddDbContext<AppDbContext>((sp, options) =>
+                {
+                    var connectionStrings = sp.GetRequiredService<IOptions<ConnectionStringsOptions>>().Value;
+                    options.UseNpgsql(connectionStrings.DefaultConnection);
+                });
                 
                 // Репозиторий
                 services.AddScoped<IFundingRateRepository, FundingRateRepository>();
                 
-                
                 // Настройка HTTP клиентов с Polly
-                ConfigureHttpClients(services, configuration);
+                ConfigureHttpClients(services, context.Configuration);
                 
-                // API клиенты
-                services.AddTransient<IExchangeApiClient, BinanceApiClient>();
-                services.AddTransient<IExchangeApiClient, BybitApiClient>();
-                // services.AddTransient<IExchangeApiClient, OkxApiClient>();
+                services.AddTransient<IExchangeApiClient, BinanceApiClient>(sp => 
+                    sp.GetRequiredService<BinanceApiClient>());
+                services.AddTransient<IExchangeApiClient, BybitApiClient>(sp => 
+                    sp.GetRequiredService<BybitApiClient>());
                 
                 // Services
                 services.AddScoped<IDataCollector, DataCollector>();
@@ -82,58 +99,78 @@ internal class Program
         // Запускаем хост
         await host.RunAsync();
     }
-    
+
     private static void ConfigureHttpClients(IServiceCollection services, IConfiguration configuration)
     {
-        var retryCount = configuration.GetValue("DataCollection:RetryCount", 3);
-        
-        // Политика повторных попыток
-        var retryPolicy = HttpPolicyExtensions
+        var binanceConfig = configuration.GetSection(ExchangeOptions.BinanceSection).Get<ExchangeOptions>();
+        var bybitConfig = configuration.GetSection(ExchangeOptions.BybitSection).Get<ExchangeOptions>();
+
+        // Binance
+        services.AddHttpClient<BinanceApiClient>((sp, client) =>
+            {
+                client.BaseAddress = new Uri(binanceConfig.BaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(binanceConfig.TimeoutSeconds);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestVersion = HttpVersion.Version20;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+            })
+            .AddPolicyHandler((sp, _) =>
+            {
+                var options = sp.GetRequiredService<IOptions<DataCollectionOptions>>().Value;
+                return GetRetryPolicy(options.RetryCount);
+            })
+            .AddPolicyHandler(GetRateLimitPolicy(binanceConfig.RateLimitPerMinute))
+            .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        // Bybit
+        services.AddHttpClient<BybitApiClient>(client =>
+            {
+                client.BaseAddress = new Uri(bybitConfig.BaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(bybitConfig.TimeoutSeconds);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestVersion = HttpVersion.Version20;
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+            })
+            .AddPolicyHandler((sp, _) =>
+            {
+                var options = sp.GetRequiredService<IOptions<DataCollectionOptions>>().Value;
+                return GetRetryPolicy(options.RetryCount);
+            })
+            .AddPolicyHandler(GetRateLimitPolicy(bybitConfig.RateLimitPerMinute))
+            .AddPolicyHandler(GetCircuitBreakerPolicy());
+    }
+    
+    private static IAsyncPolicy<HttpResponseMessage> GetRateLimitPolicy(int permitsPerSecond)
+    {
+        return Policy.RateLimitAsync<HttpResponseMessage>(
+            numberOfExecutions: permitsPerSecond,
+            perTimeSpan: TimeSpan.FromMinutes(1));
+    }
+    
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(int retryCount)
+    {
+        return HttpPolicyExtensions
             .HandleTransientHttpError()
             .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
             .WaitAndRetryAsync(
                 retryCount: retryCount,
-                sleepDurationProvider: retryAttempt => 
-                    TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                 onRetry: (_, timespan, retryAttempt, _) =>
                 {
                     System.Console.WriteLine($"[HTTP] Retry {retryAttempt}/{retryCount} after {timespan.TotalSeconds:F1}s");
                 });
-        
-        // Circuit Breaker
-        var circuitBreakerPolicy = HttpPolicyExtensions
+    }
+    
+    private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
+    {
+        return HttpPolicyExtensions
             .HandleTransientHttpError()
             .CircuitBreakerAsync(
                 handledEventsAllowedBeforeBreaking: 5,
-                durationOfBreak: TimeSpan.FromSeconds(30));
-        
-        // Binance клиент
-        var binanceConfig = configuration.GetSection("Exchanges:Binance");
-        services.AddHttpClient<BinanceApiClient>(client =>
-            {
-                client.BaseAddress = new Uri(binanceConfig["BaseUrl"] ?? "https://fapi.binance.com");
-                client.Timeout = TimeSpan.FromSeconds(binanceConfig.GetValue("TimeoutSeconds", 30));
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                
-                client.DefaultRequestVersion = HttpVersion.Version20;
-                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-            })
-            .AddPolicyHandler(retryPolicy)
-            .AddPolicyHandler(circuitBreakerPolicy);
-        
-        // Bybit клиент
-        var bybitConfig = configuration.GetSection("Exchanges:Bybit");
-        services.AddHttpClient<BybitApiClient>(client =>
-            {
-                client.BaseAddress = new Uri(bybitConfig["BaseUrl"] ?? "https://api.bybit.com");
-                client.Timeout = TimeSpan.FromSeconds(bybitConfig.GetValue("TimeoutSeconds", 30));
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                
-                client.DefaultRequestVersion = HttpVersion.Version20;
-                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-            })
-            .AddPolicyHandler(retryPolicy)
-            .AddPolicyHandler(circuitBreakerPolicy);
+                durationOfBreak: TimeSpan.FromSeconds(30),
+                onBreak: (_, duration) => 
+                    System.Console.WriteLine($"[Circuit] Opened for {duration.TotalSeconds}s"),
+                onReset: () => System.Console.WriteLine("[Circuit] Closed"));
     }
     
     private static async Task EnsureDatabaseMigratedAsync(IServiceProvider services)

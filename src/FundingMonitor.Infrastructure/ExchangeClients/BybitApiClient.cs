@@ -9,7 +9,7 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 public class BybitApiClient : BaseExchangeApiClient
 {
     public override ExchangeType ExchangeType => ExchangeType.Bybit;
-    private readonly ILogger _logger;
+    private readonly ILogger<BybitApiClient> _logger;
     private readonly ISymbolNormalizer _symbolNormalizer;
     
     public BybitApiClient(
@@ -60,6 +60,19 @@ public class BybitApiClient : BaseExchangeApiClient
             stopwatch.Stop();
             _logger.LogError(ex, "[Bybit] Сбор не выполнен");
             throw new ExchangeApiException(ExchangeType.Bybit, $"Binance API error: {ex.Message}");
+        }
+    }
+    
+    public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await GetAsync<object>("/v5/market/time", cancellationToken);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
     

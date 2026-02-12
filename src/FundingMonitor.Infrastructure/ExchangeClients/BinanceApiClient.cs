@@ -9,7 +9,7 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 public class BinanceApiClient : BaseExchangeApiClient
 {
     public override ExchangeType ExchangeType => ExchangeType.Binance;
-    private readonly ILogger _logger;
+    private readonly ILogger<BinanceApiClient> _logger;
     private readonly ISymbolNormalizer _symbolNormalizer;
     
     public BinanceApiClient(
@@ -58,6 +58,19 @@ public class BinanceApiClient : BaseExchangeApiClient
             stopwatch.Stop();
             _logger.LogError(ex, "[Binance] Сбор не выполнен");
             throw new ExchangeApiException(ExchangeType.Binance, $"Binance API error: {ex.Message}");
+        }
+    }
+    
+    public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await GetAsync<object>("/fapi/v1/ping", cancellationToken);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
     

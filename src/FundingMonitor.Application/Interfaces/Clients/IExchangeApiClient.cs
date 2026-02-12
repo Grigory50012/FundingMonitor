@@ -7,5 +7,4 @@ public interface IExchangeApiClient
     ExchangeType ExchangeType { get; }
     Task<List<NormalizedFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken);
     Task<bool> IsAvailableAsync(CancellationToken cancellationToken);
-    bool IsRateLimited { get; }
 }

@@ -89,7 +89,20 @@ public class OkxApiClient : BaseExchangeApiClient
         
         return results;
     }
-    
+
+    public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await GetAsync<object>("/", cancellationToken);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private async Task<List<OkxInstrument>> GetAllInstrumentsAsync()
     {
         try

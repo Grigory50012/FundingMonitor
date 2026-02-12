@@ -1,9 +1,10 @@
 using FundingMonitor.Application.Interfaces.Repositories;
 using FundingMonitor.Application.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
+using FundingMonitor.Core.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Console.Services;
 
@@ -11,24 +12,23 @@ public class FundingDataBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger _logger;
-    private readonly IConfiguration _configuration;
+    private readonly IOptions<DataCollectionOptions> _dataCollectionOptions;
     
     public FundingDataBackgroundService(
         IServiceScopeFactory scopeFactory,
         ILogger<FundingDataBackgroundService> logger,
-        IConfiguration configuration)
+        IOptions<DataCollectionOptions> dataCollectionOptions)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
-        _configuration = configuration;
+        _dataCollectionOptions = dataCollectionOptions;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Funding Data Background Service запущен.");
         
-        var intervalMinutes = _configuration.GetValue("DataCollection:IntervalMinutes", 1);
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(intervalMinutes));
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(_dataCollectionOptions.Value.IntervalMinutes));
         
         // Первый запуск сразу после старта
         await ProcessDataCollectionAsync();
@@ -60,13 +60,15 @@ public class FundingDataBackgroundService : BackgroundService
         try
         {
             // 1. Собираем данные
-            var timeoutSeconds = _configuration.GetValue("DataCollection:CollectionTimeoutSeconds", 15);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+            using var cts = new CancellationTokenSource(
+                TimeSpan.FromSeconds(_dataCollectionOptions.Value.CollectionTimeoutSeconds));
         
             var collectionTask = collector.CollectAllRatesAsync(cts.Token);
 
             // Ждем завершения или таймаута
-            if (await Task.WhenAny(collectionTask, Task.Delay(TimeSpan.FromSeconds(30), cts.Token)) == collectionTask)
+            if (await Task.WhenAny(collectionTask, 
+                    Task.Delay(TimeSpan.FromSeconds(_dataCollectionOptions.Value.CollectionTimeoutSeconds), 
+                        cts.Token)) == collectionTask)
             {
                 var allRates = await collectionTask;
                 var collectionTime = stopwatch.ElapsedMilliseconds;
