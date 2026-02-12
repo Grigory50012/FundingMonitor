@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FundingMonitor.Infrastructure.Data.Repositories;
 
-public class FundingRateCurrentRepository : IFundingRateCurrentRepository
+public class CurrentFundingRateRepository : ICurrentFundingRateRepository
 {
     private readonly AppDbContext _context;
 
-    public FundingRateCurrentRepository(AppDbContext context)
+    public CurrentFundingRateRepository(AppDbContext context)
     {
         _context = context;
     }

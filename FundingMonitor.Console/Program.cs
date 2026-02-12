@@ -57,7 +57,7 @@ internal class Program
                 });
 
                 // Репозиторий
-                services.AddScoped<IFundingRateCurrentRepository, FundingRateCurrentRepository>();
+                services.AddScoped<ICurrentFundingRateRepository, CurrentFundingRateRepository>();
 
                 // Настройка HTTP клиентов с Polly
                 ConfigureHttpClients(services, context.Configuration);

@@ -55,7 +55,7 @@ public class FundingDataBackgroundService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
 
         var collector = scope.ServiceProvider.GetRequiredService<IDataCollector>();
-        var repository = scope.ServiceProvider.GetRequiredService<IFundingRateCurrentRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<ICurrentFundingRateRepository>();
 
         try
         {
