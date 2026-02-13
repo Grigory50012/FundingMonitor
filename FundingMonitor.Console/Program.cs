@@ -1,5 +1,4 @@
-﻿using System.Net;
-using FundingMonitor.Application.Interfaces.Clients;
+﻿using FundingMonitor.Application.Interfaces.Clients;
 using FundingMonitor.Application.Interfaces.Repositories;
 using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Application.Services;
@@ -14,8 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Polly;
-using Polly.Extensions.Http;
 
 namespace FundingMonitor.Console;
 
@@ -40,15 +37,6 @@ internal class Program
                 services.Configure<ConnectionStringsOptions>(
                     context.Configuration.GetSection(ConnectionStringsOptions.SectionName));
 
-                // Конфигурация для каждой биржи
-                services.Configure<ExchangeOptions>(
-                    ExchangeOptions.BinanceSection,
-                    context.Configuration.GetSection(ExchangeOptions.BinanceSection));
-
-                services.Configure<ExchangeOptions>(
-                    ExchangeOptions.BybitSection,
-                    context.Configuration.GetSection(ExchangeOptions.BybitSection));
-
                 // Настройка БД
                 services.AddDbContext<AppDbContext>((sp, options) =>
                 {
@@ -60,12 +48,7 @@ internal class Program
                 services.AddScoped<ICurrentFundingRateRepository, CurrentFundingRateRepository>();
 
                 // Настройка HTTP клиентов с Polly
-                ConfigureHttpClients(services, context.Configuration);
-
-                services.AddTransient<IExchangeApiClient, BinanceApiClient>(sp =>
-                    sp.GetRequiredService<BinanceApiClient>());
-                services.AddTransient<IExchangeApiClient, BybitApiClient>(sp =>
-                    sp.GetRequiredService<BybitApiClient>());
+                ConfigureExchangeClients(services, context.Configuration);
 
                 // Services
                 services.AddScoped<IDataCollector, DataCollector>();
@@ -79,7 +62,6 @@ internal class Program
             .ConfigureLogging((context, logging) =>
             {
                 logging.ClearProviders();
-                logging.AddConsole();
                 logging.AddDebug();
 
                 var logLevel = context.Configuration.GetValue("Logging:LogLevel:Default", LogLevel.Information);
@@ -100,78 +82,26 @@ internal class Program
         await host.RunAsync();
     }
 
-    private static void ConfigureHttpClients(IServiceCollection services, IConfiguration configuration)
+    private static void ConfigureExchangeClients(IServiceCollection services, IConfiguration configuration)
     {
-        var binanceConfig = configuration.GetSection(ExchangeOptions.BinanceSection).Get<ExchangeOptions>();
-        var bybitConfig = configuration.GetSection(ExchangeOptions.BybitSection).Get<ExchangeOptions>();
+        // Регистрируем конфигурации для бирж
+        services.Configure<ExchangeOptions>(
+            ExchangeOptions.BinanceSection,
+            configuration.GetSection(ExchangeOptions.BinanceSection));
 
-        // Binance
-        services.AddHttpClient<BinanceApiClient>((sp, client) =>
-            {
-                client.BaseAddress = new Uri(binanceConfig.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(binanceConfig.TimeoutSeconds);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestVersion = HttpVersion.Version20;
-                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-            })
-            .AddPolicyHandler((sp, _) =>
-            {
-                var options = sp.GetRequiredService<IOptions<DataCollectionOptions>>().Value;
-                return GetRetryPolicy(options.RetryCount);
-            })
-            .AddPolicyHandler(GetRateLimitPolicy(binanceConfig.RateLimitPerMinute))
-            .AddPolicyHandler(GetCircuitBreakerPolicy());
+        services.Configure<ExchangeOptions>(
+            ExchangeOptions.BybitSection,
+            configuration.GetSection(ExchangeOptions.BybitSection));
 
-        // Bybit
-        services.AddHttpClient<BybitApiClient>(client =>
-            {
-                client.BaseAddress = new Uri(bybitConfig.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(bybitConfig.TimeoutSeconds);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestVersion = HttpVersion.Version20;
-                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-            })
-            .AddPolicyHandler((sp, _) =>
-            {
-                var options = sp.GetRequiredService<IOptions<DataCollectionOptions>>().Value;
-                return GetRetryPolicy(options.RetryCount);
-            })
-            .AddPolicyHandler(GetRateLimitPolicy(bybitConfig.RateLimitPerMinute))
-            .AddPolicyHandler(GetCircuitBreakerPolicy());
-    }
+        // === BINANCE ===
+        services.AddSingleton<BinanceApiClient>();
+        services.AddSingleton<IExchangeApiClient, BinanceApiClient>(sp =>
+            sp.GetRequiredService<BinanceApiClient>());
 
-    private static IAsyncPolicy<HttpResponseMessage> GetRateLimitPolicy(int permitsPerSecond)
-    {
-        return Policy.RateLimitAsync<HttpResponseMessage>(
-            numberOfExecutions: permitsPerSecond,
-            perTimeSpan: TimeSpan.FromMinutes(1));
-    }
-
-    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(int retryCount)
-    {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-            .WaitAndRetryAsync(
-                retryCount: retryCount,
-                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                onRetry: (_, timespan, retryAttempt, _) =>
-                {
-                    System.Console.WriteLine(
-                        $"[HTTP] Retry {retryAttempt}/{retryCount} after {timespan.TotalSeconds:F1}s");
-                });
-    }
-
-    private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
-    {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .CircuitBreakerAsync(
-                handledEventsAllowedBeforeBreaking: 5,
-                durationOfBreak: TimeSpan.FromSeconds(30),
-                (_, duration) =>
-                    System.Console.WriteLine($"[Circuit] Opened for {duration.TotalSeconds}s"),
-                onReset: () => System.Console.WriteLine("[Circuit] Closed"));
+        // === BYBIT ===
+        services.AddSingleton<BybitApiClient>();
+        services.AddSingleton<IExchangeApiClient, BybitApiClient>(sp =>
+            sp.GetRequiredService<BybitApiClient>());
     }
 
     private static async Task EnsureDatabaseMigratedAsync(IServiceProvider services)

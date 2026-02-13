@@ -1,100 +1,117 @@
 using System.Diagnostics;
+using Bybit.Net;
+using Bybit.Net.Clients;
+using Bybit.Net.Enums;
+using CryptoExchange.Net.Objects;
+using FundingMonitor.Application.Interfaces.Clients;
 using FundingMonitor.Application.Interfaces.Services;
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
-public class BybitApiClient : BaseExchangeApiClient
+public class BybitApiClient : IExchangeApiClient
 {
+    private const string QuoteAsset = "USDT";
+    private readonly BybitRestClient _bybitClient;
     private readonly ILogger<BybitApiClient> _logger;
     private readonly ISymbolNormalizer _symbolNormalizer;
 
     public BybitApiClient(
-        HttpClient httpClient,
         ILogger<BybitApiClient> logger,
-        ISymbolNormalizer symbolNormalizer)
-        : base(httpClient, logger)
+        ISymbolNormalizer symbolNormalizer,
+        IOptions<ExchangeOptions> bybitOptions)
     {
         _logger = logger;
         _symbolNormalizer = symbolNormalizer;
+        var options = bybitOptions.Value;
+
+        _bybitClient = new BybitRestClient(bybitClientOptions =>
+        {
+            bybitClientOptions.Environment = BybitEnvironment.Live; // Окружение
+            bybitClientOptions.RequestTimeout = TimeSpan.FromSeconds(options.TimeoutSeconds); // Таймаут запроса
+            bybitClientOptions.AutoTimestamp = true; // Автоматическая синхронизация времени
+            bybitClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1); // Интервал пересчета времени
+            bybitClientOptions.HttpVersion = new Version(2, 0); // Версия HTTP протокола
+            bybitClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60); // Интервал keep-alive
+            bybitClientOptions.RateLimiterEnabled = true; // Ограничение частоты запросов
+            bybitClientOptions.RateLimitingBehaviour = RateLimitingBehaviour.Wait; // Поведение при достижении лимита
+            bybitClientOptions.OutputOriginalData = false; // Вывод исходных данных JSON
+            bybitClientOptions.CachingEnabled = false; // Кэширование отключаем - нужны свежие данные
+        });
     }
 
-    public override ExchangeType ExchangeType => ExchangeType.Bybit;
+    public ExchangeType ExchangeType => ExchangeType.Bybit;
 
-    public override async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
+    public async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            var response = await GetAsync<BybitTickersResponse>(
-                "/v5/market/tickers?category=linear", cancellationToken);
+            var result = await _bybitClient.V5Api.ExchangeData.GetLinearInverseTickersAsync(
+                Category.Linear,
+                ct: cancellationToken);
 
-            var result = response.Result.List
-                .Where(t => t.Symbol.EndsWith("USDT"))
-                .Select(t => new CurrentFundingRate
+            if (!result.Success)
+            {
+                _logger.LogError("[Bybit] Ошибка: {Error}", result.Error?.Message);
+                throw new ExchangeApiException(ExchangeType.Bybit, result.Error?.Message ?? "Unknown error");
+            }
+
+            var tickers = result.Data.List;
+            var fundingRates = new List<CurrentFundingRate>(tickers.Length);
+
+            foreach (var ticker in tickers)
+            {
+                if (!ticker.Symbol.EndsWith(QuoteAsset))
+                    continue;
+
+                var parsed = _symbolNormalizer.Parse(ticker.Symbol, ExchangeType);
+
+                fundingRates.Add(new CurrentFundingRate
                 {
                     Exchange = ExchangeType.Bybit,
-                    NormalizedSymbol = _symbolNormalizer.Normalize(t.Symbol, ExchangeType),
-                    MarkPrice = SafeParseDecimal(t.MarkPrice),
-                    IndexPrice = SafeParseDecimal(t.IndexPrice),
-                    FundingRate = SafeParseDecimal(t.FundingRate),
-                    FundingIntervalHours = Convert.ToInt32(t.FundingIntervalHour),
-                    NextFundingTime =
-                        DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(t.NextFundingTime)).UtcDateTime,
+                    NormalizedSymbol = parsed.Base + "-" + parsed.Quote,
+                    MarkPrice = ticker.MarkPrice,
+                    IndexPrice = ticker.IndexPrice,
+                    FundingRate = ticker.FundingRate ?? 0,
+                    FundingIntervalHours = ticker.FundingInterval,
+                    NextFundingTime = ticker.NextFundingTime ?? DateTime.UtcNow,
                     LastCheck = DateTime.UtcNow,
-
                     IsActive = true,
-                    BaseAsset = _symbolNormalizer.Parse(t.Symbol, ExchangeType).Base,
-                    QuoteAsset = "USDT"
-                })
-                .ToList();
+                    BaseAsset = parsed.Base,
+                    QuoteAsset = QuoteAsset
+                });
+            }
 
             stopwatch.Stop();
-            _logger.LogInformation("[Bybit] собрано {Count} за {ElapsedMilliseconds} мс", result.Count,
+            _logger.LogInformation("[Bybit] собрано {Count} за {ElapsedMilliseconds} мс", fundingRates.Count,
                 stopwatch.ElapsedMilliseconds);
-            return result;
+            return fundingRates;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
             _logger.LogError(ex, "[Bybit] Сбор не выполнен");
-            throw new ExchangeApiException(ExchangeType.Bybit, $"Binance API error: {ex.Message}");
+            throw new ExchangeApiException(ExchangeType.Bybit, $"Bybit API error: {ex.Message}");
         }
     }
 
-    public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+    public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {
         try
         {
-            await GetAsync<object>("/v5/market/time", cancellationToken);
+            await _bybitClient.V5Api.ExchangeData.GetServerTimeAsync(cancellationToken);
             return true;
         }
         catch
         {
             return false;
         }
-    }
-
-    private class BybitTickersResponse
-    {
-        public BybitTickersResult Result { get; set; } = null!;
-    }
-
-    private class BybitTickersResult
-    {
-        public List<BybitTicker> List { get; set; } = new();
-    }
-
-    private class BybitTicker
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string MarkPrice { get; set; } = string.Empty;
-        public string IndexPrice { get; set; } = string.Empty;
-        public string FundingRate { get; set; } = string.Empty;
-        public string FundingIntervalHour { get; set; } = string.Empty;
-        public string NextFundingTime { get; set; } = string.Empty;
     }
 }

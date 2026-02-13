@@ -1,59 +1,97 @@
 using System.Diagnostics;
+using Binance.Net;
+using Binance.Net.Clients;
+using CryptoExchange.Net.Objects;
+using FundingMonitor.Application.Interfaces.Clients;
 using FundingMonitor.Application.Interfaces.Services;
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
-public class BinanceApiClient : BaseExchangeApiClient
+public class BinanceApiClient : IExchangeApiClient
 {
+    private const string QuoteAsset = "USDT";
+    private readonly BinanceRestClient _binanceClient;
     private readonly ILogger<BinanceApiClient> _logger;
     private readonly ISymbolNormalizer _symbolNormalizer;
 
     public BinanceApiClient(
-        HttpClient httpClient,
         ILogger<BinanceApiClient> logger,
-        ISymbolNormalizer symbolNormalizer)
-        : base(httpClient, logger)
+        ISymbolNormalizer symbolNormalizer,
+        IOptions<ExchangeOptions> binanceOptions)
     {
         _logger = logger;
         _symbolNormalizer = symbolNormalizer;
+        var options = binanceOptions.Value;
+
+        _binanceClient = new BinanceRestClient(binanceClientOptions =>
+        {
+            binanceClientOptions.Environment = BinanceEnvironment.Live;
+            binanceClientOptions.RequestTimeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+            binanceClientOptions.AutoTimestamp = true;
+            binanceClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
+            binanceClientOptions.HttpVersion = new Version(2, 0);
+            binanceClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60);
+            binanceClientOptions.RateLimiterEnabled = true;
+            binanceClientOptions.RateLimitingBehaviour = RateLimitingBehaviour.Wait;
+            binanceClientOptions.OutputOriginalData = false;
+            binanceClientOptions.CachingEnabled = false;
+        });
     }
 
-    public override ExchangeType ExchangeType => ExchangeType.Binance;
+    public ExchangeType ExchangeType => ExchangeType.Binance;
 
-    public override async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
+    public async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            var response = await GetAsync<List<BinancePremiumIndexResponse>>(
-                "/fapi/v1/premiumIndex", cancellationToken);
+            // Используем USDⓈ-M Futures API для получения премиум индекса
+            var result = await _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(cancellationToken);
 
-            var result = response
-                .Where(r => r.Symbol.EndsWith("USDT"))
-                .Select(r => new CurrentFundingRate
+            if (!result.Success)
+            {
+                _logger.LogError("[Binance] Ошибка: {Error}", result.Error?.Message);
+                throw new ExchangeApiException(ExchangeType.Binance, result.Error?.Message ?? "Unknown error");
+            }
+
+            var premiumIndices = result.Data;
+            var fundingRates = new List<CurrentFundingRate>(premiumIndices.Length);
+
+            foreach (var index in premiumIndices)
+            {
+                if (!index.Symbol.EndsWith(QuoteAsset))
+                    continue;
+
+                var parsed = _symbolNormalizer.Parse(index.Symbol, ExchangeType);
+
+                fundingRates.Add(new CurrentFundingRate
                 {
                     Exchange = ExchangeType.Binance,
-                    NormalizedSymbol = _symbolNormalizer.Normalize(r.Symbol, ExchangeType),
-                    MarkPrice = SafeParseDecimal(r.MarkPrice),
-                    IndexPrice = SafeParseDecimal(r.IndexPrice),
-                    FundingRate = SafeParseDecimal(r.LastFundingRate),
-                    NextFundingTime = DateTimeOffset.FromUnixTimeMilliseconds(r.NextFundingTime).UtcDateTime,
+                    NormalizedSymbol = parsed.Base + "-" + parsed.Quote,
+                    MarkPrice = index.MarkPrice,
+                    IndexPrice = index.IndexPrice,
+                    FundingRate = index.FundingRate ?? 0,
+                    NextFundingTime = index.NextFundingTime,
                     LastCheck = DateTime.UtcNow,
 
                     IsActive = true,
-                    BaseAsset = _symbolNormalizer.Parse(r.Symbol, ExchangeType).Base,
-                    QuoteAsset = "USDT"
-                })
-                .ToList();
+                    BaseAsset = parsed.Base,
+                    QuoteAsset = QuoteAsset
+                });
+            }
 
             stopwatch.Stop();
-            _logger.LogInformation("[Binance] собрано {Count} за {ElapsedMilliseconds} мс", result.Count,
-                stopwatch.ElapsedMilliseconds);
-            return result;
+            _logger.LogInformation("[Binance] собрано {Count} за {ElapsedMilliseconds} мс",
+                fundingRates.Count, stopwatch.ElapsedMilliseconds);
+
+            return fundingRates;
         }
         catch (Exception ex)
         {
@@ -63,25 +101,16 @@ public class BinanceApiClient : BaseExchangeApiClient
         }
     }
 
-    public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+    public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {
         try
         {
-            await GetAsync<object>("/fapi/v1/ping", cancellationToken);
-            return true;
+            var result = await _binanceClient.UsdFuturesApi.ExchangeData.PingAsync(cancellationToken);
+            return result.Success;
         }
         catch
         {
             return false;
         }
-    }
-
-    private class BinancePremiumIndexResponse
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string MarkPrice { get; set; } = string.Empty;
-        public string IndexPrice { get; set; } = string.Empty;
-        public string LastFundingRate { get; set; } = string.Empty;
-        public long NextFundingTime { get; set; }
     }
 }
