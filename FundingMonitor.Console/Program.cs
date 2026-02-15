@@ -93,13 +93,13 @@ internal class Program
             ExchangeOptions.BybitSection,
             configuration.GetSection(ExchangeOptions.BybitSection));
 
-        // === BINANCE ===
+        // Регистрируем клиентов
         services.AddSingleton<BinanceApiClient>();
+        services.AddSingleton<BybitApiClient>();
+
+        // Регистрируем через интерфейс
         services.AddSingleton<IExchangeApiClient, BinanceApiClient>(sp =>
             sp.GetRequiredService<BinanceApiClient>());
-
-        // === BYBIT ===
-        services.AddSingleton<BybitApiClient>();
         services.AddSingleton<IExchangeApiClient, BybitApiClient>(sp =>
             sp.GetRequiredService<BybitApiClient>());
     }

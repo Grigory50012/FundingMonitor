@@ -1,8 +1,6 @@
-using System.Diagnostics;
 using Binance.Net;
 using Binance.Net.Clients;
 using CryptoExchange.Net.Objects;
-using FundingMonitor.Application.Interfaces.Clients;
 using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
@@ -13,26 +11,20 @@ using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
-public class BinanceApiClient : IExchangeApiClient
+public class BinanceApiClient : BaseExchangeApiClient
 {
-    private const string QuoteAsset = "USDT";
     private readonly BinanceRestClient _binanceClient;
-    private readonly ILogger<BinanceApiClient> _logger;
-    private readonly ISymbolNormalizer _symbolNormalizer;
 
     public BinanceApiClient(
         ILogger<BinanceApiClient> logger,
         ISymbolNormalizer symbolNormalizer,
         IOptions<ExchangeOptions> binanceOptions)
+        : base(logger, symbolNormalizer, binanceOptions)
     {
-        _logger = logger;
-        _symbolNormalizer = symbolNormalizer;
-        var options = binanceOptions.Value;
-
         _binanceClient = new BinanceRestClient(binanceClientOptions =>
         {
             binanceClientOptions.Environment = BinanceEnvironment.Live;
-            binanceClientOptions.RequestTimeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+            binanceClientOptions.RequestTimeout = TimeSpan.FromSeconds(Options.TimeoutSeconds);
             binanceClientOptions.AutoTimestamp = true;
             binanceClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             binanceClientOptions.HttpVersion = new Version(2, 0);
@@ -44,68 +36,56 @@ public class BinanceApiClient : IExchangeApiClient
         });
     }
 
-    public ExchangeType ExchangeType => ExchangeType.Binance;
+    public override ExchangeType ExchangeType => ExchangeType.Binance;
 
-    public async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
+    public override async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
     {
-        var stopwatch = Stopwatch.StartNew();
-
-        try
-        {
-            // Используем USDⓈ-M Futures API для получения премиум индекса
-            var result = await _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(cancellationToken);
-
-            if (!result.Success)
+        return await ExecuteWithMonitoringAsync(
+            "GetAllFundingRates",
+            async ct =>
             {
-                _logger.LogError("[Binance] Ошибка: {Error}", result.Error?.Message);
-                throw new ExchangeApiException(ExchangeType.Binance, result.Error?.Message ?? "Unknown error");
-            }
+                var result = await _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(ct);
 
-            var premiumIndices = result.Data;
-            var fundingRates = new List<CurrentFundingRate>(premiumIndices.Length);
-
-            foreach (var index in premiumIndices)
-            {
-                if (!index.Symbol.EndsWith(QuoteAsset))
-                    continue;
-
-                var parsed = _symbolNormalizer.Parse(index.Symbol, ExchangeType);
-
-                fundingRates.Add(new CurrentFundingRate
+                if (!result.Success)
                 {
-                    Exchange = ExchangeType.Binance,
-                    NormalizedSymbol = parsed.Base + "-" + parsed.Quote,
-                    MarkPrice = index.MarkPrice,
-                    IndexPrice = index.IndexPrice,
-                    FundingRate = index.FundingRate ?? 0,
-                    NextFundingTime = index.NextFundingTime,
-                    LastCheck = DateTime.UtcNow,
+                    Logger.LogError("[Binance] API Error: {Error}", result.Error?.Message);
+                    throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
+                }
 
-                    IsActive = true,
-                    BaseAsset = parsed.Base,
-                    QuoteAsset = QuoteAsset
-                });
-            }
+                var premiumIndices = result.Data;
+                var fundingRates = new List<CurrentFundingRate>(premiumIndices.Length);
 
-            stopwatch.Stop();
-            _logger.LogInformation("[Binance] собрано {Count} за {ElapsedMilliseconds} мс",
-                fundingRates.Count, stopwatch.ElapsedMilliseconds);
+                foreach (var index in premiumIndices)
+                {
+                    if (!IsValidSymbol(index.Symbol))
+                        continue;
 
-            return fundingRates;
-        }
-        catch (Exception ex)
-        {
-            stopwatch.Stop();
-            _logger.LogError(ex, "[Binance] Сбор не выполнен");
-            throw new ExchangeApiException(ExchangeType.Binance, $"Binance API error: {ex.Message}");
-        }
+                    var fundingRate = CreateFundingRate(
+                        index.Symbol,
+                        index.MarkPrice,
+                        index.IndexPrice,
+                        index.FundingRate ?? 0,
+                        index.NextFundingTime
+                    );
+
+                    fundingRates.Add(fundingRate);
+                }
+
+                Logger.LogInformation("[Binance] Collected {Count} funding rates", fundingRates.Count);
+                return fundingRates;
+            },
+            cancellationToken);
     }
 
-    public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+    public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _binanceClient.UsdFuturesApi.ExchangeData.PingAsync(cancellationToken);
+            var result = await ExecuteWithMonitoringAsync(
+                "Ping",
+                async ct => await _binanceClient.UsdFuturesApi.ExchangeData.PingAsync(ct),
+                cancellationToken);
+
             return result.Success;
         }
         catch
