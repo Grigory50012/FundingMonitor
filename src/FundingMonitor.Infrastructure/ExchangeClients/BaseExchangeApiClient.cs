@@ -31,7 +31,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
     /// <summary>
     ///     Основной метод для получения ставок финансирования
     /// </summary>
-    public abstract Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken);
+    public abstract Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(CancellationToken cancellationToken);
 
     /// <summary>
     ///     Проверка доступности биржи
@@ -61,7 +61,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
                 IndexPrice = indexPrice,
                 FundingRate = fundingRate,
                 FundingIntervalHours = fundingIntervalHours,
-                NextFundingTime = nextFundingTime ?? DateTime.UtcNow,
+                NextFundingTime = nextFundingTime ?? null,
                 LastCheck = DateTime.UtcNow,
                 IsActive = true,
                 BaseAsset = parsed.Base,

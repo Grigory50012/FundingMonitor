@@ -39,7 +39,8 @@ public class BybitApiClient : BaseExchangeApiClient
 
     public override ExchangeType ExchangeType => ExchangeType.Bybit;
 
-    public override async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
+    public override async Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(
+        CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
             "GetAllFundingRates",

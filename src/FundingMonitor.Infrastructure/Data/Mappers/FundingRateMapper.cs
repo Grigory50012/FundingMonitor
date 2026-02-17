@@ -25,7 +25,7 @@ public static class FundingRateMapper
             IndexPrice = domainModel.IndexPrice,
             FundingRate = domainModel.FundingRate,
             FundingIntervalHours = domainModel.FundingIntervalHours ?? 8,
-            NextFundingTime = domainModel.NextFundingTime,
+            NextFundingTime = domainModel.NextFundingTime ?? null,
             LastCheck = domainModel.LastCheck,
             PredictedNextRate = domainModel.PredictedNextRate,
             IsActive = domainModel.IsActive

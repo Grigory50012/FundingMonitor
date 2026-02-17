@@ -38,7 +38,8 @@ public class BinanceApiClient : BaseExchangeApiClient
 
     public override ExchangeType ExchangeType => ExchangeType.Binance;
 
-    public override async Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken)
+    public override async Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(
+        CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
             "GetAllFundingRates",
@@ -57,7 +58,9 @@ public class BinanceApiClient : BaseExchangeApiClient
 
                 foreach (var index in premiumIndices)
                 {
-                    if (!IsValidSymbol(index.Symbol))
+                    if (!IsValidSymbol(index.Symbol)) // Только USDT
+                        continue;
+                    if (index.NextFundingTime < index.Timestamp) // Отсекаем неактивные или квартальные фьючерсы
                         continue;
 
                     var fundingRate = CreateFundingRate(

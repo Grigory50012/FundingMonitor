@@ -28,7 +28,7 @@ public class DataCollector : IDataCollector
     {
         try
         {
-            return await client.GetAllFundingRatesAsync(ct);
+            return await client.GetCurrentFundingRatesAsync(ct);
         }
         catch (Exception ex)
         {

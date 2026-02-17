@@ -22,7 +22,7 @@ public class CurrentFundingRateEntity
     [Column(TypeName = "decimal(10,8)")] public decimal FundingRate { get; set; }
 
     public int FundingIntervalHours { get; set; }
-    public DateTime NextFundingTime { get; set; }
+    public DateTime? NextFundingTime { get; set; }
 
     public DateTime LastCheck { get; set; }
 

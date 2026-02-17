@@ -9,7 +9,7 @@ public class CurrentFundingRate
     public decimal IndexPrice { get; set; } // Индексная цена
     public decimal FundingRate { get; set; } // Ставка
     public int? FundingIntervalHours { get; set; } = 8; // Период выплат
-    public DateTime NextFundingTime { get; set; } // Время выплаты
+    public DateTime? NextFundingTime { get; set; } // Время выплаты
     public DateTime LastCheck { get; set; } = DateTime.UtcNow; // Последняя проверка
 
     // Опциональные данные

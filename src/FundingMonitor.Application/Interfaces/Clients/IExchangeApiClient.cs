@@ -6,6 +6,6 @@ public interface IExchangeApiClient
 {
     ExchangeType ExchangeType { get; }
 
-    Task<List<CurrentFundingRate>> GetAllFundingRatesAsync(CancellationToken cancellationToken);
+    Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(CancellationToken cancellationToken);
     Task<bool> IsAvailableAsync(CancellationToken cancellationToken);
 }
