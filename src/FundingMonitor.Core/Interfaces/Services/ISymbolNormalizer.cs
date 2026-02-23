@@ -1,6 +1,6 @@
 using FundingMonitor.Core.Entities;
 
-namespace FundingMonitor.Application.Interfaces.Services;
+namespace FundingMonitor.Core.Interfaces.Services;
 
 public interface ISymbolNormalizer
 {
