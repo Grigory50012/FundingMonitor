@@ -19,8 +19,7 @@ namespace FundingMonitor.Infrastructure.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static void AddInfrastructureServices(this IServiceCollection services,
-        IConfiguration configuration)
+    public static void AddInfrastructureServices(this IServiceCollection services)
     {
         // Добавляем фабрику DbContext
         services.AddDbContextFactory<AppDbContext>((sp, options) =>

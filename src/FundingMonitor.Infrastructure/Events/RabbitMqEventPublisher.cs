@@ -37,6 +37,12 @@ public class RabbitMqEventPublisher : IEventPublisher, IAsyncDisposable
         }
     }
 
+    public async Task PublishBatchAsync<T>(IEnumerable<T> events, CancellationToken cancellationToken = default)
+        where T : FundingEvent
+    {
+        foreach (var @event in events) await PublishAsync(@event, cancellationToken);
+    }
+
     public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : FundingEvent
     {
         try
@@ -60,7 +66,7 @@ public class RabbitMqEventPublisher : IEventPublisher, IAsyncDisposable
                 body,
                 cancellationToken);
 
-            _logger.LogDebug("Published {EventType} for {Exchange}:{Symbol}",
+            _logger.LogDebug("Опубликовано {EventType} для {Exchange}:{Symbol}",
                 typeof(T).Name, @event.Exchange, @event.NormalizedSymbol);
         }
         catch (Exception ex)
@@ -68,12 +74,6 @@ public class RabbitMqEventPublisher : IEventPublisher, IAsyncDisposable
             _logger.LogError(ex, "Не удалось опубликовать событие {EventType}", typeof(T).Name);
             throw;
         }
-    }
-
-    public async Task PublishBatchAsync<T>(IEnumerable<T> events, CancellationToken cancellationToken = default)
-        where T : FundingEvent
-    {
-        foreach (var @event in events) await PublishAsync(@event, cancellationToken);
     }
 
     public static async Task<RabbitMqEventPublisher> CreateAsync(

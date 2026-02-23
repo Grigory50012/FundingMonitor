@@ -53,9 +53,6 @@ public class RateLimitedApiClient : IExchangeApiClient
         _rateLimiterPipeline = new ResiliencePipelineBuilder()
             .AddRateLimiter(rateLimiter)
             .Build();
-
-        _logger.LogInformation("[{Exchange}] Rate limiter initialized: {PermitLimit}/min",
-            ExchangeType, limits.PermitLimit);
     }
 
     public ExchangeType ExchangeType { get; }

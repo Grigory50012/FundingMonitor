@@ -96,7 +96,7 @@ public class HistoricalDataEventConsumer :
 
     public async Task HandleAsync(NewSymbolDetectedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Queueing new symbol: {Exchange}:{Symbol}",
+        _logger.LogInformation("Добавление нового символа в очередь: {Exchange}:{Symbol}",
             @event.Exchange, @event.NormalizedSymbol);
 
         await _queue.Writer.WriteAsync(async ct =>
@@ -130,7 +130,7 @@ public class HistoricalDataEventConsumer :
             var rates = await client.GetHistoricalFundingRatesAsync(
                 originalSymbol, fromTime, toTime, _options.Value.ApiPageSize, cancellationToken);
 
-            if (rates.Any())
+            if (rates.Count != 0)
             {
                 await _historyRepo.SaveRatesAsync(rates, cancellationToken);
                 _logger.LogInformation("✓ Новый символ {Exchange}:{Symbol} загружено {Count} ставок за {Elapsed:F1}s",

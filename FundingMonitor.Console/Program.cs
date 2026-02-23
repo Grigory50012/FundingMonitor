@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Console;
 
-internal class Program
+internal static class Program
 {
     private static async Task Main(string[] args)
     {
@@ -29,12 +29,12 @@ internal class Program
             {
                 // Регистрация всех сервисов через extension методы
                 services.AddCoreServices(context.Configuration);
-                services.AddInfrastructureServices(context.Configuration);
+                services.AddInfrastructureServices();
                 services.AddApplicationServices();
 
                 // Background services
                 services.AddHostedService<CurrentDataBackgroundService>();
-                services.AddHostedService<RabbitMqInitializer>();
+                services.AddHostedService<RabbitMqConsumer>();
             })
             .ConfigureLogging((context, logging) =>
             {

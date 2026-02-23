@@ -34,7 +34,7 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         };
 
         await _context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
-        _logger.LogDebug("Saved {Count} historical rates", entities.Count);
+        _logger.LogDebug("Сохранено {Count} исторических ставок финансирования", entities.Count);
     }
 
     public async Task<HistoricalFundingRate?> GetLastRateAsync(
@@ -48,14 +48,5 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
             .FirstOrDefaultAsync(cancellationToken);
 
         return entity is null ? null : HistoricalFundingRateMapper.ToDomain(entity);
-    }
-
-    public async Task<bool> HasHistoryAsync(
-        string exchange,
-        string normalizedSymbol,
-        CancellationToken cancellationToken)
-    {
-        return await _context.HistoricalFundingRate
-            .AnyAsync(r => r.Exchange == exchange && r.NormalizedSymbol == normalizedSymbol, cancellationToken);
     }
 }

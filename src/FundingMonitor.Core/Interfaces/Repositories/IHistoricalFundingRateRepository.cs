@@ -8,6 +8,4 @@ public interface IHistoricalFundingRateRepository
 
     Task<HistoricalFundingRate?> GetLastRateAsync(string exchange, string normalizedSymbol,
         CancellationToken cancellationToken);
-
-    Task<bool> HasHistoryAsync(string exchange, string normalizedSymbol, CancellationToken cancellationToken);
 }

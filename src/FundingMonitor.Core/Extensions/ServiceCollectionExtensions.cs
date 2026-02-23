@@ -16,8 +16,6 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(HistoricalDataCollectionOptions.SectionName));
         services.Configure<RateLimitOptions>(
             configuration.GetSection(RateLimitOptions.SectionName));
-        services.Configure<ConnectionStringsOptions>(
-            configuration.GetSection(ConnectionStringsOptions.SectionName));
         services.Configure<RabbitMqOptions>(
             configuration.GetSection(RabbitMqOptions.SectionName));
     }

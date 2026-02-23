@@ -8,7 +8,4 @@ public interface ICurrentFundingRateRepository
 
     Task<IEnumerable<CurrentFundingRate>> GetRatesAsync(string? symbol, List<ExchangeType>? exchanges,
         CancellationToken cancellationToken);
-
-    Task<Dictionary<string, CurrentFundingRate>> GetRatesDictionaryAsync(ExchangeType exchange,
-        CancellationToken cancellationToken);
 }

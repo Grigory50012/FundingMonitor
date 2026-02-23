@@ -7,6 +7,4 @@ public interface IStateManager
 {
     Task<Dictionary<string, SymbolState>> GetExchangeStateAsync(ExchangeType exchange);
     Task SaveExchangeStateAsync(ExchangeType exchange, Dictionary<string, SymbolState> state);
-    Task<SymbolState?> GetSymbolStateAsync(ExchangeType exchange, string symbol);
-    Task ClearAsync();
 }

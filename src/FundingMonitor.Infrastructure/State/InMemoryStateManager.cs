@@ -30,21 +30,4 @@ public class InMemoryStateManager : IStateManager
         _logger.LogDebug("Сохраненное состояние для {Exchange}: {Count} символов", exchange, state.Count);
         return Task.CompletedTask;
     }
-
-    public Task<SymbolState?> GetSymbolStateAsync(ExchangeType exchange, string symbol)
-    {
-        var key = exchange.ToString();
-        if (_state.TryGetValue(key, out var exchangeState) &&
-            exchangeState.TryGetValue(symbol, out var symbolState))
-            return Task.FromResult<SymbolState?>(symbolState);
-
-        return Task.FromResult<SymbolState?>(null);
-    }
-
-    public Task ClearAsync()
-    {
-        _state.Clear();
-        _logger.LogInformation("State cleared");
-        return Task.CompletedTask;
-    }
 }

@@ -43,7 +43,11 @@ public class CurrentDataCollector : ICurrentDataCollector
         var allEvents = results.SelectMany(r => r.Events).ToList();
 
         // Сохраняем данные и публикуем события
-        if (allRates.Count != 0) await _repository.UpdateRatesAsync(allRates, cancellationToken);
+        if (allRates.Count != 0)
+        {
+            await _repository.UpdateRatesAsync(allRates, cancellationToken);
+            _logger.LogInformation("Опубликовано {Count} событий", allEvents.Count);
+        }
 
         if (allEvents.Count != 0)
         {

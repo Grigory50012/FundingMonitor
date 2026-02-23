@@ -80,12 +80,4 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
         var entities = await query.ToListAsync(cancellationToken);
         return CurrentFundingRateMapper.ToDomainList(entities);
     }
-
-    public async Task<Dictionary<string, CurrentFundingRate>> GetRatesDictionaryAsync(
-        ExchangeType exchange,
-        CancellationToken cancellationToken)
-    {
-        var rates = await GetRatesAsync(null, new List<ExchangeType> { exchange }, cancellationToken);
-        return rates.ToDictionary(r => r.NormalizedSymbol, r => r);
-    }
 }

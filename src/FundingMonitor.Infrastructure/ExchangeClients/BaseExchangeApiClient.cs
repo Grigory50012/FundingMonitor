@@ -87,11 +87,11 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
 
         try
         {
-            Logger.LogDebug("[{Exchange}] Starting {Operation}", ExchangeType, operationName);
+            Logger.LogDebug("[{Exchange}] Начало {Operation}", ExchangeType, operationName);
             var result = await action(cancellationToken);
 
             stopwatch.Stop();
-            Logger.LogInformation("[{Exchange}] {Operation} completed in {Elapsed}ms",
+            Logger.LogInformation("[{Exchange}] {Operation} завершено за {Elapsed}мс",
                 ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
 
             return result;
@@ -99,14 +99,14 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         catch (OperationCanceledException)
         {
             stopwatch.Stop();
-            Logger.LogWarning("[{Exchange}] {Operation} cancelled after {Elapsed}ms",
+            Logger.LogWarning("[{Exchange}] {Operation} отменена после {Elapsed}мс",
                 ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
             throw;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            Logger.LogError(ex, "[{Exchange}] {Operation} failed after {Elapsed}ms",
+            Logger.LogError(ex, "[{Exchange}] {Operation} не удалось после {Elapsed}мс",
                 ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
             throw;
         }

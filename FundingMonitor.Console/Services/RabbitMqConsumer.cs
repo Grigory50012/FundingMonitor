@@ -8,23 +8,23 @@ using RabbitMQ.Client;
 
 namespace FundingMonitor.Console.Services;
 
-public class RabbitMqConsumerHostedService : BackgroundService
+public class RabbitMqConsumer : IHostedService
 {
     private readonly List<IAsyncDisposable> _consumers = new();
-    private readonly ILogger<RabbitMqConsumerHostedService> _logger;
+    private readonly ILogger<RabbitMqConsumer> _logger;
     private readonly IServiceProvider _serviceProvider;
 
-    public RabbitMqConsumerHostedService(
+    public RabbitMqConsumer(
         IServiceProvider serviceProvider,
-        ILogger<RabbitMqConsumerHostedService> logger)
+        ILogger<RabbitMqConsumer> logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting RabbitMQ consumers...");
+        _logger.LogInformation("Запуск RabbitMQ потребителя...");
 
         using var scope = _serviceProvider.CreateScope();
 
@@ -37,29 +37,30 @@ public class RabbitMqConsumerHostedService : BackgroundService
         try
         {
             var newSymbolConsumer = await RabbitMqEventConsumer<NewSymbolDetectedEvent>.CreateAsync(
-                factory, newSymbolSubscriber,
-                _logger);
+                factory,
+                newSymbolSubscriber,
+                _logger,
+                cancellationToken);
 
             var timeChangedConsumer = await RabbitMqEventConsumer<FundingTimeChangedEvent>.CreateAsync(
-                factory, timeChangedSubscriber,
-                _logger);
+                factory,
+                timeChangedSubscriber,
+                _logger,
+                cancellationToken);
 
             _consumers.Add(newSymbolConsumer);
             _consumers.Add(timeChangedConsumer);
 
-            _logger.LogInformation("RabbitMQ consumers started");
-
-            // Keep running
-            while (!stoppingToken.IsCancellationRequested) await Task.Delay(1000, stoppingToken);
+            _logger.LogInformation("RabbitMQ потребитель успешно начал работу");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start RabbitMQ consumers");
+            _logger.LogError(ex, "Не удалось запустить RabbitMQ потребителя");
             throw;
         }
     }
 
-    public override async Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Stopping RabbitMQ consumers...");
 
@@ -73,6 +74,7 @@ public class RabbitMqConsumerHostedService : BackgroundService
                 _logger.LogError(ex, "Error disposing consumer");
             }
 
-        await base.StopAsync(cancellationToken);
+        _consumers.Clear();
+        _logger.LogInformation("RabbitMQ consumers stopped");
     }
 }

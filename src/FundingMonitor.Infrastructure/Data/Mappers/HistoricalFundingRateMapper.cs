@@ -37,14 +37,6 @@ public class HistoricalFundingRateMapper
         };
     }
 
-    public static List<HistoricalFundingRate> ToDomainList(List<HistoricalFundingRateEntity> entities)
-    {
-        if (entities is null || entities.Count == 0)
-            return new List<HistoricalFundingRate>();
-
-        return entities.Select(ToDomain).ToList();
-    }
-
     private static ExchangeType ParseExchange(string exchangeName)
     {
         return ExchangeCache.GetOrAdd(exchangeName, name =>
