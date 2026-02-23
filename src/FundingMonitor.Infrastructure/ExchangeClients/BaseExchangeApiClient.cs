@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using FundingMonitor.Application.Interfaces.Clients;
-using FundingMonitor.Application.Interfaces.Services;
-using FundingMonitor.Core.Configuration;
+using CryptoExchange.Net.Objects.Options;
 using FundingMonitor.Core.Entities;
+using FundingMonitor.Core.Interfaces.Clients;
+using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,9 +10,9 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 
 public abstract class BaseExchangeApiClient : IExchangeApiClient
 {
-    private readonly ISymbolNormalizer _symbolNormalizer;
     protected readonly ILogger Logger;
     protected readonly ExchangeOptions Options;
+    protected readonly ISymbolNormalizer SymbolNormalizer;
 
     protected BaseExchangeApiClient(
         ILogger logger,
@@ -20,7 +20,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         IOptions<ExchangeOptions> options)
     {
         Logger = logger;
-        _symbolNormalizer = symbolNormalizer;
+        SymbolNormalizer = symbolNormalizer;
         Options = options.Value;
     }
 
@@ -28,19 +28,13 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
 
     public abstract ExchangeType ExchangeType { get; }
 
-    /// <summary>
-    ///     Основной метод для получения ставок финансирования
-    /// </summary>
     public abstract Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(CancellationToken cancellationToken);
 
-    /// <summary>
-    ///     Проверка доступности биржи
-    /// </summary>
+    public abstract Task<List<HistoricalFundingRate>> GetHistoricalFundingRatesAsync(
+        string symbol, DateTime fromTime, DateTime toTime, int limit, CancellationToken cancellationToken);
+
     public abstract Task<bool> IsAvailableAsync(CancellationToken cancellationToken);
 
-    /// <summary>
-    ///     Создает объект CurrentFundingRate из полученных данных
-    /// </summary>
     protected CurrentFundingRate CreateFundingRate(
         string symbol,
         decimal markPrice,
@@ -49,35 +43,41 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         DateTime? nextFundingTime,
         int? fundingIntervalHours = null)
     {
-        try
-        {
-            var parsed = _symbolNormalizer.Parse(symbol, ExchangeType);
+        var parsed = SymbolNormalizer.Parse(symbol, ExchangeType);
 
-            return new CurrentFundingRate
-            {
-                Exchange = ExchangeType,
-                NormalizedSymbol = $"{parsed.Base}-{parsed.Quote}",
-                MarkPrice = markPrice,
-                IndexPrice = indexPrice,
-                FundingRate = fundingRate,
-                FundingIntervalHours = fundingIntervalHours,
-                NextFundingTime = nextFundingTime ?? null,
-                LastCheck = DateTime.UtcNow,
-                IsActive = true,
-                BaseAsset = parsed.Base,
-                QuoteAsset = QuoteAsset
-            };
-        }
-        catch (Exception ex)
+        return new CurrentFundingRate
         {
-            Logger.LogWarning(ex, "[{Exchange}] Failed to parse symbol {Symbol}", ExchangeType, symbol);
-            throw;
-        }
+            Exchange = ExchangeType,
+            NormalizedSymbol = $"{parsed.Base}-{parsed.Quote}",
+            MarkPrice = markPrice,
+            IndexPrice = indexPrice,
+            FundingRate = fundingRate,
+            FundingIntervalHours = fundingIntervalHours,
+            NextFundingTime = nextFundingTime,
+            LastCheck = DateTime.UtcNow,
+            IsActive = true,
+            BaseAsset = parsed.Base,
+            QuoteAsset = QuoteAsset
+        };
     }
 
-    /// <summary>
-    ///     Выполняет действие с измерением времени и обработкой ошибок
-    /// </summary>
+    protected HistoricalFundingRate CreateHistoricalFundingRate(
+        string symbol,
+        decimal fundingRate,
+        DateTime fundingTime)
+    {
+        var parsed = SymbolNormalizer.Parse(symbol, ExchangeType);
+
+        return new HistoricalFundingRate
+        {
+            Exchange = ExchangeType,
+            NormalizedSymbol = $"{parsed.Base}-{parsed.Quote}",
+            FundingRate = fundingRate,
+            FundingTime = fundingTime,
+            CollectedAt = DateTime.UtcNow
+        };
+    }
+
     protected async Task<T> ExecuteWithMonitoringAsync<T>(
         string operationName,
         Func<CancellationToken, Task<T>> action,
@@ -88,11 +88,10 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         try
         {
             Logger.LogDebug("[{Exchange}] Starting {Operation}", ExchangeType, operationName);
-
             var result = await action(cancellationToken);
 
             stopwatch.Stop();
-            Logger.LogInformation("[{Exchange}] {Operation} completed in {ElapsedMilliseconds}ms",
+            Logger.LogInformation("[{Exchange}] {Operation} completed in {Elapsed}ms",
                 ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
 
             return result;
@@ -100,22 +99,19 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         catch (OperationCanceledException)
         {
             stopwatch.Stop();
-            Logger.LogWarning("[{Exchange}] {Operation} was cancelled after {ElapsedMilliseconds}ms",
+            Logger.LogWarning("[{Exchange}] {Operation} cancelled after {Elapsed}ms",
                 ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
             throw;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            Logger.LogError(ex, "[{Exchange}] {Operation} failed after {ElapsedMilliseconds}ms",
+            Logger.LogError(ex, "[{Exchange}] {Operation} failed after {Elapsed}ms",
                 ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
             throw;
         }
     }
 
-    /// <summary>
-    ///     Фильтрует символы, оставляя только с нужной quote валютой
-    /// </summary>
     protected static bool IsValidSymbol(string symbol)
     {
         return symbol.EndsWith(QuoteAsset);

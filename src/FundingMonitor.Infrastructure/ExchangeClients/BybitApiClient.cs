@@ -2,10 +2,10 @@ using Bybit.Net;
 using Bybit.Net.Clients;
 using Bybit.Net.Enums;
 using CryptoExchange.Net.Objects;
-using FundingMonitor.Application.Interfaces.Services;
-using FundingMonitor.Core.Configuration;
+using CryptoExchange.Net.Objects.Options;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
+using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
@@ -25,7 +25,7 @@ public class BybitApiClient : BaseExchangeApiClient
         _bybitClient = new BybitRestClient(bybitClientOptions =>
         {
             bybitClientOptions.Environment = BybitEnvironment.Live;
-            bybitClientOptions.RequestTimeout = TimeSpan.FromSeconds(Options.TimeoutSeconds);
+            bybitClientOptions.RequestTimeout = Options.RequestTimeout;
             bybitClientOptions.AutoTimestamp = true;
             bybitClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             bybitClientOptions.HttpVersion = new Version(2, 0);
@@ -43,7 +43,7 @@ public class BybitApiClient : BaseExchangeApiClient
         CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
-            "GetAllFundingRates",
+            "GetCurrentFundingRates",
             async ct =>
             {
                 var result = await _bybitClient.V5Api.ExchangeData.GetLinearInverseTickersAsync(
@@ -56,28 +56,64 @@ public class BybitApiClient : BaseExchangeApiClient
                     throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
                 }
 
-                var tickers = result.Data.List;
-                var fundingRates = new List<CurrentFundingRate>(tickers.Length);
+                var rates = new List<CurrentFundingRate>(result.Data.List.Length);
 
-                foreach (var ticker in tickers)
+                foreach (var item in result.Data.List)
                 {
-                    if (!IsValidSymbol(ticker.Symbol))
+                    if (!IsValidSymbol(item.Symbol))
                         continue;
 
-                    var fundingRate = CreateFundingRate(
-                        ticker.Symbol,
-                        ticker.MarkPrice,
-                        ticker.IndexPrice,
-                        ticker.FundingRate ?? 0,
-                        ticker.NextFundingTime,
-                        ticker.FundingInterval
-                    );
-
-                    fundingRates.Add(fundingRate);
+                    rates.Add(CreateFundingRate(
+                        item.Symbol,
+                        item.MarkPrice,
+                        item.IndexPrice,
+                        item.FundingRate ?? 0,
+                        item.NextFundingTime,
+                        item.FundingInterval));
                 }
 
-                Logger.LogInformation("[Bybit] Collected {Count} funding rates", fundingRates.Count);
-                return fundingRates;
+                Logger.LogInformation("[Bybit] Собрано {Count} ставок финансирования", rates.Count);
+                return rates;
+            },
+            cancellationToken);
+    }
+
+    public override async Task<List<HistoricalFundingRate>> GetHistoricalFundingRatesAsync(
+        string symbol,
+        DateTime fromTime,
+        DateTime toTime,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        return await ExecuteWithMonitoringAsync(
+            $"GetHistoricalFundingRates: {symbol}",
+            async ct =>
+            {
+                var result = await _bybitClient.V5Api.ExchangeData
+                    .GetFundingRateHistoryAsync(Category.Linear, symbol, fromTime, toTime, limit, ct);
+
+                if (!result.Success)
+                {
+                    Logger.LogError("[Bybit] Historical API Error for {Symbol}: {Error}",
+                        symbol, result.Error?.Message);
+                    throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
+                }
+
+                var rates = new List<HistoricalFundingRate>(result.Data.List.Length);
+
+                foreach (var item in result.Data.List)
+                {
+                    if (!IsValidSymbol(item.Symbol))
+                        continue;
+
+                    rates.Add(CreateHistoricalFundingRate(
+                        item.Symbol,
+                        item.FundingRate,
+                        item.Timestamp));
+                }
+
+                Logger.LogInformation("[Bybit] Собрано {Count} историй ставок финансирования", rates.Count);
+                return rates;
             },
             cancellationToken);
     }

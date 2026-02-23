@@ -1,5 +1,5 @@
-using FundingMonitor.Application.Interfaces.Services;
 using FundingMonitor.Core.Entities;
+using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;

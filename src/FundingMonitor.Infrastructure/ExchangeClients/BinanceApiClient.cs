@@ -1,10 +1,10 @@
 using Binance.Net;
 using Binance.Net.Clients;
 using CryptoExchange.Net.Objects;
-using FundingMonitor.Application.Interfaces.Services;
-using FundingMonitor.Core.Configuration;
+using CryptoExchange.Net.Objects.Options;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
+using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
@@ -24,7 +24,7 @@ public class BinanceApiClient : BaseExchangeApiClient
         _binanceClient = new BinanceRestClient(binanceClientOptions =>
         {
             binanceClientOptions.Environment = BinanceEnvironment.Live;
-            binanceClientOptions.RequestTimeout = TimeSpan.FromSeconds(Options.TimeoutSeconds);
+            binanceClientOptions.RequestTimeout = Options.RequestTimeout;
             binanceClientOptions.AutoTimestamp = true;
             binanceClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             binanceClientOptions.HttpVersion = new Version(2, 0);
@@ -42,7 +42,7 @@ public class BinanceApiClient : BaseExchangeApiClient
         CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
-            "GetAllFundingRates",
+            "GetCurrentFundingRates",
             async ct =>
             {
                 var result = await _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(ct);
@@ -53,29 +53,65 @@ public class BinanceApiClient : BaseExchangeApiClient
                     throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
                 }
 
-                var premiumIndices = result.Data;
-                var fundingRates = new List<CurrentFundingRate>(premiumIndices.Length);
+                var rates = new List<CurrentFundingRate>(result.Data.Length);
 
-                foreach (var index in premiumIndices)
+                foreach (var item in result.Data)
                 {
-                    if (!IsValidSymbol(index.Symbol)) // Только USDT
+                    if (!IsValidSymbol(item.Symbol)) // Только USDT
                         continue;
-                    if (index.NextFundingTime < index.Timestamp) // Отсекаем неактивные или квартальные фьючерсы
+                    if (item.NextFundingTime < item.Timestamp) // Отсекаем неактивные или квартальные фьючерсы
                         continue;
 
-                    var fundingRate = CreateFundingRate(
-                        index.Symbol,
-                        index.MarkPrice,
-                        index.IndexPrice,
-                        index.FundingRate ?? 0,
-                        index.NextFundingTime
-                    );
-
-                    fundingRates.Add(fundingRate);
+                    rates.Add(CreateFundingRate(
+                        item.Symbol,
+                        item.MarkPrice,
+                        item.IndexPrice,
+                        item.FundingRate ?? 0,
+                        item.NextFundingTime));
                 }
 
-                Logger.LogInformation("[Binance] Collected {Count} funding rates", fundingRates.Count);
-                return fundingRates;
+                Logger.LogInformation("[Binance] Собрано {Count} ставок финансирования", rates.Count);
+                return rates;
+            },
+            cancellationToken);
+    }
+
+    public override async Task<List<HistoricalFundingRate>> GetHistoricalFundingRatesAsync(
+        string symbol,
+        DateTime fromTime,
+        DateTime toTime,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        return await ExecuteWithMonitoringAsync(
+            $"GetHistoricalFundingRates: {symbol}",
+            async ct =>
+            {
+                var result = await _binanceClient.UsdFuturesApi.ExchangeData
+                    .GetFundingRatesAsync(symbol, fromTime, toTime, limit, ct);
+
+                if (!result.Success)
+                {
+                    Logger.LogError("[Binance] Historical API Error for {Symbol}: {Error}",
+                        symbol, result.Error?.Message);
+                    throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
+                }
+
+                var rates = new List<HistoricalFundingRate>(result.Data.Length);
+
+                foreach (var item in result.Data)
+                {
+                    if (!IsValidSymbol(item.Symbol))
+                        continue;
+
+                    rates.Add(CreateHistoricalFundingRate(
+                        item.Symbol,
+                        item.FundingRate,
+                        item.FundingTime));
+                }
+
+                Logger.LogInformation("[Binance] Собрано {Count} историй ставок финансирования", rates.Count);
+                return rates;
             },
             cancellationToken);
     }
