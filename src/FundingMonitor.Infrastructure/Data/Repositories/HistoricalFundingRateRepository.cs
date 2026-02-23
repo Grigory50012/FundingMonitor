@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using EFCore.BulkExtensions;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Repositories;
@@ -20,8 +21,12 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         _logger = logger;
     }
 
-    public async Task SaveRatesAsync(IEnumerable<HistoricalFundingRate> rates, CancellationToken cancellationToken)
+    public async Task SaveRatesAsync(
+        IEnumerable<HistoricalFundingRate> rates,
+        CancellationToken cancellationToken)
     {
+        var sw = Stopwatch.StartNew();
+
         var entities = rates.Select(HistoricalFundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
@@ -33,8 +38,10 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
             PropertiesToExcludeOnUpdate = new List<string> { "CollectedAt" }
         };
 
-        await _context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
-        _logger.LogDebug("Сохранено {Count} исторических ставок финансирования", entities.Count);
+        await _context.BulkInsertAsync(entities, bulkConfig, cancellationToken: cancellationToken);
+
+        _logger.LogDebug("Сохранено: {Count} ставок за {ElapsedMs} мс",
+            entities.Count, sw.ElapsedMilliseconds);
     }
 
     public async Task<HistoricalFundingRate?> GetLastRateAsync(
