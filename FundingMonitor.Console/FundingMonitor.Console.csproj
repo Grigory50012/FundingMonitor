@@ -18,6 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\src\FundingMonitor.Application\FundingMonitor.Application.csproj"/>
       <ProjectReference Include="..\src\FundingMonitor.Infrastructure\FundingMonitor.Infrastructure.csproj" />
     </ItemGroup>
 

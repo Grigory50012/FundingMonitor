@@ -1,26 +1,30 @@
 using EFCore.BulkExtensions;
-using FundingMonitor.Application.Interfaces.Repositories;
 using FundingMonitor.Core.Entities;
+using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Infrastructure.Data.Mappers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Infrastructure.Data.Repositories;
 
 public class CurrentFundingRateRepository : ICurrentFundingRateRepository
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<CurrentFundingRateRepository> _logger;
 
-    public CurrentFundingRateRepository(AppDbContext context)
+    public CurrentFundingRateRepository(
+        AppDbContext context,
+        ILogger<CurrentFundingRateRepository> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
-    public async Task UpdateRatesAsync(IEnumerable<CurrentFundingRate> rates)
+    public async Task UpdateRatesAsync(IEnumerable<CurrentFundingRate> rates, CancellationToken cancellationToken)
     {
-        var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
+        var entities = rates.Select(CurrentFundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
-        // 1. Маппинг и Upsert
         var bulkConfig = new BulkConfig
         {
             UpdateByProperties = new List<string> { "Exchange", "NormalizedSymbol" },
@@ -28,59 +32,60 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
             BatchSize = 4000
         };
 
-        await _context.BulkInsertOrUpdateAsync(entities, bulkConfig);
+        await _context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
 
-        // 2. Получаем все уникальные ключи из БД (только Exchange и NormalizedSymbol)
         var existingKeys = await _context.CurrentFundingRate
             .Select(r => new { r.Exchange, r.NormalizedSymbol })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-        // 3. Множество ключей, которые должны остаться (из входящего списка)
         var incomingKeys = entities
             .Select(e => new { e.Exchange, e.NormalizedSymbol })
             .ToHashSet();
 
-        // 4. Ключи, которые есть в БД, но отсутствуют во входящем списке → подлежат удалению
         var keysToDelete = existingKeys
             .Where(k => !incomingKeys.Contains(k))
             .ToList();
 
-        if (keysToDelete.Count != 0)
+        foreach (var key in keysToDelete)
         {
-            foreach (var key in keysToDelete)
-                await _context.CurrentFundingRate
-                    .Where(r => r.Exchange == key.Exchange &&
-                                r.NormalizedSymbol == key.NormalizedSymbol)
-                    .ExecuteDeleteAsync();
+            await _context.CurrentFundingRate
+                .Where(r => r.Exchange == key.Exchange && r.NormalizedSymbol == key.NormalizedSymbol)
+                .ExecuteDeleteAsync(cancellationToken);
         }
+
+        _logger.LogDebug("Обновлено {Count} текущих ставок финансирования", entities.Count);
     }
 
     public async Task<IEnumerable<CurrentFundingRate>> GetRatesAsync(
-        string? symbol, List<ExchangeType>? exchanges)
+        string? symbol,
+        List<ExchangeType>? exchanges,
+        CancellationToken cancellationToken)
     {
-        var query = _context.CurrentFundingRate
-            .AsQueryable()
-            .AsQueryable();
+        var query = _context.CurrentFundingRate.AsQueryable();
 
-        // Опциональный фильтр по exchanges
-        if (exchanges != null && exchanges.Count != 0)
+        if (exchanges?.Any() == true)
         {
             var exchangeNames = exchanges.Select(e => e.ToString()).ToList();
             query = query.Where(r => exchangeNames.Contains(r.Exchange));
         }
 
-        // Опциональный фильтр по symbol
         if (!string.IsNullOrEmpty(symbol))
         {
             query = query.Where(r => r.BaseAsset == symbol);
         }
 
-        // Обязательный фильтр по активности
         query = query.Where(r => r.IsActive);
+        query = query.OrderBy(r => r.NormalizedSymbol).ThenBy(r => r.Exchange);
 
-        query = query.OrderBy(r => r.NormalizedSymbol)
-            .ThenBy(r => r.Exchange);
+        var entities = await query.ToListAsync(cancellationToken);
+        return CurrentFundingRateMapper.ToDomainList(entities);
+    }
 
-        return await query.ToDomainListAsync();
+    public async Task<Dictionary<string, CurrentFundingRate>> GetRatesDictionaryAsync(
+        ExchangeType exchange,
+        CancellationToken cancellationToken)
+    {
+        var rates = await GetRatesAsync(null, new List<ExchangeType> { exchange }, cancellationToken);
+        return rates.ToDictionary(r => r.NormalizedSymbol, r => r);
     }
 }

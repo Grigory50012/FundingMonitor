@@ -1,18 +1,15 @@
-﻿using FundingMonitor.Application.Interfaces.Clients;
-using FundingMonitor.Application.Interfaces.Repositories;
-using FundingMonitor.Application.Interfaces.Services;
-using FundingMonitor.Application.Services;
+﻿using FundingMonitor.Application.Extensions;
 using FundingMonitor.Console.Services;
-using FundingMonitor.Core.Configuration;
+using FundingMonitor.Core.Extensions;
+using FundingMonitor.Core.Interfaces.Clients;
+using FundingMonitor.Core.Interfaces.Services;
 using FundingMonitor.Infrastructure.Data;
-using FundingMonitor.Infrastructure.Data.Repositories;
-using FundingMonitor.Infrastructure.ExchangeClients;
+using FundingMonitor.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Console;
 
@@ -30,34 +27,14 @@ internal class Program
             })
             .ConfigureServices((context, services) =>
             {
-                // Основные секции конфигурации
-                services.Configure<DataCollectionOptions>(
-                    context.Configuration.GetSection(DataCollectionOptions.SectionName));
+                // Регистрация всех сервисов через extension методы
+                services.AddCoreServices(context.Configuration);
+                services.AddInfrastructureServices(context.Configuration);
+                services.AddApplicationServices();
 
-                services.Configure<ConnectionStringsOptions>(
-                    context.Configuration.GetSection(ConnectionStringsOptions.SectionName));
-
-                // Настройка БД
-                services.AddDbContext<AppDbContext>((sp, options) =>
-                {
-                    var connectionStrings = sp.GetRequiredService<IOptions<ConnectionStringsOptions>>().Value;
-                    options.UseNpgsql(connectionStrings.DefaultConnection);
-                });
-
-                // Репозиторий
-                services.AddScoped<ICurrentFundingRateRepository, CurrentFundingRateRepository>();
-
-                // Настройка HTTP клиентов с Polly
-                ConfigureExchangeClients(services, context.Configuration);
-
-                // Services
-                services.AddScoped<IDataCollector, DataCollector>();
-                services.AddScoped<IArbitrageScanner, ArbitrageScanner>();
-                services.AddScoped<IExchangeHealthChecker, ExchangeHealthChecker>();
-                services.AddSingleton<ISymbolNormalizer, SymbolNormalizer>();
-
-                // Сервис для фоновой работы
-                services.AddHostedService<FundingDataBackgroundService>();
+                // Background services
+                services.AddHostedService<CurrentDataBackgroundService>();
+                services.AddHostedService<RabbitMqInitializer>();
             })
             .ConfigureLogging((context, logging) =>
             {
@@ -69,6 +46,7 @@ internal class Program
 
                 logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
                 logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
+                logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Information);
             })
             .Build();
 
@@ -80,28 +58,6 @@ internal class Program
 
         // Запускаем хост
         await host.RunAsync();
-    }
-
-    private static void ConfigureExchangeClients(IServiceCollection services, IConfiguration configuration)
-    {
-        // Регистрируем конфигурации для бирж
-        services.Configure<ExchangeOptions>(
-            ExchangeOptions.BinanceSection,
-            configuration.GetSection(ExchangeOptions.BinanceSection));
-
-        services.Configure<ExchangeOptions>(
-            ExchangeOptions.BybitSection,
-            configuration.GetSection(ExchangeOptions.BybitSection));
-
-        // Регистрируем клиентов
-        services.AddSingleton<BinanceApiClient>();
-        services.AddSingleton<BybitApiClient>();
-
-        // Регистрируем через интерфейс
-        services.AddSingleton<IExchangeApiClient, BinanceApiClient>(sp =>
-            sp.GetRequiredService<BinanceApiClient>());
-        services.AddSingleton<IExchangeApiClient, BybitApiClient>(sp =>
-            sp.GetRequiredService<BybitApiClient>());
     }
 
     private static async Task EnsureDatabaseMigratedAsync(IServiceProvider services)
@@ -125,7 +81,6 @@ internal class Program
     {
         using var scope = serviceProvider.CreateScope();
         var healthChecker = scope.ServiceProvider.GetRequiredService<IExchangeHealthChecker>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
         System.Console.Clear();
         System.Console.WriteLine("╔══════════════════════════════════════════════════════╗");
@@ -147,21 +102,29 @@ internal class Program
                 System.Console.WriteLine($"  {exchange,-10} : {(isAvailable ? "Available" : "Unavailable")}");
             }
 
-            // Выводим статус БД
+            // Проверка rate limiter
+            System.Console.WriteLine("\nTESTING RATE LIMITER...");
+            var clients = scope.ServiceProvider.GetServices<IExchangeApiClient>();
+            foreach (var client in clients)
+                System.Console.WriteLine($"{client.ExchangeType} : {client.GetType().Name}");
+
+            // Проверка подключения к БД
             try
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var canConnect = await dbContext.Database.CanConnectAsync(cts.Token);
-                System.Console.WriteLine($"Database: {(canConnect ? "Connected" : "Not connected")}");
+                System.Console.WriteLine($"\nDATABASE: {(canConnect ? "✓ Connected" : "✗ Not connected")}");
             }
-            catch
+            catch (Exception ex)
             {
-                System.Console.WriteLine("Database: Connection error");
+                System.Console.WriteLine($"\nDATABASE: ✗ Error - {ex.Message}");
             }
+
+            System.Console.WriteLine("\n✓ System ready. Press Ctrl+C to stop.");
+            System.Console.WriteLine();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error showing startup info");
             System.Console.WriteLine($"Error: {ex.Message}");
         }
     }
