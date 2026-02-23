@@ -10,9 +10,9 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 
 public abstract class BaseExchangeApiClient : IExchangeApiClient
 {
+    private readonly ISymbolNormalizer _symbolNormalizer;
     protected readonly ILogger Logger;
     protected readonly ExchangeOptions Options;
-    protected readonly ISymbolNormalizer SymbolNormalizer;
 
     protected BaseExchangeApiClient(
         ILogger logger,
@@ -20,7 +20,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         IOptions<ExchangeOptions> options)
     {
         Logger = logger;
-        SymbolNormalizer = symbolNormalizer;
+        _symbolNormalizer = symbolNormalizer;
         Options = options.Value;
     }
 
@@ -43,7 +43,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         DateTime? nextFundingTime,
         int? fundingIntervalHours = null)
     {
-        var parsed = SymbolNormalizer.Parse(symbol, ExchangeType);
+        var parsed = _symbolNormalizer.Parse(symbol, ExchangeType);
 
         return new CurrentFundingRate
         {
@@ -66,7 +66,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         decimal fundingRate,
         DateTime fundingTime)
     {
-        var parsed = SymbolNormalizer.Parse(symbol, ExchangeType);
+        var parsed = _symbolNormalizer.Parse(symbol, ExchangeType);
 
         return new HistoricalFundingRate
         {
