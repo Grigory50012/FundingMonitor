@@ -42,7 +42,7 @@ public class BinanceApiClient : BaseExchangeApiClient
         CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
-            "GetCurrentFundingRates",
+            "Сбор текущих ставок финансирования",
             async ct =>
             {
                 var result = await _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(ct);
@@ -84,7 +84,7 @@ public class BinanceApiClient : BaseExchangeApiClient
         CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
-            $"GetHistoricalFundingRates: {symbol}",
+            $"Сбор истории ставок финансирования: {symbol}",
             async ct =>
             {
                 var result = await _binanceClient.UsdFuturesApi.ExchangeData

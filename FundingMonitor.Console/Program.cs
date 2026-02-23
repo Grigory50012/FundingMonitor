@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 
 namespace FundingMonitor.Console;
 
@@ -25,6 +26,15 @@ internal static class Program
                     .AddEnvironmentVariables()
                     .AddCommandLine(args);
             })
+            .ConfigureLogging((context, logging) =>
+            {
+                logging.ClearProviders();
+
+                var nlogConfig = new NLogLoggingConfiguration(context.Configuration.GetSection("NLog"));
+                logging.AddNLog(nlogConfig);
+
+                if (context.HostingEnvironment.IsDevelopment()) logging.AddDebug();
+            })
             .ConfigureServices((context, services) =>
             {
                 // Регистрация всех сервисов через extension методы
@@ -35,18 +45,6 @@ internal static class Program
                 // Background services
                 services.AddHostedService<CurrentDataBackgroundService>();
                 services.AddHostedService<RabbitMqConsumer>();
-            })
-            .ConfigureLogging((context, logging) =>
-            {
-                logging.ClearProviders();
-                logging.AddDebug();
-
-                var logLevel = context.Configuration.GetValue("Logging:LogLevel:Default", LogLevel.Information);
-                logging.SetMinimumLevel(logLevel);
-
-                logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
-                logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
-                logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Information);
             })
             .Build();
 

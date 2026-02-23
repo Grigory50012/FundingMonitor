@@ -83,7 +83,7 @@ public class CurrentDataCollector : ICurrentDataCollector
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Не удалось получить данные от {Exchange}", client.ExchangeType);
+            _logger.LogError(ex, "Не удалось получить данные от биржи: {Exchange}", client.ExchangeType);
             return (new List<CurrentFundingRate>(), new List<FundingEvent>());
         }
     }
@@ -109,7 +109,7 @@ public class CurrentDataCollector : ICurrentDataCollector
                 FundingIntervalHours = rate.FundingIntervalHours,
                 NextFundingTime = rate.NextFundingTime
             });
-            _logger.LogInformation("Новый символ: {Exchange}:{Symbol}", exchange, symbol);
+            _logger.LogInformation("Найдена новая пара: {Symbol} на бирже: {Exchange}", symbol, exchange);
         }
 
         // Удаленные символы
@@ -140,7 +140,8 @@ public class CurrentDataCollector : ICurrentDataCollector
                     NewFundingTime = curr.NextFundingTime ?? DateTime.MinValue,
                     PreviousCheckTime = prev.LastCheck
                 });
-                _logger.LogInformation("Время финансирования изменено: {Exchange}:{Symbol} {Old}->{New}",
+                _logger.LogInformation(
+                    "Время финансирования для пары: {Symbol} на бирже: {Exchange} изменено: {Old}->{New}",
                     exchange, symbol, prev.NextFundingTime, curr.NextFundingTime);
             }
         }

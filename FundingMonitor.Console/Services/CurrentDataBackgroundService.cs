@@ -40,16 +40,16 @@ public class CurrentDataBackgroundService(
         try
         {
             var startTime = DateTime.UtcNow;
-            logger.LogInformation("Начало цикла сбора");
+            logger.LogInformation("Начало цикла сбора текущих ставок финансирования");
 
             var rates = await collector.CollectAsync(stoppingToken);
 
-            logger.LogInformation("Цикл сбора завершен: {Count} ставок, {Elapsed:F1}s",
+            logger.LogInformation("Цикл сбора текущих ставок финансирования завершен: {Count} ставок, {Elapsed:F1}s",
                 rates.Count, (DateTime.UtcNow - startTime).TotalSeconds);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Цикл сбора не выполнен");
+            logger.LogError(ex, "Цикл сбора текущих ставок финансирования не выполнен");
         }
     }
 

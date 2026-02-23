@@ -43,7 +43,7 @@ public class BybitApiClient : BaseExchangeApiClient
         CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
-            "GetCurrentFundingRates",
+            "Сбор текущих ставок финансирования",
             async ct =>
             {
                 var result = await _bybitClient.V5Api.ExchangeData.GetLinearInverseTickersAsync(
@@ -86,7 +86,7 @@ public class BybitApiClient : BaseExchangeApiClient
         CancellationToken cancellationToken)
     {
         return await ExecuteWithMonitoringAsync(
-            $"GetHistoricalFundingRates: {symbol}",
+            $"Сбор истории ставок финансирования: {symbol}",
             async ct =>
             {
                 var result = await _bybitClient.V5Api.ExchangeData
