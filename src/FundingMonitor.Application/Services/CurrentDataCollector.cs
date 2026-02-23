@@ -44,10 +44,7 @@ public class CurrentDataCollector : ICurrentDataCollector
 
         // Сохраняем данные и публикуем события
         if (allRates.Count != 0)
-        {
             await _repository.UpdateRatesAsync(allRates, cancellationToken);
-            _logger.LogInformation("Опубликовано {Count} событий", allEvents.Count);
-        }
 
         if (allEvents.Count != 0)
         {
