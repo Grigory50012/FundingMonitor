@@ -17,38 +17,48 @@ public class HistoricalDataEventConsumer :
     IAsyncDisposable
 {
     private readonly CancellationTokenSource _cts = new();
-    private readonly ICurrentFundingRateRepository _currentRepo;
-    private readonly IHistoricalFundingRateRepository _historyRepo;
     private readonly ILogger<HistoricalDataEventConsumer> _logger;
     private readonly IOptions<HistoricalDataCollectionOptions> _options;
+    private readonly int _processorCount = 3;
+    private readonly List<Task> _processors;
 
-    private readonly Channel<Func<CancellationToken, Task>> _queue;
+    private readonly
+        Channel<Func<IHistoricalFundingRateRepository, ICurrentFundingRateRepository, CancellationToken, Task>> _queue;
+
     private readonly SemaphoreSlim _semaphore;
     private readonly IServiceProvider _serviceProvider;
 
     public HistoricalDataEventConsumer(
         IServiceProvider serviceProvider,
-        IHistoricalFundingRateRepository historyRepo,
-        ICurrentFundingRateRepository currentRepo,
         IOptions<HistoricalDataCollectionOptions> options,
         ILogger<HistoricalDataEventConsumer> logger)
     {
         _serviceProvider = serviceProvider;
-        _historyRepo = historyRepo;
-        _currentRepo = currentRepo;
         _options = options;
         _logger = logger;
 
-        _queue = Channel.CreateBounded<Func<CancellationToken, Task>>(
-            new BoundedChannelOptions(1000)
-            {
-                FullMode = BoundedChannelFullMode.Wait,
-                SingleReader = true
-            });
+        // Изменяем тип канала
+        _queue = Channel
+            .CreateBounded<Func<IHistoricalFundingRateRepository, ICurrentFundingRateRepository, CancellationToken,
+                Task>>(
+                new BoundedChannelOptions(1000)
+                {
+                    FullMode = BoundedChannelFullMode.Wait,
+                    SingleReader = false
+                });
 
         _semaphore = new SemaphoreSlim(options.Value.BatchSize);
 
-        Task.Run(ProcessQueueAsync);
+        _processors = new List<Task>();
+
+        // Запускаем N процессоров
+        for (var i = 0; i < _processorCount; i++)
+        {
+            var processorId = i;
+            _processors.Add(Task.Run(() => ProcessQueueAsync(processorId)));
+        }
+
+        _logger.LogInformation("Запущено {Count} параллельных обработчиков очереди", _processors.Count);
     }
 
     public async ValueTask DisposeAsync()
@@ -60,7 +70,7 @@ public class HistoricalDataEventConsumer :
 
         try
         {
-            await Task.Delay(5000, CancellationToken.None);
+            await Task.WhenAny(Task.WhenAll(_processors), Task.Delay(5000, CancellationToken.None));
         }
         catch
         {
@@ -78,12 +88,13 @@ public class HistoricalDataEventConsumer :
         _logger.LogDebug("Изменение времени ожидания в очереди: {Exchange}:{Symbol}",
             @event.Exchange, @event.NormalizedSymbol);
 
-        await _queue.Writer.WriteAsync(async ct =>
+        // Теперь передаем функцию, которая принимает репозитории
+        await _queue.Writer.WriteAsync(async (historyRepo, currentRepo, ct) =>
         {
             await _semaphore.WaitAsync(ct);
             try
             {
-                await ProcessFundingTimeChangeAsync(@event, ct);
+                await ProcessFundingTimeChangeAsync(@event, historyRepo, currentRepo, ct);
             }
             finally
             {
@@ -99,12 +110,13 @@ public class HistoricalDataEventConsumer :
         _logger.LogInformation("Добавление нового символа в очередь: {Exchange}:{Symbol}",
             @event.Exchange, @event.NormalizedSymbol);
 
-        await _queue.Writer.WriteAsync(async ct =>
+        // Теперь передаем функцию, которая принимает репозитории
+        await _queue.Writer.WriteAsync(async (historyRepo, _, ct) =>
         {
             await _semaphore.WaitAsync(ct);
             try
             {
-                await ProcessNewSymbolAsync(@event, ct);
+                await ProcessNewSymbolAsync(@event, historyRepo, ct);
             }
             finally
             {
@@ -113,7 +125,38 @@ public class HistoricalDataEventConsumer :
         }, cancellationToken);
     }
 
-    private async Task ProcessNewSymbolAsync(NewSymbolDetectedEvent @event, CancellationToken cancellationToken)
+    private async Task ProcessQueueAsync(int processorId)
+    {
+        var reader = _queue.Reader;
+        _logger.LogDebug("Процессор #{ProcessorId} запущен", processorId);
+
+        await foreach (var workItem in reader.ReadAllAsync(_cts.Token))
+        {
+            // Создаем новый scope для каждой операции
+            using var scope = _serviceProvider.CreateScope();
+
+            try
+            {
+                // Получаем новые экземпляры репозиториев из scope
+                var historyRepo = scope.ServiceProvider.GetRequiredService<IHistoricalFundingRateRepository>();
+                var currentRepo = scope.ServiceProvider.GetRequiredService<ICurrentFundingRateRepository>();
+
+                // Выполняем работу с новыми репозиториями
+                await workItem(historyRepo, currentRepo, _cts.Token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Процессор #{ProcessorId} ошибка: {Message}", processorId, ex.Message);
+            }
+        }
+
+        _logger.LogDebug("Процессор #{ProcessorId} остановлен", processorId);
+    }
+
+    private async Task ProcessNewSymbolAsync(
+        NewSymbolDetectedEvent @event,
+        IHistoricalFundingRateRepository historyRepo,
+        CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
         _logger.LogInformation("Обработка нового символа: {Exchange}:{Symbol}",
@@ -132,7 +175,8 @@ public class HistoricalDataEventConsumer :
 
             if (rates.Count != 0)
             {
-                await _historyRepo.SaveRatesAsync(rates, cancellationToken);
+                // Используем переданный репозиторий
+                await historyRepo.SaveRatesAsync(rates, cancellationToken);
                 _logger.LogInformation("✓ Новый символ {Exchange}:{Symbol} загружено {Count} ставок за {Elapsed:F1}s",
                     @event.Exchange, @event.NormalizedSymbol, rates.Count,
                     (DateTime.UtcNow - startTime).TotalSeconds);
@@ -146,21 +190,25 @@ public class HistoricalDataEventConsumer :
         }
     }
 
-    private async Task ProcessFundingTimeChangeAsync(FundingTimeChangedEvent @event,
+    private async Task ProcessFundingTimeChangeAsync(
+        FundingTimeChangedEvent @event,
+        IHistoricalFundingRateRepository historyRepo,
+        ICurrentFundingRateRepository currentRepo,
         CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
 
         try
         {
-            var lastRate = await _historyRepo.GetLastRateAsync(
+            // Используем переданный репозиторий
+            var lastRate = await historyRepo.GetLastRateAsync(
                 @event.Exchange.ToString(), @event.NormalizedSymbol, cancellationToken);
 
             if (lastRate == null)
             {
                 _logger.LogWarning("Нет истории для {Exchange}:{Symbol}, обрабатываем как новый",
                     @event.Exchange, @event.NormalizedSymbol);
-                await ProcessAsNewSymbolAsync(@event, cancellationToken);
+                await ProcessAsNewSymbolAsync(@event, historyRepo, currentRepo, cancellationToken);
                 return;
             }
 
@@ -175,7 +223,8 @@ public class HistoricalDataEventConsumer :
 
             if (rates.Any())
             {
-                await _historyRepo.SaveRatesAsync(rates, cancellationToken);
+                // Используем переданный репозиторий
+                await historyRepo.SaveRatesAsync(rates, cancellationToken);
                 _logger.LogDebug("✓ {Exchange}:{Symbol} обновлено {Count} ставок за {Elapsed:F1}s",
                     @event.Exchange, @event.NormalizedSymbol, rates.Count,
                     (DateTime.UtcNow - startTime).TotalSeconds);
@@ -189,10 +238,14 @@ public class HistoricalDataEventConsumer :
         }
     }
 
-    private async Task ProcessAsNewSymbolAsync(FundingTimeChangedEvent @event, CancellationToken cancellationToken)
+    private async Task ProcessAsNewSymbolAsync(
+        FundingTimeChangedEvent @event,
+        IHistoricalFundingRateRepository historyRepo,
+        ICurrentFundingRateRepository currentRepo,
+        CancellationToken cancellationToken)
     {
-        // Получаем интервал из текущих данных
-        var currentRates = await _currentRepo.GetRatesAsync(
+        // Используем переданный репозиторий
+        var currentRates = await currentRepo.GetRatesAsync(
             @event.NormalizedSymbol,
             new List<ExchangeType> { @event.Exchange },
             cancellationToken);
@@ -208,22 +261,7 @@ public class HistoricalDataEventConsumer :
             NextFundingTime = @event.NewFundingTime
         };
 
-        await ProcessNewSymbolAsync(newEvent, cancellationToken);
-    }
-
-    private async Task ProcessQueueAsync()
-    {
-        var reader = _queue.Reader;
-
-        await foreach (var workItem in reader.ReadAllAsync(_cts.Token))
-            try
-            {
-                await workItem(_cts.Token);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Queue item failed");
-            }
+        await ProcessNewSymbolAsync(newEvent, historyRepo, cancellationToken);
     }
 
     private IExchangeApiClient GetExchangeClient(ExchangeType exchange)
