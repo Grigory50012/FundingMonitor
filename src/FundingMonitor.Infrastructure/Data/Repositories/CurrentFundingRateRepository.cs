@@ -22,7 +22,7 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
 
     public async Task UpdateRatesAsync(IEnumerable<CurrentFundingRate> rates, CancellationToken cancellationToken)
     {
-        var entities = rates.Select(CurrentFundingRateMapper.ToEntity).ToList();
+        var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
         await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
@@ -83,6 +83,6 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
         query = query.OrderBy(r => r.NormalizedSymbol).ThenBy(r => r.Exchange);
 
         var entities = await query.ToListAsync(cancellationToken);
-        return CurrentFundingRateMapper.ToDomainList(entities);
+        return FundingRateMapper.ToDomainList(entities);
     }
 }

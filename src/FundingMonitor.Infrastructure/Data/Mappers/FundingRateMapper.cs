@@ -4,10 +4,11 @@ using FundingMonitor.Infrastructure.Data.Entities;
 
 namespace FundingMonitor.Infrastructure.Data.Mappers;
 
-public static class CurrentFundingRateMapper
+public static class FundingRateMapper
 {
     private static readonly ConcurrentDictionary<string, ExchangeType> ExchangeCache = new();
 
+    // Current Funding Rate mappings
     public static CurrentFundingRateEntity ToEntity(CurrentFundingRate domain)
     {
         ArgumentNullException.ThrowIfNull(domain);
@@ -56,6 +57,36 @@ public static class CurrentFundingRateMapper
         return entities is null || entities.Count == 0
             ? []
             : entities.Select(ToDomain).ToList();
+    }
+
+    // Historical Funding Rate mappings
+    public static HistoricalFundingRateEntity ToEntity(HistoricalFundingRate domain)
+    {
+        ArgumentNullException.ThrowIfNull(domain);
+
+        return new HistoricalFundingRateEntity
+        {
+            Id = 0,
+            Exchange = domain.Exchange.ToString(),
+            NormalizedSymbol = domain.NormalizedSymbol,
+            FundingRate = domain.FundingRate,
+            FundingTime = domain.FundingTime,
+            CollectedAt = domain.CollectedAt
+        };
+    }
+
+    public static HistoricalFundingRate ToDomain(HistoricalFundingRateEntity entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        return new HistoricalFundingRate
+        {
+            Exchange = ParseExchange(entity.Exchange),
+            NormalizedSymbol = entity.NormalizedSymbol,
+            FundingRate = entity.FundingRate,
+            FundingTime = entity.FundingTime,
+            CollectedAt = entity.CollectedAt
+        };
     }
 
     private static ExchangeType ParseExchange(string exchangeName)

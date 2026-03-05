@@ -15,9 +15,6 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 /// </summary>
 public class RateLimitedApiClient : IExchangeApiClient
 {
-    // Статические счётчики для всех экземпляров
-    private static int _totalRequests;
-    private static int _rateLimitedRequests;
     private readonly IExchangeApiClient _innerClient;
     private readonly ILogger<RateLimitedApiClient> _logger;
     private readonly ResiliencePipeline _rateLimiterPipeline;
@@ -59,7 +56,6 @@ public class RateLimitedApiClient : IExchangeApiClient
 
     public async Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(CancellationToken cancellationToken)
     {
-        Interlocked.Increment(ref _totalRequests);
         return await ExecuteWithRateLimitAsync(
             () => _innerClient.GetCurrentFundingRatesAsync(cancellationToken),
             nameof(GetCurrentFundingRatesAsync),
@@ -69,7 +65,6 @@ public class RateLimitedApiClient : IExchangeApiClient
     public async Task<List<HistoricalFundingRate>> GetHistoricalFundingRatesAsync(
         string symbol, DateTime fromTime, DateTime toTime, int limit, CancellationToken cancellationToken)
     {
-        Interlocked.Increment(ref _totalRequests);
         return await ExecuteWithRateLimitAsync(
             () => _innerClient.GetHistoricalFundingRatesAsync(symbol, fromTime, toTime, limit, cancellationToken),
             $"{nameof(GetHistoricalFundingRatesAsync)}:{symbol}",
@@ -78,7 +73,6 @@ public class RateLimitedApiClient : IExchangeApiClient
 
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {
-        Interlocked.Increment(ref _totalRequests);
         return await ExecuteWithRateLimitAsync(
             () => _innerClient.IsAvailableAsync(cancellationToken),
             nameof(IsAvailableAsync),
@@ -90,13 +84,6 @@ public class RateLimitedApiClient : IExchangeApiClient
         string operationName,
         CancellationToken cancellationToken)
     {
-        // Каждые 100 запросов логируем статистику
-        if (_totalRequests % 100 == 0)
-            _logger.LogInformation(
-                "[{Exchange}] Stats: TotalRequests={TotalRequests}, RateLimited={RateLimited}, SuccessRate={SuccessRate:P2}",
-                ExchangeType, _totalRequests, _rateLimitedRequests,
-                _totalRequests > 0 ? (double)(_totalRequests - _rateLimitedRequests) / _totalRequests : 1);
-
         var attempt = 0;
         const int maxRetries = 3;
 
@@ -110,14 +97,10 @@ public class RateLimitedApiClient : IExchangeApiClient
             }
             catch (RateLimiterRejectedException ex)
             {
-                Interlocked.Increment(ref _rateLimitedRequests);
                 attempt++;
 
                 if (attempt >= maxRetries)
                 {
-                    _logger.LogError(
-                        "[{Exchange}] Rate limit exceeded for {Operation} after {Attempts} attempts. Total limited: {RateLimited}",
-                        ExchangeType, operationName, attempt, _rateLimitedRequests);
                     throw new ExchangeRateLimitException(ExchangeType, "Rate limit exceeded", ex);
                 }
 

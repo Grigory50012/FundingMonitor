@@ -27,7 +27,7 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
     {
         var sw = Stopwatch.StartNew();
 
-        var entities = rates.Select(HistoricalFundingRateMapper.ToEntity).ToList();
+        var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
         await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
@@ -66,6 +66,6 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
             .OrderByDescending(r => r.FundingTime)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return entity is null ? null : HistoricalFundingRateMapper.ToDomain(entity);
+        return entity is null ? null : FundingRateMapper.ToDomain(entity);
     }
 }
