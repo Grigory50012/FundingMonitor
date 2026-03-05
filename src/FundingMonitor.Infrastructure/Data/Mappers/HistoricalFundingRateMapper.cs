@@ -4,7 +4,7 @@ using FundingMonitor.Infrastructure.Data.Entities;
 
 namespace FundingMonitor.Infrastructure.Data.Mappers;
 
-public class HistoricalFundingRateMapper
+public static class HistoricalFundingRateMapper
 {
     private static readonly ConcurrentDictionary<string, ExchangeType> ExchangeCache = new();
 

@@ -10,14 +10,14 @@ namespace FundingMonitor.Infrastructure.Data.Repositories;
 
 public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ILogger<HistoricalFundingRateRepository> _logger;
 
     public HistoricalFundingRateRepository(
-        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
         ILogger<HistoricalFundingRateRepository> logger)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _logger = logger;
     }
 
@@ -30,18 +30,28 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         var entities = rates.Select(HistoricalFundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
         var bulkConfig = new BulkConfig
         {
             UpdateByProperties = new List<string> { "Exchange", "NormalizedSymbol", "FundingTime" },
             TrackingEntities = false,
-            BatchSize = 4000,
+            BatchSize = 1000,
             PropertiesToExcludeOnUpdate = new List<string> { "CollectedAt" }
         };
 
-        await _context.BulkInsertAsync(entities, bulkConfig, cancellationToken: cancellationToken);
+        try
+        {
+            await context.BulkInsertAsync(entities, bulkConfig, cancellationToken: cancellationToken);
 
-        _logger.LogDebug("Сохранено: {Count} ставок за {ElapsedMs} мс",
-            entities.Count, sw.ElapsedMilliseconds);
+            _logger.LogDebug("Сохранено: {Count} ставок за {ElapsedMs}мс",
+                entities.Count, sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка сохранения {Count} ставок", entities.Count);
+            throw;
+        }
     }
 
     public async Task<HistoricalFundingRate?> GetLastRateAsync(
@@ -49,7 +59,9 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         string normalizedSymbol,
         CancellationToken cancellationToken)
     {
-        var entity = await _context.HistoricalFundingRate
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+        var entity = await context.HistoricalFundingRate
             .Where(r => r.Exchange == exchange && r.NormalizedSymbol == normalizedSymbol)
             .OrderByDescending(r => r.FundingTime)
             .FirstOrDefaultAsync(cancellationToken);

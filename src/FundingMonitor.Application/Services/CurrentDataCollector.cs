@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Events;
 using FundingMonitor.Core.Interfaces.Clients;
-using FundingMonitor.Core.Interfaces.Events;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Interfaces.Services;
 using FundingMonitor.Core.Interfaces.State;
@@ -13,7 +13,7 @@ namespace FundingMonitor.Application.Services;
 public class CurrentDataCollector : ICurrentDataCollector
 {
     private readonly IEnumerable<IExchangeApiClient> _clients;
-    private readonly IEventPublisher _eventPublisher;
+    private readonly IHistoricalDataCollector _historicalCollector;
     private readonly ILogger<CurrentDataCollector> _logger;
     private readonly ICurrentFundingRateRepository _repository;
     private readonly IStateManager _stateManager;
@@ -21,19 +21,24 @@ public class CurrentDataCollector : ICurrentDataCollector
     public CurrentDataCollector(
         IEnumerable<IExchangeApiClient> clients,
         ICurrentFundingRateRepository repository,
-        IEventPublisher eventPublisher,
+        IHistoricalDataCollector historicalCollector,
         IStateManager stateManager,
         ILogger<CurrentDataCollector> logger)
     {
         _clients = clients;
         _repository = repository;
-        _eventPublisher = eventPublisher;
+        _historicalCollector = historicalCollector;
         _stateManager = stateManager;
         _logger = logger;
     }
 
     public async Task<List<CurrentFundingRate>> CollectAsync(CancellationToken cancellationToken)
     {
+        using var _ = _logger.BeginScope("CollectionCycle:{CycleId}", Guid.NewGuid().ToString("N").Substring(0, 8));
+
+        var sw = Stopwatch.StartNew();
+        _logger.LogInformation("Начало цикла сбора данных");
+
         // Запускаем сбор данных со всех клиентов параллельно
         var collectTasks = _clients.Select(client => CollectFromExchangeAsync(client, cancellationToken));
         var results = await Task.WhenAll(collectTasks);
@@ -42,15 +47,33 @@ public class CurrentDataCollector : ICurrentDataCollector
         var allRates = results.SelectMany(r => r.Rates).ToList();
         var allEvents = results.SelectMany(r => r.Events).ToList();
 
-        // Сохраняем данные и публикуем события
+        // Сохраняем текущие данные
         if (allRates.Count != 0)
+        {
             await _repository.UpdateRatesAsync(allRates, cancellationToken);
+            _logger.LogInformation("Сохранено {Count} текущих ставок", allRates.Count);
+        }
 
+        // Обрабатываем события для исторических данных
         if (allEvents.Count != 0)
         {
-            await _eventPublisher.PublishBatchAsync(allEvents, cancellationToken);
-            _logger.LogInformation("Опубликовано {Count} событий", allEvents.Count);
+            _logger.LogInformation("Обнаружено {Count} изменений", allEvents.Count);
+
+            // Группируем по типу для статистики
+            var newSymbols = allEvents.OfType<NewSymbolDetectedEvent>().Count();
+            var timeChanges = allEvents.OfType<FundingTimeChangedEvent>().Count();
+
+            if (newSymbols > 0)
+                _logger.LogInformation("Новые символы: {Count}", newSymbols);
+            if (timeChanges > 0)
+                _logger.LogInformation("Изменения времени: {Count}", timeChanges);
+
+            await _historicalCollector.ProcessEventsAsync(allEvents, cancellationToken);
         }
+
+        sw.Stop();
+        _logger.LogInformation("Цикл сбора завершен за {Elapsed}мс. Всего ставок: {Count}",
+            sw.ElapsedMilliseconds, allRates.Count);
 
         return allRates;
     }
@@ -83,7 +106,7 @@ public class CurrentDataCollector : ICurrentDataCollector
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Не удалось получить данные от биржи: {Exchange}", client.ExchangeType);
+            _logger.LogError(ex, "Ошибка сбора данных с {Exchange}", client.ExchangeType);
             return (new List<CurrentFundingRate>(), new List<FundingEvent>());
         }
     }
@@ -109,19 +132,7 @@ public class CurrentDataCollector : ICurrentDataCollector
                 FundingIntervalHours = rate.FundingIntervalHours,
                 NextFundingTime = rate.NextFundingTime
             });
-            _logger.LogInformation("Найдена новая пара: {Symbol} на бирже: {Exchange}", symbol, exchange);
-        }
-
-        // Удаленные символы
-        foreach (var symbol in previous.Keys.Except(current.Keys))
-        {
-            events.Add(new SymbolRemovedEvent
-            {
-                Exchange = exchange,
-                NormalizedSymbol = symbol,
-                RemovedAt = now
-            });
-            _logger.LogInformation("Символ удален: {Exchange}:{Symbol}", exchange, symbol);
+            _logger.LogDebug("🔍 Новый символ: {Exchange}:{Symbol}", exchange, symbol);
         }
 
         // Изменение времени выплаты
@@ -140,8 +151,7 @@ public class CurrentDataCollector : ICurrentDataCollector
                     NewFundingTime = curr.NextFundingTime ?? DateTime.MinValue,
                     PreviousCheckTime = prev.LastCheck
                 });
-                _logger.LogInformation(
-                    "Время финансирования для пары: {Symbol} на бирже: {Exchange} изменено: {Old}->{New}",
+                _logger.LogDebug("🕐 Изменение времени выплаты: {Exchange}:{Symbol} {Old:HH:mm}->{New:HH:mm}",
                     exchange, symbol, prev.NextFundingTime, curr.NextFundingTime);
             }
         }

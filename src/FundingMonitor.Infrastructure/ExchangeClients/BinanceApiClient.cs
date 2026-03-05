@@ -14,6 +14,7 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 public class BinanceApiClient : BaseExchangeApiClient
 {
     private readonly BinanceRestClient _binanceClient;
+    private readonly ILogger<BinanceApiClient> _logger;
 
     public BinanceApiClient(
         ILogger<BinanceApiClient> logger,
@@ -34,6 +35,8 @@ public class BinanceApiClient : BaseExchangeApiClient
             binanceClientOptions.OutputOriginalData = false;
             binanceClientOptions.CachingEnabled = false;
         });
+
+        _logger = logger;
     }
 
     public override ExchangeType ExchangeType => ExchangeType.Binance;
@@ -49,7 +52,7 @@ public class BinanceApiClient : BaseExchangeApiClient
 
                 if (!result.Success)
                 {
-                    Logger.LogError("[Binance] API Error: {Error}", result.Error?.Message);
+                    _logger.LogError("[Binance] API Error: {Error}", result.Error?.Message);
                     throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
                 }
 
@@ -70,7 +73,7 @@ public class BinanceApiClient : BaseExchangeApiClient
                         item.NextFundingTime));
                 }
 
-                Logger.LogInformation("[Binance] Собрано {Count} ставок финансирования", rates.Count);
+                _logger.LogInformation("[Binance] Собрано {Count} ставок финансирования", rates.Count);
                 return rates;
             },
             cancellationToken);
@@ -92,7 +95,7 @@ public class BinanceApiClient : BaseExchangeApiClient
 
                 if (!result.Success)
                 {
-                    Logger.LogError("[Binance] Historical API Error for {Symbol}: {Error}",
+                    _logger.LogError("[Binance] Historical API Error for {Symbol}: {Error}",
                         symbol, result.Error?.Message);
                     throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
                 }
@@ -110,7 +113,7 @@ public class BinanceApiClient : BaseExchangeApiClient
                         item.FundingTime));
                 }
 
-                Logger.LogInformation("[Binance] Собрано {Count} историй ставок финансирования", rates.Count);
+                _logger.LogInformation("[Binance] Собрано {Count} историй ставок финансирования", rates.Count);
                 return rates;
             },
             cancellationToken);

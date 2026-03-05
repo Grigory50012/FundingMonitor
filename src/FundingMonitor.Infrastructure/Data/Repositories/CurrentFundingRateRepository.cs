@@ -9,14 +9,14 @@ namespace FundingMonitor.Infrastructure.Data.Repositories;
 
 public class CurrentFundingRateRepository : ICurrentFundingRateRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ILogger<CurrentFundingRateRepository> _logger;
 
     public CurrentFundingRateRepository(
-        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
         ILogger<CurrentFundingRateRepository> logger)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _logger = logger;
     }
 
@@ -25,16 +25,19 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
         var entities = rates.Select(CurrentFundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
         var bulkConfig = new BulkConfig
         {
             UpdateByProperties = new List<string> { "Exchange", "NormalizedSymbol" },
             TrackingEntities = false,
-            BatchSize = 4000
+            BatchSize = 1000
         };
 
-        await _context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
+        await context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
 
-        var existingKeys = await _context.CurrentFundingRate
+        // Удаляем отсутствующие символы
+        var existingKeys = await context.CurrentFundingRate
             .Select(r => new { r.Exchange, r.NormalizedSymbol })
             .ToListAsync(cancellationToken);
 
@@ -48,7 +51,7 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
 
         foreach (var key in keysToDelete)
         {
-            await _context.CurrentFundingRate
+            await context.CurrentFundingRate
                 .Where(r => r.Exchange == key.Exchange && r.NormalizedSymbol == key.NormalizedSymbol)
                 .ExecuteDeleteAsync(cancellationToken);
         }
@@ -61,7 +64,9 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
         List<ExchangeType>? exchanges,
         CancellationToken cancellationToken)
     {
-        var query = _context.CurrentFundingRate.AsQueryable();
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+        var query = context.CurrentFundingRate.AsQueryable();
 
         if (exchanges?.Any() == true)
         {

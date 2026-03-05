@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,20 +8,29 @@ using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Console.Services;
 
-public class CurrentDataBackgroundService(
-    IServiceScopeFactory scopeFactory,
-    ILogger<CurrentDataBackgroundService> logger,
-    IOptions<CurrentDataCollectionOptions> options)
-    : BackgroundService
+public class CurrentDataBackgroundService : BackgroundService
 {
+    private readonly ILogger<CurrentDataBackgroundService> _logger;
+    private readonly IOptions<CurrentDataCollectionOptions> _options;
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    public CurrentDataBackgroundService(IServiceScopeFactory scopeFactory,
+        ILogger<CurrentDataBackgroundService> logger,
+        IOptions<CurrentDataCollectionOptions> options)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+        _options = options;
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Current Data Collector запущен");
+        _logger.LogInformation("CurrentDataBackgroundService запущен");
 
         // Небольшая задержка при старте
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(options.Value.UpdateIntervalMinutes));
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(_options.Value.UpdateIntervalMinutes));
 
         // Первый запуск сразу
         await DoCollectionAsync(stoppingToken);
@@ -33,29 +43,29 @@ public class CurrentDataBackgroundService(
 
     private async Task DoCollectionAsync(CancellationToken stoppingToken)
     {
-        using var scope = scopeFactory.CreateScope();
-
+        using var scope = _scopeFactory.CreateScope();
         var collector = scope.ServiceProvider.GetRequiredService<ICurrentDataCollector>();
 
         try
         {
-            var startTime = DateTime.UtcNow;
-            logger.LogInformation("Начало цикла сбора текущих ставок финансирования");
+            var sw = Stopwatch.StartNew();
+            _logger.LogInformation("Начало сбора ставок финансирования");
 
             var rates = await collector.CollectAsync(stoppingToken);
 
-            logger.LogInformation("Цикл сбора текущих ставок финансирования завершен: {Count} ставок, {Elapsed:F1}s",
-                rates.Count, (DateTime.UtcNow - startTime).TotalSeconds);
+            sw.Stop();
+            _logger.LogInformation("Цикл сбора ставок финансирования завершен: {Count} ставок, {Elapsed}мс",
+                rates.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Цикл сбора текущих ставок финансирования не выполнен");
+            _logger.LogError(ex, "Цикл сбора ставок финансирования не выполнен");
         }
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        logger.LogInformation("Funding Data Background Service останавливается...");
+        _logger.LogInformation("CurrentDataBackgroundService останавливается...");
         await base.StopAsync(cancellationToken);
     }
 }

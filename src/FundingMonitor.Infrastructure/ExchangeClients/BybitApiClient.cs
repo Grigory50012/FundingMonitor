@@ -15,6 +15,7 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 public class BybitApiClient : BaseExchangeApiClient
 {
     private readonly BybitRestClient _bybitClient;
+    private readonly ILogger<BybitApiClient> _logger;
 
     public BybitApiClient(
         ILogger<BybitApiClient> logger,
@@ -35,6 +36,8 @@ public class BybitApiClient : BaseExchangeApiClient
             bybitClientOptions.OutputOriginalData = false;
             bybitClientOptions.CachingEnabled = false;
         });
+
+        _logger = logger;
     }
 
     public override ExchangeType ExchangeType => ExchangeType.Bybit;
@@ -52,7 +55,7 @@ public class BybitApiClient : BaseExchangeApiClient
 
                 if (!result.Success)
                 {
-                    Logger.LogError("[Bybit] API Error: {Error}", result.Error?.Message);
+                    _logger.LogError("[Bybit] API Error: {Error}", result.Error?.Message);
                     throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
                 }
 
@@ -72,7 +75,7 @@ public class BybitApiClient : BaseExchangeApiClient
                         item.FundingInterval));
                 }
 
-                Logger.LogInformation("[Bybit] Собрано {Count} ставок финансирования", rates.Count);
+                _logger.LogInformation("[Bybit] Собрано {Count} ставок финансирования", rates.Count);
                 return rates;
             },
             cancellationToken);
@@ -94,7 +97,7 @@ public class BybitApiClient : BaseExchangeApiClient
 
                 if (!result.Success)
                 {
-                    Logger.LogError("[Bybit] Historical API Error for {Symbol}: {Error}",
+                    _logger.LogError("[Bybit] Historical API Error for {Symbol}: {Error}",
                         symbol, result.Error?.Message);
                     throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
                 }
@@ -112,7 +115,7 @@ public class BybitApiClient : BaseExchangeApiClient
                         item.Timestamp));
                 }
 
-                Logger.LogInformation("[Bybit] Собрано {Count} историй ставок финансирования", rates.Count);
+                _logger.LogInformation("[Bybit] Собрано {Count} историй ставок финансирования", rates.Count);
                 return rates;
             },
             cancellationToken);

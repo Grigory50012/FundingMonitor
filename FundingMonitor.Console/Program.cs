@@ -44,7 +44,6 @@ internal static class Program
 
                 // Background services
                 services.AddHostedService<CurrentDataBackgroundService>();
-                services.AddHostedService<RabbitMqConsumer>();
             })
             .Build();
 

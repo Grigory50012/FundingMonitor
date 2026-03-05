@@ -10,8 +10,8 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 
 public abstract class BaseExchangeApiClient : IExchangeApiClient
 {
+    private readonly ILogger _logger;
     private readonly ISymbolNormalizer _symbolNormalizer;
-    protected readonly ILogger Logger;
     protected readonly ExchangeOptions Options;
 
     protected BaseExchangeApiClient(
@@ -19,7 +19,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         ISymbolNormalizer symbolNormalizer,
         IOptions<ExchangeOptions> options)
     {
-        Logger = logger;
+        _logger = logger;
         _symbolNormalizer = symbolNormalizer;
         Options = options.Value;
     }
@@ -83,31 +83,31 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         Func<CancellationToken, Task<T>> action,
         CancellationToken cancellationToken)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
 
         try
         {
-            Logger.LogInformation("[{Exchange}] Начало операции: {Operation}", ExchangeType, operationName);
+            _logger.LogInformation("[{Exchange}] Начало операции: {Operation}", ExchangeType, operationName);
             var result = await action(cancellationToken);
 
-            stopwatch.Stop();
-            Logger.LogInformation("[{Exchange}] {Operation}, завершено за {Elapsed}мс",
-                ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
+            sw.Stop();
+            _logger.LogInformation("[{Exchange}] {Operation}, завершено за {Elapsed}мс",
+                ExchangeType, operationName, sw.ElapsedMilliseconds);
 
             return result;
         }
         catch (OperationCanceledException)
         {
-            stopwatch.Stop();
-            Logger.LogWarning("[{Exchange}] {Operation}, отменена после {Elapsed}мс",
-                ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
+            sw.Stop();
+            _logger.LogWarning("[{Exchange}] {Operation}, отменена после {Elapsed}мс",
+                ExchangeType, operationName, sw.ElapsedMilliseconds);
             throw;
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-            Logger.LogError(ex, "[{Exchange}] {Operation}, не удалось после {Elapsed}мс",
-                ExchangeType, operationName, stopwatch.ElapsedMilliseconds);
+            sw.Stop();
+            _logger.LogError(ex, "[{Exchange}] {Operation}, не удалось после {Elapsed}мс",
+                ExchangeType, operationName, sw.ElapsedMilliseconds);
             throw;
         }
     }

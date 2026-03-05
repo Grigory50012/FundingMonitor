@@ -53,10 +53,9 @@ public static class CurrentFundingRateMapper
 
     public static List<CurrentFundingRate> ToDomainList(List<CurrentFundingRateEntity>? entities)
     {
-        if (entities is null || entities.Count == 0)
-            return new List<CurrentFundingRate>();
-
-        return entities.Select(ToDomain).ToList();
+        return entities is null || entities.Count == 0
+            ? []
+            : entities.Select(ToDomain).ToList();
     }
 
     private static ExchangeType ParseExchange(string exchangeName)

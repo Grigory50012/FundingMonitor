@@ -29,13 +29,13 @@ public class ExchangeHealthChecker : IExchangeHealthChecker
                 results[client.ExchangeType] = isAvailable;
 
                 if (isAvailable)
-                    _logger.LogInformation("{Exchange} is available", client.ExchangeType);
+                    _logger.LogInformation("{Exchange} доступна", client.ExchangeType);
                 else
-                    _logger.LogWarning("{Exchange} is unavailable", client.ExchangeType);
+                    _logger.LogWarning("{Exchange} не доступна", client.ExchangeType);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to check {Exchange}", client.ExchangeType);
+                _logger.LogError(ex, "Ошибка при проверке {Exchange}", client.ExchangeType);
                 results[client.ExchangeType] = false;
             }
 

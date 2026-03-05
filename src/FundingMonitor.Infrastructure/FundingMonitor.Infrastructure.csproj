@@ -33,8 +33,6 @@
         <PackageReference Include="Polly.Core" Version="8.6.6"/>
 
         <PackageReference Include="Polly.RateLimiting" Version="8.6.6"/>
-
-        <PackageReference Include="RabbitMQ.Client" Version="7.2.1"/>
     </ItemGroup>
 
     <ItemGroup>
