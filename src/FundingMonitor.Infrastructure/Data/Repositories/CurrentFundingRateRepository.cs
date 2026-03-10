@@ -19,7 +19,7 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
         var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
-        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await CreateContextAsync(cancellationToken);
 
         var bulkConfig = new BulkConfig
         {
@@ -54,7 +54,7 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
         List<ExchangeType>? exchanges,
         CancellationToken cancellationToken)
     {
-        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await CreateContextAsync(cancellationToken);
 
         var query = context.CurrentFundingRate.AsNoTracking().Where(r => r.IsActive);
 

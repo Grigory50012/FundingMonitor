@@ -29,7 +29,7 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
         var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
-        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await CreateContextAsync(cancellationToken);
 
         var bulkConfig = new BulkConfig
         {
@@ -58,7 +58,7 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
         string normalizedSymbol,
         CancellationToken cancellationToken)
     {
-        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await CreateContextAsync(cancellationToken);
 
         var entity = await context.HistoricalFundingRate
             .Where(r => r.Exchange == exchange && r.NormalizedSymbol == normalizedSymbol)
