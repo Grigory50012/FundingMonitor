@@ -18,9 +18,9 @@ public class BinanceApiClient : BaseExchangeApiClient
 
     public BinanceApiClient(
         ILogger<BinanceApiClient> logger,
-        ISymbolNormalizer symbolNormalizer,
+        ISymbolParser symbolParser,
         IOptions<ExchangeOptions> binanceOptions)
-        : base(logger, symbolNormalizer, binanceOptions)
+        : base(logger, symbolParser, binanceOptions)
     {
         _binanceClient = new BinanceRestClient(binanceClientOptions =>
         {

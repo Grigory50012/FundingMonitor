@@ -5,4 +5,6 @@ public class CurrentDataCollectionOptions
     public const string SectionName = "CurrentDataCollection";
 
     public int UpdateIntervalMinutes { get; set; } = 1;
+
+    public int CollectionTimeoutSeconds { get; set; } = 30;
 }

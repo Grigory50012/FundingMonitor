@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FundingMonitor.Infrastructure.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class FundingMonitorDbContext(DbContextOptions<FundingMonitorDbContext> options) : DbContext(options)
 {
     public DbSet<CurrentFundingRateEntity> CurrentFundingRate { get; set; }
     public DbSet<HistoricalFundingRateEntity> HistoricalFundingRate { get; set; }

@@ -10,11 +10,11 @@ namespace FundingMonitor.Infrastructure.Data.Repositories;
 
 public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
 {
-    private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IDbContextFactory<FundingMonitorDbContext> _contextFactory;
     private readonly ILogger<HistoricalFundingRateRepository> _logger;
 
     public HistoricalFundingRateRepository(
-        IDbContextFactory<AppDbContext> contextFactory,
+        IDbContextFactory<FundingMonitorDbContext> contextFactory,
         ILogger<HistoricalFundingRateRepository> logger)
     {
         _contextFactory = contextFactory;

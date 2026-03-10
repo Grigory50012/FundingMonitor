@@ -1,10 +1,12 @@
 using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Interfaces.Clients;
+using FundingMonitor.Core.Interfaces.Queues;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Interfaces.State;
 using FundingMonitor.Infrastructure.Data;
 using FundingMonitor.Infrastructure.Data.Repositories;
 using FundingMonitor.Infrastructure.ExchangeClients;
+using FundingMonitor.Infrastructure.Queues;
 using FundingMonitor.Infrastructure.State;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -19,7 +21,7 @@ public static class ServiceCollectionExtensions
     public static void AddInfrastructureServices(this IServiceCollection services)
     {
         // Добавляем фабрику DbContext
-        services.AddDbContextFactory<AppDbContext>((sp, options) =>
+        services.AddDbContextFactory<FundingMonitorDbContext>((sp, options) =>
         {
             var connectionStrings = sp.GetRequiredService<IConfiguration>()
                 .GetConnectionString("DefaultConnection");
@@ -55,5 +57,7 @@ public static class ServiceCollectionExtensions
 
             return new RateLimitedApiClient(bybitClient, options, logger);
         });
+
+        services.AddSingleton<IHistoricalCollectionQueue, InMemoryHistoricalCollectionQueue>();
     }
 }

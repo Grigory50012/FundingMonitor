@@ -19,9 +19,9 @@ public class BybitApiClient : BaseExchangeApiClient
 
     public BybitApiClient(
         ILogger<BybitApiClient> logger,
-        ISymbolNormalizer symbolNormalizer,
+        ISymbolParser symbolParser,
         IOptions<ExchangeOptions> bybitOptions)
-        : base(logger, symbolNormalizer, bybitOptions)
+        : base(logger, symbolParser, bybitOptions)
     {
         _bybitClient = new BybitRestClient(bybitClientOptions =>
         {

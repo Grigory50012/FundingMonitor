@@ -11,16 +11,16 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 public abstract class BaseExchangeApiClient : IExchangeApiClient
 {
     private readonly ILogger _logger;
-    private readonly ISymbolNormalizer _symbolNormalizer;
+    private readonly ISymbolParser _symbolParser;
     protected readonly ExchangeOptions Options;
 
     protected BaseExchangeApiClient(
         ILogger logger,
-        ISymbolNormalizer symbolNormalizer,
+        ISymbolParser symbolParser,
         IOptions<ExchangeOptions> options)
     {
         _logger = logger;
-        _symbolNormalizer = symbolNormalizer;
+        _symbolParser = symbolParser;
         Options = options.Value;
     }
 
@@ -43,7 +43,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         DateTime? nextFundingTime,
         int? fundingIntervalHours = null)
     {
-        var parsed = _symbolNormalizer.Parse(symbol, ExchangeType);
+        var parsed = _symbolParser.Parse(symbol, ExchangeType);
 
         return new CurrentFundingRate
         {
@@ -66,7 +66,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         decimal fundingRate,
         DateTime fundingTime)
     {
-        var parsed = _symbolNormalizer.Parse(symbol, ExchangeType);
+        var parsed = _symbolParser.Parse(symbol, ExchangeType);
 
         return new HistoricalFundingRate
         {
@@ -84,29 +84,38 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
-
         try
         {
-            _logger.LogInformation("[{Exchange}] Начало операции: {Operation}", ExchangeType, operationName);
-            var result = await action(cancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                new CancellationTokenSource(Options.RequestTimeout).Token
+            );
 
+            _logger.LogInformation("Starting operation: {Operation}", operationName);
+            var result = await action(cts.Token);
             sw.Stop();
-            _logger.LogInformation("[{Exchange}] {Operation}, завершено за {Elapsed}мс",
-                ExchangeType, operationName, sw.ElapsedMilliseconds);
-
+            _logger.LogInformation("{Operation}, completed in {Elapsed}ms",
+                operationName, sw.ElapsedMilliseconds);
             return result;
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            sw.Stop();
+            _logger.LogWarning("{Operation}, timed out after {Elapsed}ms",
+                operationName, sw.ElapsedMilliseconds);
+            throw new TimeoutException($"Operation {operationName} timed out", ex);
         }
         catch (OperationCanceledException)
         {
             sw.Stop();
-            _logger.LogWarning("[{Exchange}] {Operation}, отменена после {Elapsed}мс",
-                ExchangeType, operationName, sw.ElapsedMilliseconds);
+            _logger.LogWarning("{Operation}, cancelled after {Elapsed}ms",
+                operationName, sw.ElapsedMilliseconds);
             throw;
         }
         catch (Exception ex)
         {
             sw.Stop();
-            _logger.LogError(ex, "[{Exchange}] {Operation}, не удалось после {Elapsed}мс",
+            _logger.LogError(ex, "[{Exchange}] {Operation}, failed after {Elapsed}ms",
                 ExchangeType, operationName, sw.ElapsedMilliseconds);
             throw;
         }

@@ -10,65 +10,61 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
 
-public class CurrentDataCollector : ICurrentDataCollector
+public class FundingRateCollector : ICurrentDataCollector
 {
-    private readonly IEnumerable<IExchangeApiClient> _clients;
-    private readonly IHistoricalDataCollector _historicalCollector;
-    private readonly ILogger<CurrentDataCollector> _logger;
+    private readonly IEnumerable<IExchangeApiClient> _exchangeClients;
+    private readonly IFundingRateHistoryService _historicalCollector;
+    private readonly ILogger<FundingRateCollector> _logger;
     private readonly ICurrentFundingRateRepository _repository;
     private readonly IStateManager _stateManager;
 
-    public CurrentDataCollector(
-        IEnumerable<IExchangeApiClient> clients,
+    public FundingRateCollector(
+        IEnumerable<IExchangeApiClient> exchangeClients,
         ICurrentFundingRateRepository repository,
-        IHistoricalDataCollector historicalCollector,
+        IFundingRateHistoryService historicalCollector,
         IStateManager stateManager,
-        ILogger<CurrentDataCollector> logger)
+        ILogger<FundingRateCollector> logger)
     {
-        _clients = clients;
+        _exchangeClients = exchangeClients;
         _repository = repository;
         _historicalCollector = historicalCollector;
         _stateManager = stateManager;
         _logger = logger;
     }
 
-    public async Task<List<CurrentFundingRate>> CollectAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<CurrentFundingRate>> CollectCurrentRatesAsync(
+        CancellationToken cancellationToken)
     {
         using var _ = _logger.BeginScope("CollectionCycle:{CycleId}", Guid.NewGuid().ToString("N").Substring(0, 8));
 
         var sw = Stopwatch.StartNew();
-        _logger.LogInformation("Начало цикла сбора данных");
+        _logger.LogInformation("Collection cycle started");
 
         // Запускаем сбор данных со всех клиентов параллельно
-        var collectTasks = _clients.Select(client => CollectFromExchangeAsync(client, cancellationToken));
-        var results = await Task.WhenAll(collectTasks);
+        var collectionTasks = _exchangeClients.Select(client =>
+            CollectFromExchangeAsync(client, cancellationToken));
+
+        var results = await Task.WhenAll(collectionTasks);
 
         // Объединяем результаты
-        var allRates = results.SelectMany(r => r.Rates).ToList();
+        var allRates = results
+            .SelectMany(result => result.Rates)
+            .ToList()
+            .AsReadOnly();
+
         var allEvents = results.SelectMany(r => r.Events).ToList();
 
         // Сохраняем текущие данные
         if (allRates.Count != 0)
         {
             await _repository.UpdateRatesAsync(allRates, cancellationToken);
-            _logger.LogInformation("Сохранено {Count} текущих ставок", allRates.Count);
+            _logger.LogInformation("Saved {Count} current rates", allRates.Count);
         }
 
         // Обрабатываем события для исторических данных
         if (allEvents.Count != 0)
         {
-            _logger.LogInformation("Обнаружено {Count} изменений", allEvents.Count);
-
-            // Группируем по типу для статистики
-            var newSymbols = allEvents.OfType<NewSymbolDetectedEvent>().Count();
-            var timeChanges = allEvents.OfType<FundingTimeChangedEvent>().Count();
-
-            if (newSymbols > 0)
-                _logger.LogInformation("Новые символы: {Count}", newSymbols);
-            if (timeChanges > 0)
-                _logger.LogInformation("Изменения времени: {Count}", timeChanges);
-
-            await _historicalCollector.ProcessEventsAsync(allEvents, cancellationToken);
+            await _historicalCollector.ProcessDetectionEventsAsync(allEvents, cancellationToken);
         }
 
         sw.Stop();

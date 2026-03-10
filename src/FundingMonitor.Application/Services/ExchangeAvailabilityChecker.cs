@@ -5,14 +5,14 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
 
-public class ExchangeHealthChecker : IExchangeHealthChecker
+public class ExchangeAvailabilityChecker : IExchangeAvailabilityChecker
 {
     private readonly IEnumerable<IExchangeApiClient> _clients;
-    private readonly ILogger<ExchangeHealthChecker> _logger;
+    private readonly ILogger<ExchangeAvailabilityChecker> _logger;
 
-    public ExchangeHealthChecker(
+    public ExchangeAvailabilityChecker(
         IEnumerable<IExchangeApiClient> clients,
-        ILogger<ExchangeHealthChecker> logger)
+        ILogger<ExchangeAvailabilityChecker> logger)
     {
         _clients = clients;
         _logger = logger;

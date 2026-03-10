@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace FundingMonitor.Application.Services;
 
-public class SymbolNormalizer : ISymbolNormalizer
+public class SymbolParser : ISymbolParser
 {
     private readonly MemoryCache _cache = new(new MemoryCacheOptions());
     private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(1);

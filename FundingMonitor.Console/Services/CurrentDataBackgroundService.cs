@@ -51,7 +51,7 @@ public class CurrentDataBackgroundService : BackgroundService
             var sw = Stopwatch.StartNew();
             _logger.LogInformation("Начало сбора ставок финансирования");
 
-            var rates = await collector.CollectAsync(stoppingToken);
+            var rates = await collector.CollectCurrentRatesAsync(stoppingToken);
 
             sw.Stop();
             _logger.LogInformation("Цикл сбора ставок финансирования завершен: {Count} ставок, {Elapsed}мс",

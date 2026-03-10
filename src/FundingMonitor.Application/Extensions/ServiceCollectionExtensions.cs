@@ -1,3 +1,4 @@
+using FundingMonitor.Application.BackgroundServices;
 using FundingMonitor.Application.Services;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,10 +10,12 @@ public static class ServiceCollectionExtensions
     public static void AddApplicationServices(this IServiceCollection services)
     {
         // Регистрируем сервисы приложения
-        services.AddScoped<ICurrentDataCollector, CurrentDataCollector>();
-        services.AddScoped<IExchangeHealthChecker, ExchangeHealthChecker>();
-        services.AddScoped<IHistoricalDataCollector, HistoricalDataCollector>();
+        services.AddScoped<ICurrentDataCollector, FundingRateCollector>();
+        services.AddScoped<IExchangeAvailabilityChecker, ExchangeAvailabilityChecker>();
+        services.AddScoped<IFundingRateHistoryService, FundingRateHistoryService>();
 
-        services.AddSingleton<ISymbolNormalizer, SymbolNormalizer>();
+        services.AddSingleton<ISymbolParser, SymbolParser>();
+
+        services.AddHostedService<HistoricalCollectionBackgroundService>();
     }
 }

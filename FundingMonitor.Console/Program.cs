@@ -60,7 +60,7 @@ internal static class Program
     private static async Task EnsureDatabaseMigratedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<FundingMonitorDbContext>();
 
         try
         {
@@ -77,7 +77,7 @@ internal static class Program
     private static async Task ShowStartupInfoAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
-        var healthChecker = scope.ServiceProvider.GetRequiredService<IExchangeHealthChecker>();
+        var healthChecker = scope.ServiceProvider.GetRequiredService<IExchangeAvailabilityChecker>();
 
         System.Console.Clear();
         System.Console.WriteLine("╔══════════════════════════════════════════════════════╗");
@@ -108,7 +108,7 @@ internal static class Program
             // Проверка подключения к БД
             try
             {
-                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var dbContext = scope.ServiceProvider.GetRequiredService<FundingMonitorDbContext>();
                 var canConnect = await dbContext.Database.CanConnectAsync(cts.Token);
                 System.Console.WriteLine($"\nDATABASE: {(canConnect ? "✓ Connected" : "✗ Not connected")}");
             }

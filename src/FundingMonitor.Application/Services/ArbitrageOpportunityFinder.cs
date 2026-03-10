@@ -4,11 +4,11 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
 
-public class ArbitrageScanner : IArbitrageScanner
+public class ArbitrageOpportunityFinder : IArbitrageOpportunityFinder
 {
-    private readonly ILogger<ArbitrageScanner> _logger;
+    private readonly ILogger<ArbitrageOpportunityFinder> _logger;
 
-    public ArbitrageScanner(ILogger<ArbitrageScanner> logger)
+    public ArbitrageOpportunityFinder(ILogger<ArbitrageOpportunityFinder> logger)
     {
         _logger = logger;
     }
