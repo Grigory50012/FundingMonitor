@@ -20,7 +20,7 @@ public class InMemoryHistoryTaskQueue : IHistoryTaskQueue
     public void Enqueue(HistoricalCollectionTask task)
     {
         _historyTaskQueue.Enqueue(task);
-        _logger.LogDebug("Добавлена задача в очередь: {Exchange}:{Symbol}",
+        _logger.LogDebug("Task added to the queue: {Exchange}:{Symbol}",
             task.Exchange, task.NormalizedSymbol);
     }
 

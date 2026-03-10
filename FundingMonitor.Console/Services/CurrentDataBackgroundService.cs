@@ -25,7 +25,7 @@ public class CurrentDataBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("CurrentDataBackgroundService запущен");
+        _logger.LogInformation("CurrentDataBackgroundService starting...");
 
         // Небольшая задержка при старте
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
@@ -49,23 +49,23 @@ public class CurrentDataBackgroundService : BackgroundService
         try
         {
             var sw = Stopwatch.StartNew();
-            _logger.LogInformation("Начало сбора ставок финансирования");
+            _logger.LogInformation("Start of fundraising bets");
 
             var rates = await collector.CollectFundingRatesAsync(stoppingToken);
 
             sw.Stop();
-            _logger.LogInformation("Цикл сбора ставок финансирования завершен: {Count} ставок, {Elapsed}мс",
+            _logger.LogInformation("Funding rates collection cycle completed: {Count} bets, {Elapsed}ms",
                 rates.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Цикл сбора ставок финансирования не выполнен");
+            _logger.LogError(ex, "The funding rates cycle was not completed");
         }
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("CurrentDataBackgroundService останавливается...");
+        _logger.LogInformation("CurrentDataBackgroundService stopping...");
         await base.StopAsync(cancellationToken);
     }
 }

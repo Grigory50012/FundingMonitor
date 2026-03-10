@@ -43,12 +43,12 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
         {
             await context.BulkInsertAsync(entities, bulkConfig, cancellationToken: cancellationToken);
 
-            _logger.LogDebug("Сохранено: {Count} ставок за {ElapsedMs}мс",
+            _logger.LogDebug("Saved: {Count} rates in {ElapsedMs}ms",
                 entities.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка сохранения {Count} ставок", entities.Count);
+            _logger.LogError(ex, "Error saving {Count} rates", entities.Count);
             throw;
         }
     }

@@ -46,7 +46,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
         CancellationToken cancellationToken)
     {
         return await ExecuteApiCallWithTimeoutAsync(
-            "Сбор текущих ставок финансирования",
+            "Collection of current funding rates",
             async ct =>
             {
                 var result = await _bybitClient.V5Api.ExchangeData.GetLinearInverseTickersAsync(
@@ -75,7 +75,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
                         item.FundingInterval));
                 }
 
-                _logger.LogInformation("[Bybit] Собрано {Count} ставок финансирования", rates.Count);
+                _logger.LogInformation("[Bybit] Collected {Count} funding rates", rates.Count);
                 return rates;
             },
             cancellationToken);
@@ -89,7 +89,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
         CancellationToken cancellationToken)
     {
         return await ExecuteApiCallWithTimeoutAsync(
-            $"Сбор истории ставок финансирования: {symbol}",
+            $"Collection of funding rate history: {symbol}",
             async ct =>
             {
                 var result = await _bybitClient.V5Api.ExchangeData
@@ -115,7 +115,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
                         item.Timestamp));
                 }
 
-                _logger.LogInformation("[Bybit] Собрано {Count} историй ставок финансирования", rates.Count);
+                _logger.LogInformation("[Bybit] Collected {Count} funding rates history", rates.Count);
                 return rates;
             },
             cancellationToken);

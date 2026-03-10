@@ -48,7 +48,7 @@ public class HistoricalCollectionBackgroundService : BackgroundService
                     continue;
                 }
 
-                _logger.LogDebug("Обработка очереди: Pending={Count}", _taskQueue.Count);
+                _logger.LogDebug("Queue processing: Pending={Count}", _taskQueue.Count);
 
                 var tasks = new List<Task>();
 
@@ -61,12 +61,12 @@ public class HistoricalCollectionBackgroundService : BackgroundService
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("HistoricalCollectionBackgroundService остановлен");
+                _logger.LogInformation("HistoricalCollectionBackgroundService stopped");
                 break;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка в цикле обработки очереди");
+                _logger.LogError(ex, "Error in queue processing loop");
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
@@ -103,12 +103,12 @@ public class HistoricalCollectionBackgroundService : BackgroundService
             }
             else
             {
-                _logger.LogWarning("⚠️ No data: {Exchange}:{Symbol}", task.Exchange, task.NormalizedSymbol);
+                _logger.LogWarning("⚠️ {Exchange}:{Symbol} No data", task.Exchange, task.NormalizedSymbol);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogDebug("Task cancelled: {Exchange}:{Symbol}", task.Exchange, task.NormalizedSymbol);
+            _logger.LogDebug("{Exchange}:{Symbol} Task cancelled", task.Exchange, task.NormalizedSymbol);
             throw;
         }
         catch (Exception ex)
@@ -117,16 +117,16 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
             if (retryCount >= _options.Value.MaxRetries)
             {
-                _logger.LogError(ex, "❌ Task failed after {RetryCount} attempts: {Exchange}:{Symbol}",
-                    retryCount, task.Exchange, task.NormalizedSymbol);
+                _logger.LogError(ex, "❌ {Exchange}:{Symbol} Task failed after {RetryCount} attempts",
+                    task.Exchange, task.NormalizedSymbol, retryCount);
             }
             else
             {
                 task.RetryCount = retryCount;
                 _taskQueue.Enqueue(task);
                 _logger.LogWarning(ex,
-                    "⚠️ Task will be retried (attempt {RetryCount}/{MaxRetries}): {Exchange}:{Symbol}",
-                    retryCount, _options.Value.MaxRetries, task.Exchange, task.NormalizedSymbol);
+                    "⚠️ {Exchange}:{Symbol} Task will be retried (attempt {RetryCount}/{MaxRetries})",
+                    task.Exchange, task.NormalizedSymbol, retryCount, _options.Value.MaxRetries);
             }
         }
         finally

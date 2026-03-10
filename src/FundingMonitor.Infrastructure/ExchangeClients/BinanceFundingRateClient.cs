@@ -45,7 +45,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
         CancellationToken cancellationToken)
     {
         return await ExecuteApiCallWithTimeoutAsync(
-            "Сбор текущих ставок финансирования",
+            "Collection of current funding rates",
             async ct =>
             {
                 var result = await _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(ct);
@@ -73,7 +73,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                         item.NextFundingTime));
                 }
 
-                _logger.LogInformation("[Binance] Собрано {Count} ставок финансирования", rates.Count);
+                _logger.LogInformation("[Binance] Collected {Count} funding rates", rates.Count);
                 return rates;
             },
             cancellationToken);
@@ -87,7 +87,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
         CancellationToken cancellationToken)
     {
         return await ExecuteApiCallWithTimeoutAsync(
-            $"Сбор истории ставок финансирования: {symbol}",
+            $"Collection of funding rate history: {symbol}",
             async ct =>
             {
                 var result = await _binanceClient.UsdFuturesApi.ExchangeData
@@ -113,7 +113,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                         item.FundingTime));
                 }
 
-                _logger.LogInformation("[Binance] Собрано {Count} историй ставок финансирования", rates.Count);
+                _logger.LogInformation("[Binance] Collected {Count} funding rates history", rates.Count);
                 return rates;
             },
             cancellationToken);

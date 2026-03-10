@@ -27,7 +27,7 @@ public class InMemorySymbolStateRepository : IStateRepository
     {
         var key = exchange.ToString();
         _exchangeSymbolStates[key] = state;
-        _logger.LogDebug("Сохраненное состояние для {Exchange}: {Count} символов", exchange, state.Count);
+        _logger.LogDebug("Saved state for {Exchange}: {Count} symbols", exchange, state.Count);
         return Task.CompletedTask;
     }
 }
