@@ -3,7 +3,7 @@ using FundingMonitor.Core.State;
 
 namespace FundingMonitor.Core.Interfaces.State;
 
-public interface IStateManager
+public interface IStateRepository
 {
     Task<Dictionary<string, SymbolState>> GetExchangeStateAsync(ExchangeType exchange);
     Task SaveExchangeStateAsync(ExchangeType exchange, Dictionary<string, SymbolState> state);

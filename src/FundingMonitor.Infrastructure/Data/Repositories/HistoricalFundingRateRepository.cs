@@ -8,20 +8,19 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Infrastructure.Data.Repositories;
 
-public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
+public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundingRateRepository
 {
-    private readonly IDbContextFactory<FundingMonitorDbContext> _contextFactory;
     private readonly ILogger<HistoricalFundingRateRepository> _logger;
 
     public HistoricalFundingRateRepository(
         IDbContextFactory<FundingMonitorDbContext> contextFactory,
         ILogger<HistoricalFundingRateRepository> logger)
+        : base(contextFactory)
     {
-        _contextFactory = contextFactory;
         _logger = logger;
     }
 
-    public async Task SaveAsync(
+    public async Task AddRangeAsync(
         IEnumerable<HistoricalFundingRate> rates,
         CancellationToken cancellationToken)
     {
@@ -30,7 +29,7 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
-        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
 
         var bulkConfig = new BulkConfig
         {
@@ -59,7 +58,7 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         string normalizedSymbol,
         CancellationToken cancellationToken)
     {
-        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
 
         var entity = await context.HistoricalFundingRate
             .Where(r => r.Exchange == exchange && r.NormalizedSymbol == normalizedSymbol)

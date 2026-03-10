@@ -5,12 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Infrastructure.Queues;
 
-public class InMemoryHistoricalCollectionTaskQueue : IHistoricalCollectionTaskQueue
+public class InMemoryHistoryTaskQueue : IHistoryTaskQueue
 {
     private readonly ConcurrentQueue<HistoricalCollectionTask> _historyTaskQueue = new();
-    private readonly ILogger<InMemoryHistoricalCollectionTaskQueue> _logger;
+    private readonly ILogger<InMemoryHistoryTaskQueue> _logger;
 
-    public InMemoryHistoricalCollectionTaskQueue(ILogger<InMemoryHistoricalCollectionTaskQueue> logger)
+    public InMemoryHistoryTaskQueue(ILogger<InMemoryHistoryTaskQueue> logger)
     {
         _logger = logger;
     }

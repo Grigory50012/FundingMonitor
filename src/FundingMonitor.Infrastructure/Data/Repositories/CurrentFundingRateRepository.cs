@@ -6,14 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FundingMonitor.Infrastructure.Data.Repositories;
 
-public class CurrentFundingRateRepository : ICurrentFundingRateRepository
+public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateRepository
 {
-    private readonly IDbContextFactory<FundingMonitorDbContext> _contextFactory;
-
     public CurrentFundingRateRepository(
         IDbContextFactory<FundingMonitorDbContext> contextFactory)
+        : base(contextFactory)
     {
-        _contextFactory = contextFactory;
     }
 
     public async Task UpdateAsync(IEnumerable<CurrentFundingRate> rates, CancellationToken cancellationToken)
@@ -21,7 +19,7 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
         var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
         if (entities.Count == 0) return;
 
-        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
 
         var bulkConfig = new BulkConfig
         {
@@ -46,7 +44,7 @@ public class CurrentFundingRateRepository : ICurrentFundingRateRepository
         List<ExchangeType>? exchanges,
         CancellationToken cancellationToken)
     {
-        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
 
         var query = context.CurrentFundingRate.AsNoTracking().Where(r => r.IsActive);
 

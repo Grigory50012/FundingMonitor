@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Infrastructure.State;
 
-public class InMemorySymbolStateRepository : IStateManager
+public class InMemorySymbolStateRepository : IStateRepository
 {
     private readonly ConcurrentDictionary<string, Dictionary<string, SymbolState>> _exchangeSymbolStates = new();
     private readonly ILogger<InMemorySymbolStateRepository> _logger;

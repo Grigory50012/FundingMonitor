@@ -16,19 +16,19 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
     private readonly IFundingRateHistoryService _historicalCollector;
     private readonly ILogger<CurrentFundingRateCollector> _logger;
     private readonly ICurrentFundingRateRepository _repository;
-    private readonly IStateManager _stateManager;
+    private readonly IStateRepository _stateRepository;
 
     public CurrentFundingRateCollector(
         IEnumerable<IExchangeFundingRateClient> exchangeClients,
         ICurrentFundingRateRepository repository,
         IFundingRateHistoryService historicalCollector,
-        IStateManager stateManager,
+        IStateRepository stateRepository,
         ILogger<CurrentFundingRateCollector> logger)
     {
         _exchangeClients = exchangeClients;
         _repository = repository;
         _historicalCollector = historicalCollector;
-        _stateManager = stateManager;
+        _stateRepository = stateRepository;
         _logger = logger;
     }
 
@@ -82,10 +82,10 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                     IsActive = r.IsActive
                 });
 
-            var previousState = await _stateManager.GetExchangeStateAsync(client.ExchangeType);
+            var previousState = await _stateRepository.GetExchangeStateAsync(client.ExchangeType);
             var events = DetectChanges(client.ExchangeType, previousState, currentState, rates);
 
-            await _stateManager.SaveExchangeStateAsync(client.ExchangeType, currentState);
+            await _stateRepository.SaveExchangeStateAsync(client.ExchangeType, currentState);
 
             return (rates, events);
         }

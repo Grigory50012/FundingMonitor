@@ -9,10 +9,10 @@ namespace FundingMonitor.Application.Services;
 public class FundingRateHistoryService : IFundingRateHistoryService
 {
     private readonly ILogger<FundingRateHistoryService> _logger;
-    private readonly IHistoricalCollectionTaskQueue _taskQueue;
+    private readonly IHistoryTaskQueue _taskQueue;
 
     public FundingRateHistoryService(
-        IHistoricalCollectionTaskQueue taskQueue,
+        IHistoryTaskQueue taskQueue,
         ILogger<FundingRateHistoryService> logger)
     {
         _taskQueue = taskQueue;
@@ -44,7 +44,7 @@ public class FundingRateHistoryService : IFundingRateHistoryService
             if (task != null) _taskQueue.Enqueue(task);
         }
 
-        _logger.LogInformation("Added {Count} tasks to history taskQueue (total in taskQueue: {QueueCount})",
+        _logger.LogInformation("Added {Count} tasks to history queue (total: {QueueCount})",
             events.Count, _taskQueue.Count);
 
         return Task.CompletedTask;

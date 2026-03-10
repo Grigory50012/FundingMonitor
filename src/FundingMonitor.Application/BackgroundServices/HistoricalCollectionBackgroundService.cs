@@ -17,10 +17,10 @@ public class HistoricalCollectionBackgroundService : BackgroundService
     private readonly IHistoricalFundingRateRepository _historyRepo;
     private readonly ILogger<HistoricalCollectionBackgroundService> _logger;
     private readonly IOptions<HistoricalDataCollectionOptions> _options;
-    private readonly IHistoricalCollectionTaskQueue _taskQueue;
+    private readonly IHistoryTaskQueue _taskQueue;
 
     public HistoricalCollectionBackgroundService(
-        IHistoricalCollectionTaskQueue taskQueue,
+        IHistoryTaskQueue taskQueue,
         IEnumerable<IExchangeFundingRateClient> exchangeApiClients,
         IHistoricalFundingRateRepository historyRepo,
         IOptions<HistoricalDataCollectionOptions> options,
@@ -97,7 +97,7 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
             if (rates.Count > 0)
             {
-                await _historyRepo.SaveAsync(rates, cancellationToken);
+                await _historyRepo.AddRangeAsync(rates, cancellationToken);
                 _logger.LogInformation("✅ {Exchange}:{Symbol} collected {Count} rates in {Elapsed}ms",
                     task.Exchange, task.NormalizedSymbol, rates.Count, sw.ElapsedMilliseconds);
             }

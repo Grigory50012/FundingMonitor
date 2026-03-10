@@ -29,7 +29,7 @@ public static class ServiceCollectionExtensions
         });
 
         // State
-        services.AddSingleton<IStateManager, InMemorySymbolStateRepository>();
+        services.AddSingleton<IStateRepository, InMemorySymbolStateRepository>();
 
         // Регистрируем репозитории
         services.AddScoped<ICurrentFundingRateRepository, CurrentFundingRateRepository>();
@@ -58,6 +58,6 @@ public static class ServiceCollectionExtensions
             return new RateLimitedFundingRateClient(bybitClient, options, logger);
         });
 
-        services.AddSingleton<IHistoricalCollectionTaskQueue, InMemoryHistoricalCollectionTaskQueue>();
+        services.AddSingleton<IHistoryTaskQueue, InMemoryHistoryTaskQueue>();
     }
 }
