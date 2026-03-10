@@ -49,12 +49,12 @@ public class CurrentDataBackgroundService : BackgroundService
         try
         {
             var sw = Stopwatch.StartNew();
-            _logger.LogInformation("Start of fundraising bets");
+            _logger.LogInformation("Start of collecting funding rates");
 
             var rates = await collector.CollectFundingRatesAsync(stoppingToken);
 
             sw.Stop();
-            _logger.LogInformation("Funding rates collection cycle completed: {Count} bets, {Elapsed}ms",
+            _logger.LogInformation("Funding rates collection cycle completed: {Count} rates, {Elapsed}ms",
                 rates.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
