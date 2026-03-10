@@ -30,13 +30,23 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
 
         await context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
 
+        // Удаляем отсутствующие символы
+        var existingKeys = await context.CurrentFundingRate
+            .Select(r => new { r.Exchange, r.NormalizedSymbol })
+            .ToListAsync(cancellationToken);
+
         var incomingKeys = entities
             .Select(e => new { e.Exchange, e.NormalizedSymbol })
             .ToHashSet();
 
-        await context.CurrentFundingRate
-            .Where(r => !incomingKeys.Contains(new { r.Exchange, r.NormalizedSymbol }))
-            .ExecuteDeleteAsync(cancellationToken);
+        var keysToDelete = existingKeys
+            .Where(k => !incomingKeys.Contains(k))
+            .ToList();
+
+        foreach (var key in keysToDelete)
+            await context.CurrentFundingRate
+                .Where(r => r.Exchange == key.Exchange && r.NormalizedSymbol == key.NormalizedSymbol)
+                .ExecuteDeleteAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<CurrentFundingRate>> GetRatesAsync(
