@@ -7,11 +7,11 @@ namespace FundingMonitor.Application.Services;
 
 public class ExchangeAvailabilityChecker : IExchangeAvailabilityChecker
 {
-    private readonly IEnumerable<IExchangeApiClient> _clients;
+    private readonly IEnumerable<IExchangeFundingRateClient> _clients;
     private readonly ILogger<ExchangeAvailabilityChecker> _logger;
 
     public ExchangeAvailabilityChecker(
-        IEnumerable<IExchangeApiClient> clients,
+        IEnumerable<IExchangeFundingRateClient> clients,
         ILogger<ExchangeAvailabilityChecker> logger)
     {
         _clients = clients;
@@ -21,24 +21,30 @@ public class ExchangeAvailabilityChecker : IExchangeAvailabilityChecker
     public async Task<Dictionary<ExchangeType, bool>> CheckAllExchangesAsync(CancellationToken cancellationToken)
     {
         var results = new Dictionary<ExchangeType, bool>();
+        var tasks = _clients.Select(CheckClientAsync);
+        var clientResults = await Task.WhenAll(tasks);
 
-        foreach (var client in _clients)
-            try
-            {
-                var isAvailable = await client.IsAvailableAsync(cancellationToken);
-                results[client.ExchangeType] = isAvailable;
-
-                if (isAvailable)
-                    _logger.LogInformation("{Exchange} доступна", client.ExchangeType);
-                else
-                    _logger.LogWarning("{Exchange} не доступна", client.ExchangeType);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка при проверке {Exchange}", client.ExchangeType);
-                results[client.ExchangeType] = false;
-            }
+        foreach (var result in clientResults) results[result.Exchange] = result.IsAvailable;
 
         return results;
+    }
+
+    private async Task<(ExchangeType Exchange, bool IsAvailable)> CheckClientAsync(IExchangeFundingRateClient client)
+    {
+        try
+        {
+            var isAvailable = await client.IsAvailableAsync(CancellationToken.None);
+
+            var logLevel = isAvailable ? LogLevel.Information : LogLevel.Warning;
+            _logger.Log(logLevel, "{Exchange} is {Status}",
+                client.ExchangeType, isAvailable ? "available" : "unavailable");
+
+            return (client.ExchangeType, isAvailable);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking {Exchange}", client.ExchangeType);
+            return (client.ExchangeType, false);
+        }
     }
 }

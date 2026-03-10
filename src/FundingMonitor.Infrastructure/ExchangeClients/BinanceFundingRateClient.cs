@@ -11,13 +11,13 @@ using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
-public class BinanceApiClient : BaseExchangeApiClient
+public class BinanceFundingRateClient : BaseExchangeFundingRateClient
 {
     private readonly BinanceRestClient _binanceClient;
-    private readonly ILogger<BinanceApiClient> _logger;
+    private readonly ILogger<BinanceFundingRateClient> _logger;
 
-    public BinanceApiClient(
-        ILogger<BinanceApiClient> logger,
+    public BinanceFundingRateClient(
+        ILogger<BinanceFundingRateClient> logger,
         ISymbolParser symbolParser,
         IOptions<ExchangeOptions> binanceOptions)
         : base(logger, symbolParser, binanceOptions)
@@ -44,7 +44,7 @@ public class BinanceApiClient : BaseExchangeApiClient
     public override async Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(
         CancellationToken cancellationToken)
     {
-        return await ExecuteWithMonitoringAsync(
+        return await ExecuteApiCallWithTimeoutAsync(
             "Сбор текущих ставок финансирования",
             async ct =>
             {
@@ -86,7 +86,7 @@ public class BinanceApiClient : BaseExchangeApiClient
         int limit,
         CancellationToken cancellationToken)
     {
-        return await ExecuteWithMonitoringAsync(
+        return await ExecuteApiCallWithTimeoutAsync(
             $"Сбор истории ставок финансирования: {symbol}",
             async ct =>
             {
@@ -123,7 +123,7 @@ public class BinanceApiClient : BaseExchangeApiClient
     {
         try
         {
-            var result = await ExecuteWithMonitoringAsync(
+            var result = await ExecuteApiCallWithTimeoutAsync(
                 "Ping",
                 async ct => await _binanceClient.UsdFuturesApi.ExchangeData.PingAsync(ct),
                 cancellationToken);

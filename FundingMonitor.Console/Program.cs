@@ -101,7 +101,7 @@ internal static class Program
 
             // Проверка rate limiter
             System.Console.WriteLine("\nTESTING RATE LIMITER...");
-            var clients = scope.ServiceProvider.GetServices<IExchangeApiClient>();
+            var clients = scope.ServiceProvider.GetServices<IExchangeFundingRateClient>();
             foreach (var client in clients)
                 System.Console.WriteLine($"{client.ExchangeType} : {client.GetType().Name}");
 

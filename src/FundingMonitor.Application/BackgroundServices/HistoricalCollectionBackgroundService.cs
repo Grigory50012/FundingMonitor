@@ -12,22 +12,22 @@ namespace FundingMonitor.Application.BackgroundServices;
 
 public class HistoricalCollectionBackgroundService : BackgroundService
 {
-    private readonly IEnumerable<IExchangeApiClient> _clients;
     private readonly SemaphoreSlim _concurrencySemaphore;
+    private readonly IEnumerable<IExchangeFundingRateClient> _exchangeApiClients;
     private readonly IHistoricalFundingRateRepository _historyRepo;
     private readonly ILogger<HistoricalCollectionBackgroundService> _logger;
-    private readonly IOptions<HistoricalCollectionOptions> _options;
-    private readonly IHistoricalCollectionQueue _queue;
+    private readonly IOptions<HistoricalDataCollectionOptions> _options;
+    private readonly IHistoricalCollectionTaskQueue _taskQueue;
 
     public HistoricalCollectionBackgroundService(
-        IHistoricalCollectionQueue queue,
-        IEnumerable<IExchangeApiClient> clients,
+        IHistoricalCollectionTaskQueue taskQueue,
+        IEnumerable<IExchangeFundingRateClient> exchangeApiClients,
         IHistoricalFundingRateRepository historyRepo,
-        IOptions<HistoricalCollectionOptions> options,
+        IOptions<HistoricalDataCollectionOptions> options,
         ILogger<HistoricalCollectionBackgroundService> logger)
     {
-        _queue = queue;
-        _clients = clients;
+        _taskQueue = taskQueue;
+        _exchangeApiClients = exchangeApiClients;
         _historyRepo = historyRepo;
         _options = options;
         _logger = logger;
@@ -36,27 +36,28 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("HistoricalCollectionBackgroundService запущен");
+        _logger.LogInformation("HistoricalCollectionBackgroundService started");
 
         while (!stoppingToken.IsCancellationRequested)
+        {
             try
             {
-                if (_queue.Count == 0)
+                if (_taskQueue.Count == 0)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
                     continue;
                 }
 
-                _logger.LogDebug("Обработка очереди: Pending={Count}", _queue.Count);
+                _logger.LogDebug("Обработка очереди: Pending={Count}", _taskQueue.Count);
 
                 var tasks = new List<Task>();
 
-                // Забираем пакет задач
-                for (var i = 0; i < _options.Value.BatchSize && _queue.Count > 0; i++)
-                    if (_queue.TryDequeue(out var task))
-                        tasks.Add(ProcessTaskAsync(task, stoppingToken));
+                for (var i = 0; i < _options.Value.BatchSize && _taskQueue.Count > 0; i++)
+                    if (_taskQueue.TryDequeue(out var task))
+                        tasks.Add(ProcessHistoricalCollectionTaskAsync(task, stoppingToken));
 
-                if (tasks.Count > 0) await Task.WhenAll(tasks);
+                if (tasks.Count > 0)
+                    await Task.WhenAll(tasks);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -68,47 +69,47 @@ public class HistoricalCollectionBackgroundService : BackgroundService
                 _logger.LogError(ex, "Ошибка в цикле обработки очереди");
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
+        }
     }
 
-    private async Task ProcessTaskAsync(HistoricalCollectionTask task, CancellationToken cancellationToken)
+    private async Task ProcessHistoricalCollectionTaskAsync(HistoricalCollectionTask task,
+        CancellationToken cancellationToken)
     {
         await _concurrencySemaphore.WaitAsync(cancellationToken);
+        var sw = Stopwatch.StartNew();
+
         try
         {
-            var sw = Stopwatch.StartNew();
+            var client = _exchangeApiClients.First(c => c.ExchangeType == task.Exchange);
 
-            var client = _clients.First(c => c.ExchangeType == task.Exchange);
-            var apiSymbol = task.NormalizedSymbol.Replace("-", "");
-
-            var fromTime = DateTime.UtcNow.AddMonths(-_options.Value.MaxHistoryMonths);
-            var toTime = DateTime.UtcNow;
-
-            // Добавляем таймаут на API запрос
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 new CancellationTokenSource(
                     TimeSpan.FromSeconds(_options.Value.RequestTimeoutSeconds)).Token
             );
 
+            var fromTime = DateTime.UtcNow.AddMonths(-_options.Value.MaxHistoryMonths);
+            var toTime = DateTime.UtcNow;
+
             var rates = await client.GetHistoricalFundingRatesAsync(
-                apiSymbol, fromTime, toTime, _options.Value.ApiPageSize, cts.Token);
+                task.NormalizedSymbol.Replace("-", ""), fromTime, toTime,
+                _options.Value.ApiPageSize, cts.Token);
 
             if (rates.Count > 0)
             {
-                await _historyRepo.SaveRatesAsync(rates, cancellationToken);
-
-                _logger.LogInformation("✅ {Exchange}:{Symbol} собрано {Count} ставок за {Elapsed}мс",
+                await _historyRepo.SaveAsync(rates, cancellationToken);
+                _logger.LogInformation("✅ {Exchange}:{Symbol} collected {Count} rates in {Elapsed}ms",
                     task.Exchange, task.NormalizedSymbol, rates.Count, sw.ElapsedMilliseconds);
             }
             else
             {
-                _logger.LogWarning("⚠️ Нет данных: {Exchange}:{Symbol}",
-                    task.Exchange, task.NormalizedSymbol);
+                _logger.LogWarning("⚠️ No data: {Exchange}:{Symbol}", task.Exchange, task.NormalizedSymbol);
             }
         }
-        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw; // Нормальная отмена
+            _logger.LogDebug("Task cancelled: {Exchange}:{Symbol}", task.Exchange, task.NormalizedSymbol);
+            throw;
         }
         catch (Exception ex)
         {
@@ -116,15 +117,15 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
             if (retryCount >= _options.Value.MaxRetries)
             {
-                _logger.LogError(ex, "❌ Задача провалена после {RetryCount} попыток: {Exchange}:{Symbol}",
+                _logger.LogError(ex, "❌ Task failed after {RetryCount} attempts: {Exchange}:{Symbol}",
                     retryCount, task.Exchange, task.NormalizedSymbol);
             }
             else
             {
                 task.RetryCount = retryCount;
-                _queue.Enqueue(task); // Возвращаем в очередь
+                _taskQueue.Enqueue(task);
                 _logger.LogWarning(ex,
-                    "⚠️ Задача будет повторена (попытка {RetryCount}/{MaxRetries}): {Exchange}:{Symbol}",
+                    "⚠️ Task will be retried (attempt {RetryCount}/{MaxRetries}): {Exchange}:{Symbol}",
                     retryCount, _options.Value.MaxRetries, task.Exchange, task.NormalizedSymbol);
             }
         }
@@ -136,8 +137,7 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("HistoricalCollectionBackgroundService останавливается... Очередь: {Count}",
-            _queue.Count);
+        _logger.LogInformation("HistoricalCollectionBackgroundService stopping... Queue: {Count}", _taskQueue.Count);
         _concurrencySemaphore.Dispose();
         await base.StopAsync(cancellationToken);
     }

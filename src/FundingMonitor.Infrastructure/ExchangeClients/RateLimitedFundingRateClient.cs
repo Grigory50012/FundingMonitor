@@ -11,18 +11,18 @@ using Polly.RateLimiting;
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
 /// <summary>
-///     Декоратор, добавляющий rate limiting к любому IExchangeApiClient
+///     Декоратор, добавляющий rate limiting к любому IExchangeFundingRateClient
 /// </summary>
-public class RateLimitedApiClient : IExchangeApiClient
+public class RateLimitedFundingRateClient : IExchangeFundingRateClient
 {
-    private readonly IExchangeApiClient _innerClient;
-    private readonly ILogger<RateLimitedApiClient> _logger;
+    private readonly IExchangeFundingRateClient _innerClient;
+    private readonly ILogger<RateLimitedFundingRateClient> _logger;
     private readonly ResiliencePipeline _rateLimiterPipeline;
 
-    public RateLimitedApiClient(
-        IExchangeApiClient innerClient,
+    public RateLimitedFundingRateClient(
+        IExchangeFundingRateClient innerClient,
         IOptions<RateLimitOptions> rateLimitOptions,
-        ILogger<RateLimitedApiClient> logger)
+        ILogger<RateLimitedFundingRateClient> logger)
     {
         _innerClient = innerClient;
         ExchangeType = innerClient.ExchangeType;

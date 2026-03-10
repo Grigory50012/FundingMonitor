@@ -21,7 +21,7 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         _logger = logger;
     }
 
-    public async Task SaveRatesAsync(
+    public async Task SaveAsync(
         IEnumerable<HistoricalFundingRate> rates,
         CancellationToken cancellationToken)
     {
@@ -54,7 +54,7 @@ public class HistoricalFundingRateRepository : IHistoricalFundingRateRepository
         }
     }
 
-    public async Task<HistoricalFundingRate?> GetLastRateAsync(
+    public async Task<HistoricalFundingRate?> GetLastAsync(
         string exchange,
         string normalizedSymbol,
         CancellationToken cancellationToken)

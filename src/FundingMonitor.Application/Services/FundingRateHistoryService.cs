@@ -9,44 +9,43 @@ namespace FundingMonitor.Application.Services;
 public class FundingRateHistoryService : IFundingRateHistoryService
 {
     private readonly ILogger<FundingRateHistoryService> _logger;
-    private readonly IHistoricalCollectionQueue _queue;
+    private readonly IHistoricalCollectionTaskQueue _taskQueue;
 
     public FundingRateHistoryService(
-        IHistoricalCollectionQueue queue,
+        IHistoricalCollectionTaskQueue taskQueue,
         ILogger<FundingRateHistoryService> logger)
     {
-        _queue = queue;
+        _taskQueue = taskQueue;
         _logger = logger;
     }
 
-    public Task ProcessDetectionEventsAsync(List<FundingEvent> events, CancellationToken cancellationToken)
+    public Task EnqueueHistoricalCollectionTasksAsync(List<FundingRateEvent> events,
+        CancellationToken cancellationToken)
     {
-        if (events.Count == 0) return Task.CompletedTask;
-
         foreach (var @event in events)
         {
             var task = @event switch
             {
-                NewSymbolDetectedEvent e => new HistoricalCollectionTask
+                NewSymbolFundingEvent e => new HistoricalCollectionTask
                 {
                     Exchange = e.Exchange,
                     NormalizedSymbol = e.NormalizedSymbol,
-                    Type = HistoricalCollectionTaskType.NewSymbol
+                    Type = HistoricalCollectionTaskType.CollectHistoryForNewSymbol
                 },
-                FundingTimeChangedEvent e => new HistoricalCollectionTask
+                FundingTimeChangeEvent e => new HistoricalCollectionTask
                 {
                     Exchange = e.Exchange,
                     NormalizedSymbol = e.NormalizedSymbol,
-                    Type = HistoricalCollectionTaskType.FundingTimeChanged
+                    Type = HistoricalCollectionTaskType.RefreshHistoryAfterTimeChange
                 },
                 _ => null
             };
 
-            if (task != null) _queue.Enqueue(task);
+            if (task != null) _taskQueue.Enqueue(task);
         }
 
-        _logger.LogInformation("Добавлено {Count} задач в очередь истории (всего в очереди: {QueueCount})",
-            events.Count, _queue.Count);
+        _logger.LogInformation("Added {Count} tasks to history taskQueue (total in taskQueue: {QueueCount})",
+            events.Count, _taskQueue.Count);
 
         return Task.CompletedTask;
     }

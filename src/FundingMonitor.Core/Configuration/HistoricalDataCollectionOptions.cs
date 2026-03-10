@@ -1,8 +1,8 @@
 namespace FundingMonitor.Core.Configuration;
 
-public class HistoricalCollectionOptions
+public class HistoricalDataCollectionOptions
 {
-    public const string SectionName = "HistoricalCollection";
+    public const string SectionName = "HistoricalDataCollectionOptions";
 
     /// <summary>Максимум параллельных задач сбора истории</summary>
     public int MaxConcurrentTasks { get; set; } = 10;

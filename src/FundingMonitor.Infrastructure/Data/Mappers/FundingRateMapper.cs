@@ -15,7 +15,6 @@ public static class FundingRateMapper
 
         return new CurrentFundingRateEntity
         {
-            Id = 0,
             Exchange = domain.Exchange.ToString(),
             NormalizedSymbol = domain.NormalizedSymbol,
             BaseAsset = domain.BaseAsset,
@@ -54,9 +53,7 @@ public static class FundingRateMapper
 
     public static List<CurrentFundingRate> ToDomainList(List<CurrentFundingRateEntity>? entities)
     {
-        return entities is null || entities.Count == 0
-            ? []
-            : entities.Select(ToDomain).ToList();
+        return entities?.Select(ToDomain).ToList() ?? [];
     }
 
     // Historical Funding Rate mappings
@@ -66,7 +63,6 @@ public static class FundingRateMapper
 
         return new HistoricalFundingRateEntity
         {
-            Id = 0,
             Exchange = domain.Exchange.ToString(),
             NormalizedSymbol = domain.NormalizedSymbol,
             FundingRate = domain.FundingRate,
@@ -92,11 +88,8 @@ public static class FundingRateMapper
     private static ExchangeType ParseExchange(string exchangeName)
     {
         return ExchangeCache.GetOrAdd(exchangeName, name =>
-        {
-            if (Enum.TryParse<ExchangeType>(name, true, out var result))
-                return result;
-
-            throw new InvalidOperationException($"Unknown exchange: {name}");
-        });
+            Enum.TryParse<ExchangeType>(name, true, out var result)
+                ? result
+                : throw new InvalidOperationException($"Unknown exchange: {name}"));
     }
 }

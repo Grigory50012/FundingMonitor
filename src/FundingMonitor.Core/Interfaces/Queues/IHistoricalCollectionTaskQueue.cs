@@ -2,7 +2,7 @@ using FundingMonitor.Core.Queues;
 
 namespace FundingMonitor.Core.Interfaces.Queues;
 
-public interface IHistoricalCollectionQueue
+public interface IHistoricalCollectionTaskQueue
 {
     int Count { get; }
     void Enqueue(HistoricalCollectionTask task);

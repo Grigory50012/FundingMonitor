@@ -4,8 +4,8 @@ namespace FundingMonitor.Core.Interfaces.Repositories;
 
 public interface IHistoricalFundingRateRepository
 {
-    Task SaveRatesAsync(IEnumerable<HistoricalFundingRate> rates, CancellationToken cancellationToken);
+    Task SaveAsync(IEnumerable<HistoricalFundingRate> rates, CancellationToken cancellationToken);
 
-    Task<HistoricalFundingRate?> GetLastRateAsync(string exchange, string normalizedSymbol,
+    Task<HistoricalFundingRate?> GetLastAsync(string exchange, string normalizedSymbol,
         CancellationToken cancellationToken);
 }

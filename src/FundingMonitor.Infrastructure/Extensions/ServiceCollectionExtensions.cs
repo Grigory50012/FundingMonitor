@@ -29,35 +29,35 @@ public static class ServiceCollectionExtensions
         });
 
         // State
-        services.AddSingleton<IStateManager, InMemoryStateManager>();
+        services.AddSingleton<IStateManager, InMemorySymbolStateRepository>();
 
         // Регистрируем репозитории
         services.AddScoped<ICurrentFundingRateRepository, CurrentFundingRateRepository>();
         services.AddScoped<IHistoricalFundingRateRepository, HistoricalFundingRateRepository>();
 
         // Регистрируем оригинальные клиенты бирж
-        services.AddScoped<BinanceApiClient>();
-        services.AddScoped<BybitApiClient>();
+        services.AddScoped<BinanceFundingRateClient>();
+        services.AddScoped<BybitFundingRateClient>();
 
         // Регистрируем декорированные клиенты с rate limiting
-        services.AddScoped<IExchangeApiClient>(sp =>
+        services.AddScoped<IExchangeFundingRateClient>(sp =>
         {
-            var binanceClient = sp.GetRequiredService<BinanceApiClient>();
+            var binanceClient = sp.GetRequiredService<BinanceFundingRateClient>();
             var options = sp.GetRequiredService<IOptions<RateLimitOptions>>();
-            var logger = sp.GetRequiredService<ILogger<RateLimitedApiClient>>();
+            var logger = sp.GetRequiredService<ILogger<RateLimitedFundingRateClient>>();
 
-            return new RateLimitedApiClient(binanceClient, options, logger);
+            return new RateLimitedFundingRateClient(binanceClient, options, logger);
         });
 
-        services.AddScoped<IExchangeApiClient>(sp =>
+        services.AddScoped<IExchangeFundingRateClient>(sp =>
         {
-            var bybitClient = sp.GetRequiredService<BybitApiClient>();
+            var bybitClient = sp.GetRequiredService<BybitFundingRateClient>();
             var options = sp.GetRequiredService<IOptions<RateLimitOptions>>();
-            var logger = sp.GetRequiredService<ILogger<RateLimitedApiClient>>();
+            var logger = sp.GetRequiredService<ILogger<RateLimitedFundingRateClient>>();
 
-            return new RateLimitedApiClient(bybitClient, options, logger);
+            return new RateLimitedFundingRateClient(bybitClient, options, logger);
         });
 
-        services.AddSingleton<IHistoricalCollectionQueue, InMemoryHistoricalCollectionQueue>();
+        services.AddSingleton<IHistoricalCollectionTaskQueue, InMemoryHistoricalCollectionTaskQueue>();
     }
 }

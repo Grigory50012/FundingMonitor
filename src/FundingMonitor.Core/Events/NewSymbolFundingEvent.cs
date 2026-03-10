@@ -1,6 +1,6 @@
 namespace FundingMonitor.Core.Events;
 
-public class NewSymbolDetectedEvent : FundingEvent
+public class NewSymbolFundingEvent : FundingRateEvent
 {
     public DateTime DetectedAt { get; set; }
     public int? FundingIntervalHours { get; set; }

@@ -10,7 +10,7 @@ public static class ServiceCollectionExtensions
     public static void AddApplicationServices(this IServiceCollection services)
     {
         // Регистрируем сервисы приложения
-        services.AddScoped<ICurrentDataCollector, FundingRateCollector>();
+        services.AddScoped<ICurrentFundingRateCollector, CurrentCurrentFundingRateCollector>();
         services.AddScoped<IExchangeAvailabilityChecker, ExchangeAvailabilityChecker>();
         services.AddScoped<IFundingRateHistoryService, FundingRateHistoryService>();
 

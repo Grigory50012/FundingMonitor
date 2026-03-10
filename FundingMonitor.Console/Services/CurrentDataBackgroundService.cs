@@ -44,14 +44,14 @@ public class CurrentDataBackgroundService : BackgroundService
     private async Task DoCollectionAsync(CancellationToken stoppingToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var collector = scope.ServiceProvider.GetRequiredService<ICurrentDataCollector>();
+        var collector = scope.ServiceProvider.GetRequiredService<ICurrentFundingRateCollector>();
 
         try
         {
             var sw = Stopwatch.StartNew();
             _logger.LogInformation("Начало сбора ставок финансирования");
 
-            var rates = await collector.CollectCurrentRatesAsync(stoppingToken);
+            var rates = await collector.CollectFundingRatesAsync(stoppingToken);
 
             sw.Stop();
             _logger.LogInformation("Цикл сбора ставок финансирования завершен: {Count} ставок, {Elapsed}мс",

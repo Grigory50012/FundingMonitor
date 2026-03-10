@@ -12,13 +12,13 @@ using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
-public class BybitApiClient : BaseExchangeApiClient
+public class BybitFundingRateClient : BaseExchangeFundingRateClient
 {
     private readonly BybitRestClient _bybitClient;
-    private readonly ILogger<BybitApiClient> _logger;
+    private readonly ILogger<BybitFundingRateClient> _logger;
 
-    public BybitApiClient(
-        ILogger<BybitApiClient> logger,
+    public BybitFundingRateClient(
+        ILogger<BybitFundingRateClient> logger,
         ISymbolParser symbolParser,
         IOptions<ExchangeOptions> bybitOptions)
         : base(logger, symbolParser, bybitOptions)
@@ -45,7 +45,7 @@ public class BybitApiClient : BaseExchangeApiClient
     public override async Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(
         CancellationToken cancellationToken)
     {
-        return await ExecuteWithMonitoringAsync(
+        return await ExecuteApiCallWithTimeoutAsync(
             "Сбор текущих ставок финансирования",
             async ct =>
             {
@@ -88,7 +88,7 @@ public class BybitApiClient : BaseExchangeApiClient
         int limit,
         CancellationToken cancellationToken)
     {
-        return await ExecuteWithMonitoringAsync(
+        return await ExecuteApiCallWithTimeoutAsync(
             $"Сбор истории ставок финансирования: {symbol}",
             async ct =>
             {
@@ -125,7 +125,7 @@ public class BybitApiClient : BaseExchangeApiClient
     {
         try
         {
-            await ExecuteWithMonitoringAsync(
+            await ExecuteApiCallWithTimeoutAsync(
                 "GetServerTime",
                 async ct => await _bybitClient.V5Api.ExchangeData.GetServerTimeAsync(ct),
                 cancellationToken);

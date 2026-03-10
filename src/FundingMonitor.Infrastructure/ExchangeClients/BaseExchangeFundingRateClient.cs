@@ -8,13 +8,13 @@ using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
-public abstract class BaseExchangeApiClient : IExchangeApiClient
+public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
 {
     private readonly ILogger _logger;
     private readonly ISymbolParser _symbolParser;
     protected readonly ExchangeOptions Options;
 
-    protected BaseExchangeApiClient(
+    protected BaseExchangeFundingRateClient(
         ILogger logger,
         ISymbolParser symbolParser,
         IOptions<ExchangeOptions> options)
@@ -23,8 +23,6 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         _symbolParser = symbolParser;
         Options = options.Value;
     }
-
-    private static string QuoteAsset => "USDT";
 
     public abstract ExchangeType ExchangeType { get; }
 
@@ -57,7 +55,7 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
             LastCheck = DateTime.UtcNow,
             IsActive = true,
             BaseAsset = parsed.Base,
-            QuoteAsset = QuoteAsset
+            QuoteAsset = "USDT"
         };
     }
 
@@ -78,51 +76,43 @@ public abstract class BaseExchangeApiClient : IExchangeApiClient
         };
     }
 
-    protected async Task<T> ExecuteWithMonitoringAsync<T>(
+    protected async Task<T> ExecuteApiCallWithTimeoutAsync<T>(
         string operationName,
         Func<CancellationToken, Task<T>> action,
         CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
+
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken,
-                new CancellationTokenSource(Options.RequestTimeout).Token
-            );
+                cancellationToken, new CancellationTokenSource(Options.RequestTimeout).Token);
 
-            _logger.LogInformation("Starting operation: {Operation}", operationName);
             var result = await action(cts.Token);
+
             sw.Stop();
-            _logger.LogInformation("{Operation}, completed in {Elapsed}ms",
-                operationName, sw.ElapsedMilliseconds);
+            _logger.LogDebug("{Operation} completed in {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
+
             return result;
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             sw.Stop();
-            _logger.LogWarning("{Operation}, timed out after {Elapsed}ms",
-                operationName, sw.ElapsedMilliseconds);
+            _logger.LogWarning("{Operation} timed out after {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
+
             throw new TimeoutException($"Operation {operationName} timed out", ex);
-        }
-        catch (OperationCanceledException)
-        {
-            sw.Stop();
-            _logger.LogWarning("{Operation}, cancelled after {Elapsed}ms",
-                operationName, sw.ElapsedMilliseconds);
-            throw;
         }
         catch (Exception ex)
         {
             sw.Stop();
-            _logger.LogError(ex, "[{Exchange}] {Operation}, failed after {Elapsed}ms",
-                ExchangeType, operationName, sw.ElapsedMilliseconds);
+            _logger.LogError(ex, "{Operation} failed after {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
+
             throw;
         }
     }
 
     protected static bool IsValidSymbol(string symbol)
     {
-        return symbol.EndsWith(QuoteAsset);
+        return symbol.EndsWith("USDT");
     }
 }
