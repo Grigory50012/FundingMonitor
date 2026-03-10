@@ -10,20 +10,20 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
 
-public class CurrentCurrentFundingRateCollector : ICurrentFundingRateCollector
+public class CurrentFundingRateCollector : ICurrentFundingRateCollector
 {
     private readonly IEnumerable<IExchangeFundingRateClient> _exchangeClients;
     private readonly IFundingRateHistoryService _historicalCollector;
-    private readonly ILogger<CurrentCurrentFundingRateCollector> _logger;
+    private readonly ILogger<CurrentFundingRateCollector> _logger;
     private readonly ICurrentFundingRateRepository _repository;
     private readonly IStateManager _stateManager;
 
-    public CurrentCurrentFundingRateCollector(
+    public CurrentFundingRateCollector(
         IEnumerable<IExchangeFundingRateClient> exchangeClients,
         ICurrentFundingRateRepository repository,
         IFundingRateHistoryService historicalCollector,
         IStateManager stateManager,
-        ILogger<CurrentCurrentFundingRateCollector> logger)
+        ILogger<CurrentFundingRateCollector> logger)
     {
         _exchangeClients = exchangeClients;
         _repository = repository;
