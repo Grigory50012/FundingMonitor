@@ -137,7 +137,7 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("HistoricalCollectionBackgroundService stopping... Queue: {Count}", _taskQueue.Count);
+        _logger.LogInformation("HistoricalCollectionBackgroundService stopping...");
         _concurrencySemaphore.Dispose();
         await base.StopAsync(cancellationToken);
     }
