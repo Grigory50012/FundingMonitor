@@ -4,6 +4,7 @@ using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Queues;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Queues;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,22 +14,19 @@ namespace FundingMonitor.Application.BackgroundServices;
 public class HistoricalCollectionBackgroundService : BackgroundService
 {
     private readonly SemaphoreSlim _concurrencySemaphore;
-    private readonly IEnumerable<IExchangeFundingRateClient> _exchangeApiClients;
-    private readonly IHistoricalFundingRateRepository _historyRepo;
     private readonly ILogger<HistoricalCollectionBackgroundService> _logger;
     private readonly IOptions<HistoricalDataCollectionOptions> _options;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHistoryTaskQueue _taskQueue;
 
     public HistoricalCollectionBackgroundService(
         IHistoryTaskQueue taskQueue,
-        IEnumerable<IExchangeFundingRateClient> exchangeApiClients,
-        IHistoricalFundingRateRepository historyRepo,
+        IServiceScopeFactory scopeFactory,
         IOptions<HistoricalDataCollectionOptions> options,
         ILogger<HistoricalCollectionBackgroundService> logger)
     {
         _taskQueue = taskQueue;
-        _exchangeApiClients = exchangeApiClients;
-        _historyRepo = historyRepo;
+        _scopeFactory = scopeFactory;
         _options = options;
         _logger = logger;
         _concurrencySemaphore = new SemaphoreSlim(options.Value.MaxConcurrentTasks);
@@ -53,8 +51,12 @@ public class HistoricalCollectionBackgroundService : BackgroundService
                 var tasks = new List<Task>();
 
                 for (var i = 0; i < _options.Value.BatchSize && _taskQueue.Count > 0; i++)
+                {
                     if (_taskQueue.TryDequeue(out var task))
+                    {
                         tasks.Add(ProcessHistoricalCollectionTaskAsync(task, stoppingToken));
+                    }
+                }
 
                 if (tasks.Count > 0)
                     await Task.WhenAll(tasks);
@@ -80,7 +82,14 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
         try
         {
-            var client = _exchangeApiClients.First(c => c.ExchangeType == task.Exchange);
+            using var scope = _scopeFactory.CreateScope();
+
+            var exchangeApiClients = scope.ServiceProvider
+                .GetRequiredService<IEnumerable<IExchangeFundingRateClient>>();
+            var historyRepo = scope.ServiceProvider
+                .GetRequiredService<IHistoricalFundingRateRepository>();
+
+            var client = exchangeApiClients.First(c => c.ExchangeType == task.Exchange);
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
@@ -97,7 +106,7 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
             if (rates.Count > 0)
             {
-                await _historyRepo.AddRangeAsync(rates, cancellationToken);
+                await historyRepo.AddRangeAsync(rates, cancellationToken);
                 _logger.LogInformation("✅ {Exchange}:{Symbol} collected {Count} rates in {Elapsed}ms",
                     task.Exchange, task.NormalizedSymbol, rates.Count, sw.ElapsedMilliseconds);
             }

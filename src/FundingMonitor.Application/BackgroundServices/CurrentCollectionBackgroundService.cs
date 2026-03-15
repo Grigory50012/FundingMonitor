@@ -6,16 +6,17 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace FundingMonitor.Console.Services;
+namespace FundingMonitor.Application.BackgroundServices;
 
-public class CurrentDataBackgroundService : BackgroundService
+public class CurrentCollectionBackgroundService : BackgroundService
 {
-    private readonly ILogger<CurrentDataBackgroundService> _logger;
+    private readonly ILogger<CurrentCollectionBackgroundService> _logger;
     private readonly IOptions<CurrentDataCollectionOptions> _options;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    public CurrentDataBackgroundService(IServiceScopeFactory scopeFactory,
-        ILogger<CurrentDataBackgroundService> logger,
+    public CurrentCollectionBackgroundService(
+        IServiceScopeFactory scopeFactory,
+        ILogger<CurrentCollectionBackgroundService> logger,
         IOptions<CurrentDataCollectionOptions> options)
     {
         _scopeFactory = scopeFactory;
@@ -25,7 +26,7 @@ public class CurrentDataBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("CurrentDataBackgroundService starting...");
+        _logger.LogInformation("CurrentCollectionBackgroundService starting...");
 
         // Небольшая задержка при старте
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
@@ -65,7 +66,7 @@ public class CurrentDataBackgroundService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("CurrentDataBackgroundService stopping...");
+        _logger.LogInformation("CurrentCollectionBackgroundService stopping...");
         await base.StopAsync(cancellationToken);
     }
 }
