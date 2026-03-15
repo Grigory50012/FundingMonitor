@@ -16,7 +16,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\FundingMonitor.Console\FundingMonitor.Console.csproj"/>
         <ProjectReference Include="..\FundingMonitor.Application\FundingMonitor.Application.csproj"/>
         <ProjectReference Include="..\FundingMonitor.Core\FundingMonitor.Core.csproj"/>
     </ItemGroup>
