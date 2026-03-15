@@ -48,29 +48,39 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
             "Collection of current funding rates",
             async ct =>
             {
-                var result = await _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(ct);
+                var markPricesTask = _binanceClient.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(ct);
+                var intervalsTask = GetFundingIntervalsAsync(ct);
 
-                if (!result.Success)
+                await Task.WhenAll(markPricesTask, intervalsTask);
+
+                var markPricesResult = markPricesTask.Result;
+                var intervalsMap = intervalsTask.Result;
+
+                if (!markPricesResult.Success)
                 {
-                    _logger.LogError("[Binance] API Error: {Error}", result.Error?.Message);
-                    throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
+                    _logger.LogError("[Binance] API Error: {Error}", markPricesResult.Error?.Message);
+                    throw new ExchangeApiException(ExchangeType, markPricesResult.Error?.Message ?? "Unknown error");
                 }
 
-                var rates = new List<CurrentFundingRate>(result.Data.Length);
+                var rates = new List<CurrentFundingRate>(markPricesResult.Data.Length);
 
-                foreach (var item in result.Data)
+                foreach (var item in markPricesResult.Data)
                 {
-                    if (!IsValidSymbol(item.Symbol)) // Только USDT
+                    if (!IsValidSymbol(item.Symbol))
                         continue;
-                    if (item.NextFundingTime < item.Timestamp) // Отсекаем неактивные или квартальные фьючерсы
+                    if (item.NextFundingTime < item.Timestamp)
                         continue;
+
+                    // Получаем интервал из мапы (если есть)
+                    intervalsMap.TryGetValue(item.Symbol, out var intervalHours);
 
                     rates.Add(CreateFundingRate(
                         item.Symbol,
                         item.MarkPrice,
                         item.IndexPrice,
                         item.FundingRate ?? 0,
-                        item.NextFundingTime));
+                        item.NextFundingTime,
+                        intervalHours > 0 ? intervalHours : null));
                 }
 
                 _logger.LogInformation("[Binance] Collected {Count} funding rates", rates.Count);
@@ -133,6 +143,36 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
         catch
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    ///     Получает информацию об интервалах финансирования для всех символов
+    /// </summary>
+    private async Task<Dictionary<string, int>> GetFundingIntervalsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _binanceClient.UsdFuturesApi.ExchangeData
+                .GetFundingInfoAsync(cancellationToken);
+
+            if (!result.Success)
+            {
+                _logger.LogDebug("[Binance] FundingInfo not available or empty");
+                return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return result.Data
+                .Where(info => IsValidSymbol(info.Symbol) && info.FundingIntervalHours > 0)
+                .ToDictionary(
+                    info => info.Symbol,
+                    info => info.FundingIntervalHours,
+                    StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[Binance] Failed to fetch funding intervals");
+            return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         }
     }
 }
