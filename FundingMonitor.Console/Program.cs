@@ -1,5 +1,4 @@
 ﻿using FundingMonitor.Application.Extensions;
-using FundingMonitor.Console.Services;
 using FundingMonitor.Core.Extensions;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Services;
@@ -37,13 +36,9 @@ internal static class Program
             })
             .ConfigureServices((context, services) =>
             {
-                // Регистрация всех сервисов через extension методы
                 services.AddCoreServices(context.Configuration);
                 services.AddInfrastructureServices();
                 services.AddApplicationServices();
-
-                // Background services
-                services.AddHostedService<CurrentDataBackgroundService>();
             })
             .Build();
 

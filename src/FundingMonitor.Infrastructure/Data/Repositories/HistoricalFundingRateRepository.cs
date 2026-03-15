@@ -33,10 +33,10 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
 
         var bulkConfig = new BulkConfig
         {
-            UpdateByProperties = new List<string> { "Exchange", "NormalizedSymbol", "FundingTime" },
+            UpdateByProperties = ["Exchange", "NormalizedSymbol", "FundingTime"],
             TrackingEntities = false,
             BatchSize = 1000,
-            PropertiesToExcludeOnUpdate = new List<string> { "CollectedAt" }
+            PropertiesToExcludeOnUpdate = ["CollectedAt"]
         };
 
         try
@@ -51,6 +51,39 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
             _logger.LogError(ex, "Error saving {Count} rates", entities.Count);
             throw;
         }
+    }
+
+    public async Task<List<HistoricalFundingRate>> GetHistoryAsync(
+        string? symbol,
+        List<ExchangeType>? exchanges,
+        DateTime? from,
+        DateTime? to,
+        int? limit,
+        CancellationToken cancellationToken)
+    {
+        await using var context = await CreateContextAsync(cancellationToken);
+
+        var query = context.HistoricalFundingRate.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(symbol)) query = query.Where(r => r.NormalizedSymbol == symbol);
+
+        if (exchanges?.Any() == true)
+        {
+            var exchangeNames = exchanges.Select(e => e.ToString()).ToHashSet();
+            query = query.Where(r => exchangeNames.Contains(r.Exchange));
+        }
+
+        if (from.HasValue) query = query.Where(r => r.FundingTime >= from.Value);
+
+        if (to.HasValue) query = query.Where(r => r.FundingTime <= to.Value);
+
+        query = query.OrderByDescending(r => r.FundingTime);
+
+        if (limit.HasValue) query = query.Take(limit.Value);
+
+        var entities = await query.ToListAsync(cancellationToken);
+
+        return entities.Select(FundingRateMapper.ToDomain).ToList();
     }
 
     public async Task<HistoricalFundingRate?> GetLastAsync(

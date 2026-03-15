@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ISymbolParser, SymbolParser>();
 
+        services.AddHostedService<CurrentCollectionBackgroundService>();
         services.AddHostedService<HistoricalCollectionBackgroundService>();
     }
 }
