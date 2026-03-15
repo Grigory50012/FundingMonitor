@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using FundingMonitor.Api.Mappers;
 using FundingMonitor.Api.Models;
+using FundingMonitor.Api.Models.Dtos;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -33,10 +35,10 @@ public class FundingRatesController : ControllerBase
     /// <response code="400">Неверные параметры запроса</response>
     /// <response code="500">Ошибка сервера</response>
     [HttpGet]
-    [ProducesResponseType(typeof(List<CurrentFundingRate>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<FundingRateDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<List<CurrentFundingRate>>> GetFundingRates(
+    public async Task<ActionResult<List<FundingRateDto>>> GetFundingRates(
         [FromQuery] string? symbol,
         [FromQuery] string? exchanges,
         [FromQuery] bool includeInactive = false)
@@ -62,7 +64,7 @@ public class FundingRatesController : ControllerBase
             _logger.LogInformation("API Response - GetFundingRates - Found {Count} rates in {ElapsedMs}ms",
                 rates.Count(), stopwatch.ElapsedMilliseconds);
 
-            return Ok(rates);
+            return Ok(FundingRateMapper.ToDtoList(rates));
         }
         catch (ArgumentException ex)
         {
