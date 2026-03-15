@@ -1,3 +1,4 @@
+using FundingMonitor.Api.Mappers;
 using FundingMonitor.Api.Models;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Repositories;
@@ -47,7 +48,7 @@ public class HistoryController : ControllerBase
         var history = await
             _repository.GetHistoryAsync(symbol, exchangeList, from, to, limit, CancellationToken.None);
 
-        return Ok(history);
+        return Ok(FundingRateMapper.ToDtoList(history));
     }
 
     private List<ExchangeType>? ParseExchanges(string? exchanges)

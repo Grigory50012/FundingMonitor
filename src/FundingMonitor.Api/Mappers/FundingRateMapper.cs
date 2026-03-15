@@ -5,7 +5,7 @@ namespace FundingMonitor.Api.Mappers;
 
 public static class FundingRateMapper
 {
-    public static FundingRateDto ToDto(CurrentFundingRate entity)
+    private static FundingRateDto ToDto(CurrentFundingRate entity)
     {
         return new FundingRateDto
         {
@@ -16,11 +16,26 @@ public static class FundingRateMapper
             APR = entity.APR,
             NumberOfPaymentsPerDay = entity.NumberOfPaymentsPerDay,
             NextFundingTime = entity.NextFundingTime,
-            IsActive = entity.IsActive
+        };
+    }
+
+    private static HistoricalFundingRateDto ToDto(HistoricalFundingRate entity)
+    {
+        return new HistoricalFundingRateDto
+        {
+            Exchange = entity.Exchange.ToString(),
+            Symbol = entity.NormalizedSymbol,
+            FundingRate = entity.FundingRate,
+            FundingTime = entity.FundingTime
         };
     }
 
     public static List<FundingRateDto> ToDtoList(IEnumerable<CurrentFundingRate> entities)
+    {
+        return entities.Select(ToDto).ToList();
+    }
+
+    public static List<HistoricalFundingRateDto> ToDtoList(IEnumerable<HistoricalFundingRate> entities)
     {
         return entities.Select(ToDto).ToList();
     }

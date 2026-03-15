@@ -24,10 +24,4 @@ public class CurrentFundingRate
     public int NumberOfPaymentsPerDay => 24 / FundingIntervalHours ?? 8;
     public decimal APR => FundingRate * 100m * (365m * 24m / (FundingIntervalHours ?? 8m));
     public decimal Deviation => (MarkPrice / IndexPrice - 1m) * 100m;
-
-    public override string ToString()
-    {
-        return
-            $"{Exchange} {NormalizedSymbol}: {FundingRate:P5} {NumberOfPaymentsPerDay} {NextFundingTime:HH:mm} {APR:P2}%";
-    }
 }

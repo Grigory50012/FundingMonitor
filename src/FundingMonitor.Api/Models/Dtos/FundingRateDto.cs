@@ -9,5 +9,4 @@ public class FundingRateDto
     public decimal APR { get; set; }
     public int NumberOfPaymentsPerDay { get; set; }
     public DateTime? NextFundingTime { get; set; }
-    public bool IsActive { get; set; }
 }
