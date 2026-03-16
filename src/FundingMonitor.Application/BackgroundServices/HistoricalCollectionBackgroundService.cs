@@ -54,7 +54,7 @@ public class HistoricalCollectionBackgroundService : BackgroundService
                 {
                     if (_taskQueue.TryDequeue(out var task))
                     {
-                        tasks.Add(ProcessHistoricalCollectionTaskAsync(task, stoppingToken));
+                        tasks.Add(ProcessHistoricalCollectionTaskAsync(task!, stoppingToken));
                     }
                 }
 

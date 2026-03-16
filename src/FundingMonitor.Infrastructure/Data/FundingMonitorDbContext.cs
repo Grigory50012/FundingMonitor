@@ -3,8 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FundingMonitor.Infrastructure.Data;
 
-public class FundingMonitorDbContext(DbContextOptions<FundingMonitorDbContext> options) : DbContext(options)
+public class FundingMonitorDbContext : DbContext
 {
+    public FundingMonitorDbContext(DbContextOptions<FundingMonitorDbContext> options) : base(options)
+    {
+    }
+
     public DbSet<CurrentFundingRateEntity> CurrentFundingRate { get; set; }
     public DbSet<HistoricalFundingRateEntity> HistoricalFundingRate { get; set; }
 
@@ -22,10 +26,7 @@ public class FundingMonitorDbContext(DbContextOptions<FundingMonitorDbContext> o
 
         modelBuilder.Entity<HistoricalFundingRateEntity>(entity =>
         {
-            entity.HasKey(e => e.Id);
-
-            entity.HasIndex(e => new { e.Exchange, e.NormalizedSymbol, e.FundingTime })
-                .HasDatabaseName("IX_HistoricalFundingRate_Exchange_Symbol_Time");
+            entity.HasKey(e => new { e.Exchange, e.NormalizedSymbol, e.FundingTime });
 
             entity.HasIndex(e => new { e.Exchange, e.NormalizedSymbol })
                 .HasDatabaseName("IX_HistoricalFundingRate_Exchange_Symbol");

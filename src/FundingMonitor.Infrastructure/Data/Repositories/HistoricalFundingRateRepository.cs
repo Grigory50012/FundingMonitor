@@ -33,15 +33,13 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
 
         var bulkConfig = new BulkConfig
         {
-            UpdateByProperties = ["Exchange", "NormalizedSymbol", "FundingTime"],
             TrackingEntities = false,
-            BatchSize = 1000,
-            PropertiesToExcludeOnUpdate = ["CollectedAt"]
+            BatchSize = 1000
         };
 
         try
         {
-            await context.BulkInsertAsync(entities, bulkConfig, cancellationToken: cancellationToken);
+            await context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
 
             _logger.LogDebug("Saved: {Count} rates in {ElapsedMs}ms",
                 entities.Count, sw.ElapsedMilliseconds);
