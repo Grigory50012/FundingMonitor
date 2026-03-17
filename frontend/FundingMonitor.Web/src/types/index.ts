@@ -34,7 +34,7 @@ export const PERIODS = [
 ] as const;
 
 export const EXCHANGE_COLORS: Record<ExchangeType, string> = {
-  Binance: "#F0B90B",
-  Bybit: "#FFA500",
+  Binance: "#f0760b",
+  Bybit: "#ffcc00",
   OKX: "#FFFFFF",
 };
