@@ -11,6 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { HistoricalFundingRateDto, ExchangeType } from "../types";
+import { EXCHANGE_COLORS } from "../types";
 
 interface HistoryPanelProps {
   data: HistoricalFundingRateDto[];
@@ -28,31 +29,36 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       selectedExchanges.includes(item.exchange),
   );
 
-  // Группируем данные по времени для графика
+  // Группируем данные по округлённому времени (4-часовые интервалы)
   const chartData = React.useMemo(() => {
     const timeMap = new Map<
-      string,
+      number,
       { time: string; timestamp: number; [key: string]: number | string }
     >();
 
     filteredData.forEach((item) => {
-      const timestamp = new Date(item.fundingTime).getTime();
-      const timeKey = item.fundingTime;
+      const date = new Date(item.fundingTime);
+      // Округляем до 4-часового интервала
+      const roundedHour = Math.floor(date.getUTCHours() / 4) * 4;
+      date.setUTCHours(roundedHour, 0, 0, 0);
+      const timestamp = date.getTime();
 
-      if (!timeMap.has(timeKey)) {
-        timeMap.set(timeKey, {
-          time: new Date(item.fundingTime).toLocaleString("ru-RU", {
+      if (!timeMap.has(timestamp)) {
+        timeMap.set(timestamp, {
+          time: date.toLocaleString("ru-RU", {
             month: "short",
             day: "numeric",
             hour: "2-digit",
-            minute: "2-digit",
           }),
           timestamp,
         });
       }
 
-      const dataPoint = timeMap.get(timeKey)!;
-      dataPoint[`${item.exchange}`] = item.fundingRate * 100;
+      const dataPoint = timeMap.get(timestamp)!;
+      // Если для этой биржи ещё нет значения в этой точке, устанавливаем его
+      if (dataPoint[`${item.exchange}`] === undefined) {
+        dataPoint[`${item.exchange}`] = item.fundingRate * 100;
+      }
     });
 
     return Array.from(timeMap.values()).sort(
@@ -65,38 +71,42 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     new Set(filteredData.map((item) => item.exchange)),
   );
 
-  // Цвета для бирж
-  const exchangeColors: Record<ExchangeType, string> = {
-    Binance: "#F0B90B",
-    Bybit: "#FFA500",
-    OKX: "#000000",
-  };
-
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-xl">
-          <p className="text-gray-400 text-sm mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
-              <span
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-gray-300">{entry.name}:</span>
-              <span
-                className={`font-semibold ${
-                  entry.value > 0
-                    ? "text-green-400"
-                    : entry.value < 0
-                      ? "text-red-400"
-                      : "text-gray-400"
-                }`}
-              >
-                {entry.value.toFixed(4)}%
-              </span>
-            </div>
-          ))}
+          <p className="text-gray-400 text-sm mb-2 font-medium">{label}</p>
+          <p className="text-xs text-gray-500 mb-2">
+            {new Date(payload[0]?.payload?.timestamp).toLocaleString("ru-RU", {
+              day: "2-digit",
+              month: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+          {payload.map((entry: any, index: number) => {
+            if (entry.value === undefined || entry.value === null) return null;
+            return (
+              <div key={index} className="flex items-center gap-2 text-sm">
+                <span
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-gray-300">{entry.name}:</span>
+                <span
+                  className={`font-semibold ${
+                    entry.value > 0
+                      ? "text-green-400"
+                      : entry.value < 0
+                        ? "text-red-400"
+                        : "text-gray-400"
+                  }`}
+                >
+                  {entry.value.toFixed(4)}%
+                </span>
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -113,7 +123,6 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      <h2 className="text-lg font-semibold text-white mb-4">История ставок</h2>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
@@ -125,10 +134,18 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
               dataKey="time"
               stroke="#9CA3AF"
               tick={{ fontSize: 11 }}
-              tickFormatter={(value) => value.split(" ")[0]}
+              tickFormatter={(value) => {
+                const parts = value.split(" ");
+                // Если есть время, показываем день и время
+                if (parts.length > 1) {
+                  return `${parts[0]} ${parts[1]}`;
+                }
+                return parts[0];
+              }}
               angle={-45}
               textAnchor="end"
-              height={60}
+              height={70}
+              interval="preserveStartEnd"
             />
             <YAxis
               stroke="#9CA3AF"
@@ -148,7 +165,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 key={exchange}
                 type="monotone"
                 dataKey={exchange}
-                stroke={exchangeColors[exchange as ExchangeType]}
+                stroke={EXCHANGE_COLORS[exchange as ExchangeType]}
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 6, strokeWidth: 0 }}
