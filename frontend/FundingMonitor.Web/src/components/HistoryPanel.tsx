@@ -61,23 +61,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     );
   }, [filteredData, timeRange]);
 
-  // Определяем оптимальный интервал группировки на основе диапазона данных
-  const groupingInterval = React.useMemo(() => {
-    if (timeFilteredData.length === 0) return 4;
-
-    const timestamps = timeFilteredData.map((item) =>
-      new Date(item.fundingTime).getTime(),
-    );
-    const minTime = Math.min(...timestamps);
-    const maxTime = Math.max(...timestamps);
-    const daysRange = (maxTime - minTime) / (1000 * 60 * 60 * 24);
-
-    // Если данных мало (< 3 дней), показываем по часам
-    // Если много, группируем по 4 часа
-    return daysRange <= 3 ? 1 : 4;
-  }, [timeFilteredData]);
-
-  // Группируем данные для отображения на графике
+  // Группируем данные по 4-часовым интервалам для корректного отображения
   const chartData = React.useMemo(() => {
     const timeMap = new Map<
       number,
@@ -91,21 +75,19 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       }
     >();
 
-    // Собираем данные по интервалам
+    // Собираем данные по 4-часовым интервалам
     const intervalData = new Map<
       number,
       {
-        values: Map<string, number>; // exchange -> rate
-        firstTime: Date; // Первое время в интервале
+        values: Map<string, { rate: number; time: Date }>;
+        firstTime: Date;
       }
     >();
 
     timeFilteredData.forEach((item) => {
       const date = new Date(item.fundingTime);
-      const hour = date.getUTCHours();
-      const roundedHour =
-        Math.floor(hour / groupingInterval) * groupingInterval;
-
+      // Округляем до 4-часового интервала
+      const roundedHour = Math.floor(date.getUTCHours() / 4) * 4;
       const intervalDate = new Date(
         Date.UTC(
           date.getUTCFullYear(),
@@ -128,7 +110,13 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
       const interval = intervalData.get(intervalTimestamp)!;
       // Берём последнее значение для этой биржи в интервале
-      interval.values.set(item.exchange, item.fundingRate * 100);
+      const existing = interval.values.get(item.exchange);
+      if (!existing || date > existing.time) {
+        interval.values.set(item.exchange, {
+          rate: item.fundingRate * 100,
+          time: date,
+        });
+      }
       // Обновляем первое время для tooltip
       if (date < interval.firstTime) {
         interval.firstTime = date;
@@ -160,7 +148,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           day: "numeric",
           hour: "2-digit",
         }),
-        xAxisLabel: "", // Установим позже
+        xAxisLabel: "",
         tooltipTime: interval.firstTime.toLocaleString("ru-RU", {
           hour: "2-digit",
           minute: "2-digit",
@@ -170,8 +158,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       });
 
       const dataPoint = timeMap.get(timestamp)!;
-      interval.values.forEach((rate, exchange) => {
-        dataPoint[exchange] = rate;
+      interval.values.forEach((data, exchange) => {
+        dataPoint[exchange] = data.rate;
       });
     });
 
@@ -194,7 +182,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     });
 
     return result;
-  }, [timeFilteredData, groupingInterval]);
+  }, [timeFilteredData]);
 
   // Получаем уникальные биржи из всех данных (чтобы линии не пропадали при фильтрации)
   const allExchanges = React.useMemo(
@@ -326,7 +314,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 strokeWidth={2.5}
                 dot={false}
                 activeDot={{ r: 7, strokeWidth: 2 }}
-                connectNulls={false}
+                connectNulls={true}
                 animationDuration={500}
               />
             ))}
