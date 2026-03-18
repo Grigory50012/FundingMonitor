@@ -1,117 +1,78 @@
-import React, { useState, useMemo } from "react";
-import type { HistoricalFundingRateDto, ExchangeType } from "../types";
+import React, { useState, useMemo, useEffect } from "react";
+import type { AprPeriodStatsDto, ExchangeType } from "../types";
+import { fundingRatesApi } from "../api/fundingRates";
 import { PERIODS } from "../types";
 
 interface HistoryTableProps {
-  data: HistoricalFundingRateDto[];
   selectedExchanges: ExchangeType[];
+  symbol: string;
 }
-
-interface PeriodStats {
-  exchange: ExchangeType;
-  period: string;
-  days: number;
-  apr: number;
-  totalFundingRate: number;
-  paymentsCount: number;
-  avgFundingRate: number;
-}
-
-type SortColumn = "apr" | "totalFundingRate" | "paymentsCount";
-type SortDirection = "asc" | "desc" | null;
 
 interface SortConfig {
   column: SortColumn;
   direction: SortDirection;
-  period?: string; // Период для сортировки
+  period?: string;
 }
 
+type SortColumn =
+  | "apr"
+  | "totalFundingRatePercent"
+  | "paymentsCount"
+  | "avgFundingRatePercent";
+type SortDirection = "asc" | "desc" | null;
+
 export const HistoryTable: React.FC<HistoryTableProps> = ({
-  data,
   selectedExchanges,
+  symbol,
 }) => {
+  const [data, setData] = useState<AprPeriodStatsDto[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     column: "apr",
     direction: null,
     period: undefined,
   });
 
-  // Фильтруем данные по выбранным биржам
-  const filteredData = data.filter(
-    (item) =>
-      selectedExchanges.length === 0 ||
-      selectedExchanges.includes(item.exchange),
-  );
+  // Загрузка данных с бэкенда
+  useEffect(() => {
+    if (!symbol) {
+      setData([]);
+      return;
+    }
 
-  // Вычисляем APR статистику по периодам
-  const stats = useMemo(() => {
-    if (filteredData.length === 0) return [];
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
 
-    const exchangeData = new Map<
-      ExchangeType,
-      { date: string; rate: number; timestamp: number }[]
-    >();
-
-    filteredData.forEach((item) => {
-      if (!exchangeData.has(item.exchange)) {
-        exchangeData.set(item.exchange, []);
-      }
-      exchangeData.get(item.exchange)!.push({
-        date: new Date(item.fundingTime).toLocaleDateString("ru-RU"),
-        rate: item.fundingRate,
-        timestamp: new Date(item.fundingTime).getTime(),
-      });
-    });
-
-    const result: PeriodStats[] = [];
-
-    exchangeData.forEach((rates, exchange) => {
-      const sortedRates = rates.sort((a, b) => b.timestamp - a.timestamp);
-      const uniqueDates = Array.from(
-        new Set(sortedRates.map((r) => r.date)),
-      ).sort((a, b) => {
-        const [dayA, monthA, yearA] = a.split(".").map(Number);
-        const [dayB, monthB, yearB] = b.split(".").map(Number);
-        return (
-          new Date(yearB, monthB - 1, dayB).getTime() -
-          new Date(yearA, monthA - 1, dayA).getTime()
-        );
-      });
-
-      PERIODS.forEach(({ label, days }) => {
-        const datesToInclude = uniqueDates.slice(0, days);
-        const ratesForPeriod = sortedRates.filter((r) =>
-          datesToInclude.includes(r.date),
-        );
-
-        if (ratesForPeriod.length === 0) return;
-
-        const totalFundingRate = ratesForPeriod.reduce(
-          (sum, r) => sum + r.rate,
-          0,
-        );
-        const apr = totalFundingRate * 100 * (365 / days);
-        const avgFundingRate = totalFundingRate / ratesForPeriod.length;
-
-        result.push({
-          exchange,
-          period: label,
-          days,
-          apr,
-          totalFundingRate,
-          paymentsCount: ratesForPeriod.length,
-          avgFundingRate,
+      try {
+        const stats = await fundingRatesApi.getAprStats({
+          symbol,
+          exchanges:
+            selectedExchanges.length > 0 ? selectedExchanges : undefined,
         });
-      });
-    });
+        setData(stats);
+      } catch (err: any) {
+        console.error("Failed to load APR stats:", err);
+        setError(err.message || "Ошибка загрузки данных");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return result;
-  }, [filteredData]);
+    loadData();
+  }, [symbol, selectedExchanges]);
+
+  // Фильтруем данные по выбранным биржам (на случай если фильтр не применился на бэкенде)
+  const filteredData = useMemo(() => {
+    if (selectedExchanges.length === 0) return data;
+    return data.filter((item) => selectedExchanges.includes(item.exchange));
+  }, [data, selectedExchanges]);
 
   // Получаем уникальные биржи и периоды (всегда в исходном порядке)
   const exchanges = useMemo(
-    () => Array.from(new Set(stats.map((s) => s.exchange))),
-    [stats],
+    () => Array.from(new Set(filteredData.map((s) => s.exchange))),
+    [filteredData],
   );
 
   // Сортировка бирж (строк) на основе выбранного столбца периода
@@ -123,10 +84,10 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
     const multiplier = sortConfig.direction === "asc" ? 1 : -1;
 
     return [...exchanges].sort((a, b) => {
-      const statsA = stats.find(
+      const statsA = filteredData.find(
         (s) => s.exchange === a && s.period === sortConfig.period,
       );
-      const statsB = stats.find(
+      const statsB = filteredData.find(
         (s) => s.exchange === b && s.period === sortConfig.period,
       );
 
@@ -138,9 +99,12 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
       if (sortConfig.column === "apr") {
         valueA = statsA.apr;
         valueB = statsB.apr;
-      } else if (sortConfig.column === "totalFundingRate") {
-        valueA = statsA.totalFundingRate;
-        valueB = statsB.totalFundingRate;
+      } else if (sortConfig.column === "totalFundingRatePercent") {
+        valueA = statsA.totalFundingRatePercent;
+        valueB = statsB.totalFundingRatePercent;
+      } else if (sortConfig.column === "avgFundingRatePercent") {
+        valueA = statsA.avgFundingRatePercent;
+        valueB = statsB.avgFundingRatePercent;
       } else {
         valueA = statsA.paymentsCount;
         valueB = statsB.paymentsCount;
@@ -148,7 +112,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
 
       return (valueA - valueB) * multiplier;
     });
-  }, [exchanges, stats, sortConfig]);
+  }, [exchanges, filteredData, sortConfig]);
 
   // Обработчик клика по заголовку столбца периода
   const handleSort = (period: string, column: SortColumn) => {
@@ -227,7 +191,23 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
     );
   };
 
-  if (stats.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        <p>Загрузка данных...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-400">
+        <p>Ошибка: {error}</p>
+      </div>
+    );
+  }
+
+  if (filteredData.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
         <p>Нет исторических данных для отображения</p>
@@ -279,7 +259,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                   </span>
                 </td>
                 {PERIODS.map(({ label }) => {
-                  const stat = stats.find(
+                  const stat = filteredData.find(
                     (s) => s.exchange === exchange && s.period === label,
                   );
 
@@ -312,12 +292,12 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                           {stat.apr.toFixed(2)}%
                         </p>
                         <p className="text-xs text-gray-500">
-                          ∑ {(stat.totalFundingRate * 100).toFixed(3)}%
+                          ∑ {stat.totalFundingRatePercent.toFixed(3)}%
                         </p>
                         <div className="flex items-center gap-2 text-xs text-gray-600">
                           <span>{stat.paymentsCount}</span>
                           <span>•</span>
-                          <span>{(stat.avgFundingRate * 100).toFixed(3)}%</span>
+                          <span>{stat.avgFundingRatePercent.toFixed(3)}%</span>
                         </div>
                       </div>
                     </td>

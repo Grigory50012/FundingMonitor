@@ -12,7 +12,8 @@ public static class ServiceCollectionExtensions
         // Регистрируем сервисы приложения
         services.AddScoped<ICurrentFundingRateCollector, CurrentFundingRateCollector>();
         services.AddScoped<IExchangeAvailabilityChecker, ExchangeAvailabilityChecker>();
-        services.AddScoped<IFundingRateHistoryService, FundingRateHistoryService>();
+        services.AddScoped<IHistoricalCollectionProducer, HistoricalCollectionProducer>();
+        services.AddScoped<IAprStatsService, AprStatsService>();
 
         services.AddSingleton<ISymbolParser, SymbolParser>();
 

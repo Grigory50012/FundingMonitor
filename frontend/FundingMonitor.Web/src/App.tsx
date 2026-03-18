@@ -297,7 +297,7 @@ function App() {
                 />
               ) : (
                 <HistoryTable
-                  data={historyData}
+                  symbol={selectedCoin}
                   selectedExchanges={selectedExchanges}
                 />
               )}

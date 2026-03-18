@@ -6,14 +6,14 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
 
-public class FundingRateHistoryService : IFundingRateHistoryService
+public class HistoricalCollectionProducer : IHistoricalCollectionProducer
 {
-    private readonly ILogger<FundingRateHistoryService> _logger;
+    private readonly ILogger<HistoricalCollectionProducer> _logger;
     private readonly IHistoryTaskQueue _taskQueue;
 
-    public FundingRateHistoryService(
+    public HistoricalCollectionProducer(
         IHistoryTaskQueue taskQueue,
-        ILogger<FundingRateHistoryService> logger)
+        ILogger<HistoricalCollectionProducer> logger)
     {
         _taskQueue = taskQueue;
         _logger = logger;

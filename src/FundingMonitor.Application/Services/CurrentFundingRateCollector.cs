@@ -13,21 +13,21 @@ namespace FundingMonitor.Application.Services;
 public class CurrentFundingRateCollector : ICurrentFundingRateCollector
 {
     private readonly IEnumerable<IExchangeFundingRateClient> _exchangeClients;
-    private readonly IFundingRateHistoryService _historicalCollector;
     private readonly ILogger<CurrentFundingRateCollector> _logger;
+    private readonly IHistoricalCollectionProducer _producer;
     private readonly ICurrentFundingRateRepository _repository;
     private readonly IStateRepository _stateRepository;
 
     public CurrentFundingRateCollector(
         IEnumerable<IExchangeFundingRateClient> exchangeClients,
         ICurrentFundingRateRepository repository,
-        IFundingRateHistoryService historicalCollector,
+        IHistoricalCollectionProducer producer,
         IStateRepository stateRepository,
         ILogger<CurrentFundingRateCollector> logger)
     {
         _exchangeClients = exchangeClients;
         _repository = repository;
-        _historicalCollector = historicalCollector;
+        _producer = producer;
         _stateRepository = stateRepository;
         _logger = logger;
     }
@@ -54,7 +54,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
 
         if (allEvents.Count != 0)
         {
-            await _historicalCollector.EnqueueHistoricalCollectionTasksAsync(allEvents, cancellationToken);
+            await _producer.EnqueueHistoricalCollectionTasksAsync(allEvents, cancellationToken);
         }
 
         sw.Stop();

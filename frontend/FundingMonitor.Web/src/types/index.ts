@@ -17,6 +17,16 @@ export interface HistoricalFundingRateDto {
   fundingTime: string;
 }
 
+export interface AprPeriodStatsDto {
+  exchange: ExchangeType;
+  period: string;
+  days: number;
+  apr: number;
+  totalFundingRatePercent: number;
+  paymentsCount: number;
+  avgFundingRatePercent: number;
+}
+
 export interface ApiErrorResponse {
   error: string;
   details?: string;

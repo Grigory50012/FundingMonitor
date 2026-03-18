@@ -3,6 +3,7 @@ import type {
   FundingRateDto,
   HistoricalFundingRateDto,
   ExchangeType,
+  AprPeriodStatsDto,
 } from "../types";
 
 const API_BASE_URL = "/api/v1";
@@ -54,6 +55,25 @@ export const fundingRatesApi = {
 
     const { data } = await apiClient.get<HistoricalFundingRateDto[]>(
       `/History?${queryParams.toString()}`,
+    );
+    return data;
+  },
+
+  getAprStats: async (params: {
+    symbol: string;
+    exchanges?: ExchangeType[];
+    periods?: number[];
+  }): Promise<AprPeriodStatsDto[]> => {
+    const queryParams = new URLSearchParams();
+
+    queryParams.append("symbol", params.symbol);
+    if (params.exchanges?.length)
+      queryParams.append("exchanges", params.exchanges.join(","));
+    if (params.periods?.length)
+      queryParams.append("periods", params.periods.join(","));
+
+    const { data } = await apiClient.get<AprPeriodStatsDto[]>(
+      `/History/apr-stats?${queryParams.toString()}`,
     );
     return data;
   },
