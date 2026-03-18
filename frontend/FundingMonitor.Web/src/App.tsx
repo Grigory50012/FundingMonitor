@@ -12,6 +12,7 @@ import type {
   HistoricalFundingRateDto,
   ExchangeType,
 } from "./types";
+import type { TimeRangeType } from "./components/HistoryPanel";
 
 const DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE"];
 
@@ -32,6 +33,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [historyViewMode, setHistoryViewMode] =
     useState<HistoryViewMode>("chart");
+  const [timeRange, setTimeRange] = useState<TimeRangeType>("1m");
 
   // Загрузка текущих данных
   const loadCurrentData = useCallback(async () => {
@@ -294,6 +296,8 @@ function App() {
                 <HistoryPanel
                   data={historyData}
                   selectedExchanges={selectedExchanges}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
                 />
               ) : (
                 <HistoryTable
