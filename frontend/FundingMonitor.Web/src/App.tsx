@@ -6,13 +6,13 @@ import {
   HistoryPanel,
   HistoryTable,
 } from "./components";
+import type { TimeRangeType } from "./components";
 import { fundingRatesApi } from "./api/fundingRates";
 import type {
   FundingRateDto,
   HistoricalFundingRateDto,
   ExchangeType,
 } from "./types";
-import type { TimeRangeType } from "./components/HistoryPanel";
 
 const DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE"];
 

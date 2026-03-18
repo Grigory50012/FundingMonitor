@@ -30,10 +30,11 @@ export const fundingRatesApi = {
     if (params?.includeInactive !== undefined)
       queryParams.append("includeInactive", params.includeInactive.toString());
 
-    const { data } = await apiClient.get<FundingRateDto[]>(
+    const response = await apiClient.get<FundingRateDto[]>(
       `/FundingRates?${queryParams.toString()}`,
     );
-    return data;
+    console.log("getCurrentRates response:", response.data);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getHistory: async (params: {
@@ -53,10 +54,10 @@ export const fundingRatesApi = {
     if (params.limit)
       queryParams.append("limit", Math.min(params.limit, 1000).toString());
 
-    const { data } = await apiClient.get<HistoricalFundingRateDto[]>(
+    const response = await apiClient.get<HistoricalFundingRateDto[]>(
       `/History?${queryParams.toString()}`,
     );
-    return data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getAprStats: async (params: {
@@ -72,9 +73,9 @@ export const fundingRatesApi = {
     if (params.periods?.length)
       queryParams.append("periods", params.periods.join(","));
 
-    const { data } = await apiClient.get<AprPeriodStatsDto[]>(
+    const response = await apiClient.get<AprPeriodStatsDto[]>(
       `/History/apr-stats?${queryParams.toString()}`,
     );
-    return data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 };
