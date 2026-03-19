@@ -61,7 +61,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     );
   }, [filteredData, timeRange]);
 
-  // Группируем данные по 4-часовым интервалам для корректного отображения
+  // Группируем данные по временным меткам для отображения на графике
   const chartData = React.useMemo(() => {
     const timeMap = new Map<
       number,
@@ -75,7 +75,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       }
     >();
 
-    // Собираем данные по 4-часовым интервалам
+    // Собираем данные по уникальным временным меткам (без группировки по интервалам)
     const intervalData = new Map<
       number,
       {
@@ -86,20 +86,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
     timeFilteredData.forEach((item) => {
       const date = new Date(item.fundingTime);
-      // Округляем до 4-часового интервала
-      const roundedHour = Math.floor(date.getUTCHours() / 4) * 4;
-      const intervalDate = new Date(
-        Date.UTC(
-          date.getUTCFullYear(),
-          date.getUTCMonth(),
-          date.getUTCDate(),
-          roundedHour,
-          0,
-          0,
-          0,
-        ),
-      );
-      const intervalTimestamp = intervalDate.getTime();
+      // Используем точную временную метку без округления
+      const intervalTimestamp = date.getTime();
 
       if (!intervalData.has(intervalTimestamp)) {
         intervalData.set(intervalTimestamp, {
