@@ -11,7 +11,7 @@ public class HistoricalDataCollectionOptions
     public int BatchSize { get; set; } = 20;
 
     /// <summary>Размер страницы API</summary>
-    public int ApiPageSize { get; set; } = 200;
+    public int ApiPageSize { get; set; } = 1000;
 
     /// <summary>Таймаут запроса к API (секунды)</summary>
     public int RequestTimeoutSeconds { get; set; } = 30;
