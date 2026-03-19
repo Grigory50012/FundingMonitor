@@ -13,7 +13,6 @@ public class CurrentFundingRateEntity
     public string BaseAsset { get; set; } = string.Empty;
     public string QuoteAsset { get; set; } = string.Empty;
 
-
     // Данные
     [Column(TypeName = "decimal(18,8)")] public decimal? MarkPrice { get; set; }
 

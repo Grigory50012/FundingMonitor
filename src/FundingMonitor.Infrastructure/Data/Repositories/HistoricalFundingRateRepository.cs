@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using EFCore.BulkExtensions;
+using System.Globalization;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Infrastructure.Data.Mappers;
@@ -31,18 +31,31 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
 
         await using var context = await CreateContextAsync(cancellationToken);
 
-        var bulkConfig = new BulkConfig
-        {
-            TrackingEntities = false,
-            BatchSize = 1000
-        };
-
         try
         {
-            await context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
+            var distinctEntities = entities
+                .GroupBy(e => new { e.Exchange, e.NormalizedSymbol, e.FundingTime })
+                .Select(g => g.First())
+                .ToList();
+
+            if (distinctEntities.Count > 0)
+            {
+                var sql = @"
+                    INSERT INTO ""HistoricalFundingRate"" (""Exchange"", ""NormalizedSymbol"", ""FundingTime"", ""CollectedAt"", ""FundingRate"")
+                    VALUES {0}
+                    ON CONFLICT (""Exchange"", ""NormalizedSymbol"", ""FundingTime"") DO UPDATE 
+                    SET ""CollectedAt"" = EXCLUDED.""CollectedAt"", ""FundingRate"" = EXCLUDED.""FundingRate""";
+
+                var values = string.Join(",\n", distinctEntities.Select(e =>
+                    $"('{EscapeSqlString(e.Exchange)}', '{EscapeSqlString(e.NormalizedSymbol)}', '{e.FundingTime:O}', '{e.CollectedAt:O}', {e.FundingRate.ToString(CultureInfo.InvariantCulture)})"));
+
+                var finalSql = string.Format(sql, values);
+
+                await context.Database.ExecuteSqlRawAsync(finalSql, cancellationToken);
+            }
 
             _logger.LogDebug("Saved: {Count} rates in {ElapsedMs}ms",
-                entities.Count, sw.ElapsedMilliseconds);
+                distinctEntities.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
@@ -97,5 +110,10 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
             .FirstOrDefaultAsync(cancellationToken);
 
         return entity is null ? null : FundingRateMapper.ToDomain(entity);
+    }
+
+    private static string EscapeSqlString(string input)
+    {
+        return input.Replace("'", "''");
     }
 }
