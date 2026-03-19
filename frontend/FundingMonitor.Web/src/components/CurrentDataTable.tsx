@@ -23,6 +23,15 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
     direction: null,
   });
 
+  // Функция форматирования числа с удалением лишних нулей
+  const formatRate = (value: number): string => {
+    // Форматируем с 6 знаками и убираем trailing zeros
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 6,
+    });
+  };
+
   const filteredData = data.filter(
     (item) =>
       selectedExchanges.length === 0 ||
@@ -214,7 +223,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center border-l border-gray-800/50">
-                  <p className="text-white font-medium">
+                  <p className="text-white font-semibold text-base">
                     $
                     {item.markPrice.toLocaleString(undefined, {
                       minimumFractionDigits: 4,
@@ -233,7 +242,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                             : "text-gray-400"
                       }`}
                     >
-                      {(item.fundingRate * 100).toFixed(4)}%
+                      {formatRate(item.fundingRate * 100)}%
                     </p>
                     <p className="text-xs text-gray-600">
                       {item.numberOfPaymentsPerDay} выплат/день
@@ -241,7 +250,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center border-l border-gray-800/50">
-                  <p className="text-white font-medium">
+                  <p className="text-white font-semibold text-base">
                     {item.nextFundingTime
                       ? new Date(item.nextFundingTime).toLocaleTimeString(
                           "ru-RU",
