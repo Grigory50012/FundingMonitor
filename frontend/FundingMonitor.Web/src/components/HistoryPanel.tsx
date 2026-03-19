@@ -75,7 +75,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       }
     >();
 
-    // Собираем данные по уникальным временным меткам (без группировки по интервалам)
+    // Собираем данные по часовым интервалам (чтобы объединить данные бирж)
     const intervalData = new Map<
       number,
       {
@@ -86,8 +86,19 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
     timeFilteredData.forEach((item) => {
       const date = new Date(item.fundingTime);
-      // Используем точную временную метку без округления
-      const intervalTimestamp = date.getTime();
+      // Округляем до часа, чтобы объединить данные Binance и Bybit
+      const intervalDate = new Date(
+        Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate(),
+          date.getUTCHours(),
+          0,
+          0,
+          0,
+        ),
+      );
+      const intervalTimestamp = intervalDate.getTime();
 
       if (!intervalData.has(intervalTimestamp)) {
         intervalData.set(intervalTimestamp, {
@@ -194,25 +205,33 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       return (
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-xl">
           <p className="text-gray-400 text-sm mb-2 font-medium">{dateStr}</p>
-          {payload.map((entry: any, index: number) => {
-            if (entry.value === undefined || entry.value === null) return null;
+          {/* Показываем все биржи, а не только те, что есть в payload */}
+          {allExchanges.map((exchange) => {
+            const value = payloadData?.[exchange];
+            if (value === undefined || value === null) return null;
+
+            // Находим цвет для биржи
+            const line = payload.find((p: any) => p.dataKey === exchange);
+            const color =
+              line?.color || EXCHANGE_COLORS[exchange as ExchangeType];
+
             return (
-              <div key={index} className="flex items-center gap-2 text-sm">
+              <div key={exchange} className="flex items-center gap-2 text-sm">
                 <span
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: entry.color }}
+                  style={{ backgroundColor: color }}
                 />
-                <span className="text-gray-300">{entry.name}:</span>
+                <span className="text-gray-300">{exchange}:</span>
                 <span
                   className={`font-semibold ${
-                    entry.value > 0
+                    value > 0
                       ? "text-green-400"
-                      : entry.value < 0
+                      : value < 0
                         ? "text-red-400"
                         : "text-gray-400"
                   }`}
                 >
-                  {entry.value.toFixed(4)}%
+                  {value.toFixed(4)}%
                 </span>
               </div>
             );
