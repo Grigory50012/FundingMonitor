@@ -33,7 +33,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [historyViewMode, setHistoryViewMode] =
     useState<HistoryViewMode>("chart");
-  const [timeRange, setTimeRange] = useState<TimeRangeType>("1w");
+  const [timeRange, setTimeRange] = useState<TimeRangeType>("1d");
 
   // Загрузка текущих данных
   const loadCurrentData = useCallback(async () => {
