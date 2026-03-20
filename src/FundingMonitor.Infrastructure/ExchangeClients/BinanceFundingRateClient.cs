@@ -1,7 +1,7 @@
 using Binance.Net;
 using Binance.Net.Clients;
-using CryptoExchange.Net.Objects;
 using CryptoExchange.Net.Objects.Options;
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
@@ -19,8 +19,9 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
     public BinanceFundingRateClient(
         ILogger<BinanceFundingRateClient> logger,
         ISymbolParser symbolParser,
-        IOptions<ExchangeOptions> binanceOptions)
-        : base(logger, symbolParser, binanceOptions)
+        IOptions<ExchangeOptions> binanceOptions,
+        IOptions<RateLimitOptions> rateLimitOptions)
+        : base(logger, symbolParser, binanceOptions, rateLimitOptions)
     {
         _binanceClient = new BinanceRestClient(binanceClientOptions =>
         {
@@ -30,8 +31,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
             binanceClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             binanceClientOptions.HttpVersion = new Version(2, 0);
             binanceClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60);
-            binanceClientOptions.RateLimiterEnabled = true;
-            binanceClientOptions.RateLimitingBehaviour = RateLimitingBehaviour.Wait;
+            binanceClientOptions.RateLimiterEnabled = false;
             binanceClientOptions.OutputOriginalData = false;
             binanceClientOptions.CachingEnabled = false;
         });
@@ -44,7 +44,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
     public override async Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(
         CancellationToken cancellationToken)
     {
-        return await ExecuteApiCallWithTimeoutAsync(
+        return await ExecuteApiCallAsync(
             "Collection of current funding rates",
             async ct =>
             {
@@ -68,13 +68,11 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                 {
                     if (!IsValidSymbol(item.Symbol))
                         continue;
-                    if (item.NextFundingTime <
-                        item.Timestamp) // Отсеиваем странные пары у которых следующая выплата почему-то меньше текущего времени
-                        continue;
-                    if (item is { EstimatedSettlePrice: 0, FundingRate: 0 }) // Отсеиваем делистинги
-                        continue;
+                    if (item.NextFundingTime < item.Timestamp)
+                        continue; // Отсеиваем странные пары у которых следующая выплата почему-то меньше текущего времени
+                    if (item is { EstimatedSettlePrice: 0, FundingRate: 0 })
+                        continue; // Отсеиваем делистинги
 
-                    // Получаем интервал из мапы (если есть)
                     intervalsMap.TryGetValue(item.Symbol, out var intervalHours);
 
                     rates.Add(CreateFundingRate(
@@ -99,7 +97,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
         int limit,
         CancellationToken cancellationToken)
     {
-        return await ExecuteApiCallWithTimeoutAsync(
+        return await ExecuteApiCallAsync(
             $"Collection of funding rate history: {symbol}",
             async ct =>
             {
@@ -136,12 +134,10 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
     {
         try
         {
-            var result = await ExecuteApiCallWithTimeoutAsync(
+            return await ExecuteApiCallAsync(
                 "Ping",
                 async ct => await _binanceClient.UsdFuturesApi.ExchangeData.PingAsync(ct),
                 cancellationToken);
-
-            return result.Success;
         }
         catch
         {

@@ -7,9 +7,6 @@ public class HistoricalDataCollectionOptions
     /// <summary>Максимум параллельных задач сбора истории</summary>
     public int MaxConcurrentTasks { get; set; } = 10;
 
-    /// <summary>Размер батча для обработки из очереди</summary>
-    public int BatchSize { get; set; } = 20;
-
     /// <summary>Размер страницы API</summary>
     public int ApiPageSize { get; set; } = 1000;
 

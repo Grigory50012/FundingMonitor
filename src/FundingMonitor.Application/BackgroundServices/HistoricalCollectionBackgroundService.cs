@@ -13,10 +13,10 @@ namespace FundingMonitor.Application.BackgroundServices;
 
 public class HistoricalCollectionBackgroundService : BackgroundService
 {
-    private readonly SemaphoreSlim _concurrencySemaphore;
     private readonly ILogger<HistoricalCollectionBackgroundService> _logger;
     private readonly IOptions<HistoricalDataCollectionOptions> _options;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly SemaphoreSlim _semaphore;
     private readonly IHistoryTaskQueue _taskQueue;
 
     public HistoricalCollectionBackgroundService(
@@ -29,55 +29,42 @@ public class HistoricalCollectionBackgroundService : BackgroundService
         _scopeFactory = scopeFactory;
         _options = options;
         _logger = logger;
-        _concurrencySemaphore = new SemaphoreSlim(options.Value.MaxConcurrentTasks);
+        _semaphore = new SemaphoreSlim(options.Value.MaxConcurrentTasks);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("HistoricalCollectionBackgroundService started");
 
+        var activeTasks = new List<Task>();
+
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                if (_taskQueue.Count == 0)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-                    continue;
-                }
+            // Очищаем завершённые задачи
+            activeTasks.RemoveAll(t => t.IsCompleted);
 
-                _logger.LogDebug("Queue processing: Pending={Count}", _taskQueue.Count);
-
-                var tasks = new List<Task>();
-
-                for (var i = 0; i < _options.Value.BatchSize && _taskQueue.Count > 0; i++)
-                {
-                    if (_taskQueue.TryDequeue(out var task))
-                    {
-                        tasks.Add(ProcessHistoricalCollectionTaskAsync(task!, stoppingToken));
-                    }
-                }
-
-                if (tasks.Count > 0)
-                    await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                _logger.LogInformation("HistoricalCollectionBackgroundService stopped");
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in queue processing loop");
+            if (_taskQueue.TryDequeue(out var task))
+                // Есть задача - запускаем с ограничением параллелизма
+                activeTasks.Add(ProcessHistoricalCollectionTaskAsync(task!, stoppingToken));
+            else if (activeTasks.Count == 0)
+                // Очередь пуста и нет активных задач - ждём
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-            }
+            else
+                // Очередь пуста, но есть активные задачи - ждём завершения любой
+                await Task.WhenAny(activeTasks);
         }
+
+        // Ждём завершения всех активных задач перед остановкой
+        if (activeTasks.Count > 0)
+            await Task.WhenAll(activeTasks);
+
+        _logger.LogInformation("HistoricalCollectionBackgroundService stopped");
     }
 
     private async Task ProcessHistoricalCollectionTaskAsync(HistoricalCollectionTask task,
         CancellationToken cancellationToken)
     {
-        await _concurrencySemaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken);
         var sw = Stopwatch.StartNew();
 
         try
@@ -140,14 +127,13 @@ public class HistoricalCollectionBackgroundService : BackgroundService
         }
         finally
         {
-            _concurrencySemaphore.Release();
+            _semaphore.Release();
         }
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("HistoricalCollectionBackgroundService stopping...");
-        _concurrencySemaphore.Dispose();
+        _semaphore.Dispose();
         await base.StopAsync(cancellationToken);
     }
 }

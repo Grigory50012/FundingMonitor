@@ -50,11 +50,13 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         if (allRates.Count != 0)
         {
             await _repository.UpdateAsync(allRates, cancellationToken);
+            _logger.LogInformation("Updated {Rates} rates", allRates.Count);
         }
 
         if (allEvents.Count != 0)
         {
             await _producer.EnqueueHistoricalCollectionTasksAsync(allEvents, cancellationToken);
+            _logger.LogInformation("Published {Events} events", allEvents.Count);
         }
 
         sw.Stop();

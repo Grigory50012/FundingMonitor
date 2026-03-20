@@ -1,4 +1,3 @@
-using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Queues;
 using FundingMonitor.Core.Interfaces.Repositories;
@@ -11,8 +10,6 @@ using FundingMonitor.Infrastructure.State;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Infrastructure.Extensions;
 
@@ -35,28 +32,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentFundingRateRepository, CurrentFundingRateRepository>();
         services.AddScoped<IHistoricalFundingRateRepository, HistoricalFundingRateRepository>();
 
-        // Регистрируем оригинальные клиенты бирж
-        services.AddScoped<BinanceFundingRateClient>();
-        services.AddScoped<BybitFundingRateClient>();
-
-        // Регистрируем декорированные клиенты с rate limiting
-        services.AddScoped<IExchangeFundingRateClient>(sp =>
-        {
-            var binanceClient = sp.GetRequiredService<BinanceFundingRateClient>();
-            var options = sp.GetRequiredService<IOptions<RateLimitOptions>>();
-            var logger = sp.GetRequiredService<ILogger<RateLimitedFundingRateClient>>();
-
-            return new RateLimitedFundingRateClient(binanceClient, options, logger);
-        });
-
-        services.AddScoped<IExchangeFundingRateClient>(sp =>
-        {
-            var bybitClient = sp.GetRequiredService<BybitFundingRateClient>();
-            var options = sp.GetRequiredService<IOptions<RateLimitOptions>>();
-            var logger = sp.GetRequiredService<ILogger<RateLimitedFundingRateClient>>();
-
-            return new RateLimitedFundingRateClient(bybitClient, options, logger);
-        });
+        // Регистрируем клиенты бирж с rate limiting
+        services.AddScoped<IExchangeFundingRateClient, BinanceFundingRateClient>();
+        services.AddScoped<IExchangeFundingRateClient, BybitFundingRateClient>();
 
         services.AddSingleton<IHistoryTaskQueue, InMemoryHistoryTaskQueue>();
     }

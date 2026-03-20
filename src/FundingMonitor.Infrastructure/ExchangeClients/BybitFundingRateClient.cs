@@ -1,8 +1,8 @@
 using Bybit.Net;
 using Bybit.Net.Clients;
 using Bybit.Net.Enums;
-using CryptoExchange.Net.Objects;
 using CryptoExchange.Net.Objects.Options;
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
@@ -20,8 +20,9 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
     public BybitFundingRateClient(
         ILogger<BybitFundingRateClient> logger,
         ISymbolParser symbolParser,
-        IOptions<ExchangeOptions> bybitOptions)
-        : base(logger, symbolParser, bybitOptions)
+        IOptions<ExchangeOptions> bybitOptions,
+        IOptions<RateLimitOptions> rateLimitOptions)
+        : base(logger, symbolParser, bybitOptions, rateLimitOptions)
     {
         _bybitClient = new BybitRestClient(bybitClientOptions =>
         {
@@ -31,8 +32,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
             bybitClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             bybitClientOptions.HttpVersion = new Version(2, 0);
             bybitClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60);
-            bybitClientOptions.RateLimiterEnabled = true;
-            bybitClientOptions.RateLimitingBehaviour = RateLimitingBehaviour.Wait;
+            bybitClientOptions.RateLimiterEnabled = false; // Отключаем встроенный, используем свой
             bybitClientOptions.OutputOriginalData = false;
             bybitClientOptions.CachingEnabled = false;
         });
@@ -45,13 +45,12 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
     public override async Task<List<CurrentFundingRate>> GetCurrentFundingRatesAsync(
         CancellationToken cancellationToken)
     {
-        return await ExecuteApiCallWithTimeoutAsync(
+        return await ExecuteApiCallAsync(
             "Collection of current funding rates",
             async ct =>
             {
                 var result = await _bybitClient.V5Api.ExchangeData.GetLinearInverseTickersAsync(
-                    Category.Linear,
-                    ct: ct);
+                    Category.Linear, ct: ct);
 
                 if (!result.Success)
                 {
@@ -88,7 +87,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
         int limit,
         CancellationToken cancellationToken)
     {
-        return await ExecuteApiCallWithTimeoutAsync(
+        return await ExecuteApiCallAsync(
             $"Collection of funding rate history: {symbol}",
             async ct =>
             {
@@ -125,7 +124,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
     {
         try
         {
-            await ExecuteApiCallWithTimeoutAsync(
+            await ExecuteApiCallAsync(
                 "GetServerTime",
                 async ct => await _bybitClient.V5Api.ExchangeData.GetServerTimeAsync(ct),
                 cancellationToken);
