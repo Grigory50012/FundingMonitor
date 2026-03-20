@@ -31,7 +31,7 @@ public class CurrentCollectionBackgroundService : BackgroundService
         // Небольшая задержка при старте
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(_options.Value.UpdateIntervalMinutes));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(_options.Value.UpdateIntervalSeconds));
 
         // Первый запуск сразу
         await DoCollectionAsync(stoppingToken);
