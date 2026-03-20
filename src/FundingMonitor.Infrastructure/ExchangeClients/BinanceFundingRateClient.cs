@@ -68,7 +68,10 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                 {
                     if (!IsValidSymbol(item.Symbol))
                         continue;
-                    if (item.NextFundingTime < item.Timestamp)
+                    if (item.NextFundingTime <
+                        item.Timestamp) // Отсеиваем странные пары у которых следующая выплата почему-то меньше текущего времени
+                        continue;
+                    if (item is { EstimatedSettlePrice: 0, FundingRate: 0 }) // Отсеиваем делистинги
                         continue;
 
                     // Получаем интервал из мапы (если есть)
