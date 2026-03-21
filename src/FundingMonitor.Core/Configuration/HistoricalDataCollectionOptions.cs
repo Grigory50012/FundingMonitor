@@ -10,9 +10,6 @@ public class HistoricalDataCollectionOptions
     /// <summary>Размер страницы API</summary>
     public int ApiPageSize { get; set; } = 1000;
 
-    /// <summary>Таймаут запроса к API (секунды)</summary>
-    public int RequestTimeoutSeconds { get; set; } = 30;
-
     /// <summary>Сколько месяцев истории собирать для новых символов</summary>
     public int MaxHistoryMonths { get; set; } = 1;
 

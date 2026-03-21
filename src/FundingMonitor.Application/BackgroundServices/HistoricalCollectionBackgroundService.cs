@@ -76,20 +76,14 @@ public class HistoricalCollectionBackgroundService : BackgroundService
             var historyRepo = scope.ServiceProvider
                 .GetRequiredService<IHistoricalFundingRateRepository>();
 
+            var symbol = task.NormalizedSymbol.Replace("-", "");
             var client = exchangeApiClients.First(c => c.ExchangeType == task.Exchange);
-
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken,
-                new CancellationTokenSource(
-                    TimeSpan.FromSeconds(_options.Value.RequestTimeoutSeconds)).Token
-            );
-
             var fromTime = DateTime.UtcNow.AddMonths(-_options.Value.MaxHistoryMonths);
+            var limit = _options.Value.ApiPageSize;
             var toTime = DateTime.UtcNow;
 
             var rates = await client.GetHistoricalFundingRatesAsync(
-                task.NormalizedSymbol.Replace("-", ""), fromTime, toTime,
-                _options.Value.ApiPageSize, cts.Token);
+                symbol, fromTime, toTime, limit, cancellationToken);
 
             if (rates.Count > 0)
             {

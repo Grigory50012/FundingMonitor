@@ -1,12 +1,9 @@
 using Binance.Net;
 using Binance.Net.Clients;
-using CryptoExchange.Net.Objects.Options;
-using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
@@ -18,21 +15,18 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
 
     public BinanceFundingRateClient(
         ILogger<BinanceFundingRateClient> logger,
-        ISymbolParser symbolParser,
-        IOptions<ExchangeOptions> binanceOptions,
-        IOptions<RateLimitOptions> rateLimitOptions)
-        : base(logger, symbolParser, binanceOptions, rateLimitOptions)
+        ISymbolParser symbolParser)
+        : base(logger, symbolParser)
     {
         _binanceClient = new BinanceRestClient(binanceClientOptions =>
         {
             binanceClientOptions.Environment = BinanceEnvironment.Live;
-            binanceClientOptions.RequestTimeout = Options.RequestTimeout;
             binanceClientOptions.AutoTimestamp = true;
             binanceClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             binanceClientOptions.HttpVersion = new Version(2, 0);
             binanceClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60);
-            binanceClientOptions.RateLimiterEnabled = false;
-            binanceClientOptions.OutputOriginalData = false;
+            binanceClientOptions.RateLimiterEnabled = true; // ✅ Встроенный rate limiter
+            binanceClientOptions.OutputOriginalData = true; // Для заголовков
             binanceClientOptions.CachingEnabled = false;
         });
 
@@ -69,9 +63,9 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                     if (!IsValidSymbol(item.Symbol))
                         continue;
                     if (item.NextFundingTime < item.Timestamp)
-                        continue; // Отсеиваем странные пары у которых следующая выплата почему-то меньше текущего времени
+                        continue;
                     if (item is { EstimatedSettlePrice: 0, FundingRate: 0 })
-                        continue; // Отсеиваем делистинги
+                        continue;
 
                     intervalsMap.TryGetValue(item.Symbol, out var intervalHours);
 
@@ -111,6 +105,10 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                     throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
                 }
 
+                // Логируем заголовки rate limit
+                if (result.ResponseHeaders?.TryGetValues("X-MBX-USED-WEIGHT-5M", out var usedWeight5M) == true)
+                    _logger.LogDebug("[Binance] Used weight (5m): {Weight}", usedWeight5M.FirstOrDefault());
+
                 var rates = new List<HistoricalFundingRate>(result.Data.Length);
 
                 foreach (var item in result.Data)
@@ -145,9 +143,6 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
         }
     }
 
-    /// <summary>
-    ///     Получает информацию об интервалах финансирования для всех символов
-    /// </summary>
     private async Task<Dictionary<string, int>> GetFundingIntervalsAsync(CancellationToken cancellationToken)
     {
         try

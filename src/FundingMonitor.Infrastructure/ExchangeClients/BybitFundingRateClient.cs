@@ -1,13 +1,10 @@
 using Bybit.Net;
 using Bybit.Net.Clients;
 using Bybit.Net.Enums;
-using CryptoExchange.Net.Objects.Options;
-using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
@@ -19,21 +16,17 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
 
     public BybitFundingRateClient(
         ILogger<BybitFundingRateClient> logger,
-        ISymbolParser symbolParser,
-        IOptions<ExchangeOptions> bybitOptions,
-        IOptions<RateLimitOptions> rateLimitOptions)
-        : base(logger, symbolParser, bybitOptions, rateLimitOptions)
+        ISymbolParser symbolParser)
+        : base(logger, symbolParser)
     {
         _bybitClient = new BybitRestClient(bybitClientOptions =>
         {
             bybitClientOptions.Environment = BybitEnvironment.Live;
-            bybitClientOptions.RequestTimeout = Options.RequestTimeout;
             bybitClientOptions.AutoTimestamp = true;
             bybitClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             bybitClientOptions.HttpVersion = new Version(2, 0);
             bybitClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60);
-            bybitClientOptions.RateLimiterEnabled = false; // Отключаем встроенный, используем свой
-            bybitClientOptions.OutputOriginalData = false;
+            bybitClientOptions.RateLimiterEnabled = true; // ✅ Встроенный rate limiter
             bybitClientOptions.CachingEnabled = false;
         });
 

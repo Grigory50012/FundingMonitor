@@ -1,11 +1,8 @@
 using System.Diagnostics;
-using CryptoExchange.Net.Objects.Options;
-using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
@@ -13,27 +10,13 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
 {
     private readonly ILogger _logger;
     private readonly ISymbolParser _symbolParser;
-    protected readonly ExchangeOptions Options;
 
     protected BaseExchangeFundingRateClient(
         ILogger logger,
-        ISymbolParser symbolParser,
-        IOptions<ExchangeOptions> options,
-        IOptions<RateLimitOptions> rateLimitOptions)
+        ISymbolParser symbolParser)
     {
         _logger = logger;
         _symbolParser = symbolParser;
-        Options = options.Value;
-
-        var rateLimit = ExchangeType switch
-        {
-            ExchangeType.Binance => rateLimitOptions.Value.Binance,
-            ExchangeType.Bybit => rateLimitOptions.Value.Bybit,
-            _ => throw new NotSupportedException($"Unsupported exchange: {ExchangeType}")
-        };
-
-        _logger.LogInformation("[{Exchange}] History rate limit configured: {RPS} req/s",
-            ExchangeType, rateLimit.RequestsPerSecond);
     }
 
     public abstract ExchangeType ExchangeType { get; }
@@ -46,7 +29,7 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
     public abstract Task<bool> IsAvailableAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Выполняет запрос к API
+    /// Выполняет запрос к API
     /// </summary>
     protected async Task<T> ExecuteApiCallAsync<T>(
         string operationName,
@@ -57,28 +40,29 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
 
         try
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken, new CancellationTokenSource(Options.RequestTimeout).Token);
-
-            var result = await action(cts.Token);
+            var result = await action(cancellationToken);
 
             sw.Stop();
             _logger.LogDebug("{Operation} completed in {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
 
             return result;
         }
-        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            sw.Stop();
+            _logger.LogDebug("{Operation} cancelled", operationName);
+            throw;
+        }
+        catch (OperationCanceledException ex)
         {
             sw.Stop();
             _logger.LogWarning("{Operation} timed out after {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
-
             throw new TimeoutException($"Operation {operationName} timed out", ex);
         }
         catch (Exception ex)
         {
             sw.Stop();
             _logger.LogError(ex, "{Operation} failed after {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
-
             throw;
         }
     }
