@@ -28,11 +28,6 @@ public class FundingMonitorDbContext : DbContext
         {
             entity.HasKey(e => new { e.Exchange, e.NormalizedSymbol, e.FundingTime });
 
-            // Настраиваем Id как GENERATED ALWAYS AS IDENTITY для PostgreSQL
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .UseIdentityAlwaysColumn();
-
             entity.HasIndex(e => new { e.Exchange, e.NormalizedSymbol })
                 .HasDatabaseName("IX_HistoricalFundingRate_Exchange_Symbol");
 
