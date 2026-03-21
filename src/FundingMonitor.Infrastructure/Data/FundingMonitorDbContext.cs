@@ -19,9 +19,7 @@ public class FundingMonitorDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange })
                 .IsUnique();
-            entity.HasIndex(e => e.NormalizedSymbol);
-            entity.HasIndex(e => e.Exchange);
-            entity.HasIndex(e => new { e.BaseAsset, e.IsActive });
+            entity.HasIndex(e => new { e.IsActive, e.BaseAsset });
         });
 
         modelBuilder.Entity<HistoricalFundingRateEntity>(entity =>
