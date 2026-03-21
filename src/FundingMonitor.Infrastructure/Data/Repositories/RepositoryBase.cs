@@ -4,15 +4,15 @@ namespace FundingMonitor.Infrastructure.Data.Repositories;
 
 public abstract class RepositoryBase
 {
-    protected readonly IDbContextFactory<FundingMonitorDbContext> ContextFactory;
+    private readonly IDbContextFactory<FundingMonitorDbContext> _contextFactory;
 
     protected RepositoryBase(IDbContextFactory<FundingMonitorDbContext> contextFactory)
     {
-        ContextFactory = contextFactory;
+        _contextFactory = contextFactory;
     }
 
     protected async Task<FundingMonitorDbContext> CreateContextAsync(CancellationToken cancellationToken)
     {
-        return await ContextFactory.CreateDbContextAsync(cancellationToken);
+        return await _contextFactory.CreateDbContextAsync(cancellationToken);
     }
 }
