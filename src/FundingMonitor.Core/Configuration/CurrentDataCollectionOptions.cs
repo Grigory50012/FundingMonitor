@@ -4,5 +4,5 @@ public class CurrentDataCollectionOptions
 {
     public const string SectionName = "CurrentDataCollectionOptions";
 
-    public int UpdateIntervalSeconds { get; set; } = 5;
+    public int UpdateIntervalSeconds { get; set; } = 10;
 }
