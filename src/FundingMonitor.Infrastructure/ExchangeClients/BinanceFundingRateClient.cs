@@ -24,9 +24,9 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
             binanceClientOptions.AutoTimestamp = true;
             binanceClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             binanceClientOptions.HttpVersion = new Version(2, 0);
-            binanceClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60);
-            binanceClientOptions.RateLimiterEnabled = true; // ✅ Встроенный rate limiter
-            binanceClientOptions.OutputOriginalData = true; // Для заголовков
+            binanceClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
+            binanceClientOptions.RateLimiterEnabled = true;
+            binanceClientOptions.OutputOriginalData = true;
             binanceClientOptions.CachingEnabled = false;
         });
 

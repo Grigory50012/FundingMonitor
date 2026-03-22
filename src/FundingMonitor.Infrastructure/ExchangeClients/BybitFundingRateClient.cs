@@ -25,8 +25,9 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
             bybitClientOptions.AutoTimestamp = true;
             bybitClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
             bybitClientOptions.HttpVersion = new Version(2, 0);
-            bybitClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(60);
-            bybitClientOptions.RateLimiterEnabled = true; // ✅ Встроенный rate limiter
+            bybitClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
+            bybitClientOptions.RateLimiterEnabled = true;
+            bybitClientOptions.OutputOriginalData = true;
             bybitClientOptions.CachingEnabled = false;
         });
 
