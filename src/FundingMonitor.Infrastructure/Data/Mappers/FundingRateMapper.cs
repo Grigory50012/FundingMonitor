@@ -4,16 +4,21 @@ using FundingMonitor.Infrastructure.Data.Entities;
 
 namespace FundingMonitor.Infrastructure.Data.Mappers;
 
-public static class FundingRateMapper
+/// <summary>
+///     Extension-методы для маппинга между доменными моделями и EF Core сущностями
+/// </summary>
+public static class FundingRateMapperExtensions
 {
     private static readonly ConcurrentDictionary<string, ExchangeType> ExchangeCache = new();
 
-    // Current Funding Rate mappings
-    public static CurrentFundingRateEntity ToEntity(CurrentFundingRate domain)
+    /// <summary>
+    ///     Преобразовать доменную модель в EF Core сущность
+    /// </summary>
+    public static CurrentFundingRateDb ToDbEntity(this CurrentFundingRate domain)
     {
         ArgumentNullException.ThrowIfNull(domain);
 
-        return new CurrentFundingRateEntity
+        return new CurrentFundingRateDb
         {
             Exchange = domain.Exchange.ToString(),
             NormalizedSymbol = domain.NormalizedSymbol,
@@ -30,38 +35,46 @@ public static class FundingRateMapper
         };
     }
 
-    public static CurrentFundingRate ToDomain(CurrentFundingRateEntity entity)
+    /// <summary>
+    ///     Преобразовать EF Core сущность в доменную модель
+    /// </summary>
+    public static CurrentFundingRate ToDomainModel(this CurrentFundingRateDb db)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(db);
 
         return new CurrentFundingRate
         {
-            Exchange = ParseExchange(entity.Exchange),
-            NormalizedSymbol = entity.NormalizedSymbol,
-            BaseAsset = entity.BaseAsset,
-            QuoteAsset = entity.QuoteAsset,
-            MarkPrice = entity.MarkPrice ?? 0,
-            IndexPrice = entity.IndexPrice ?? 0,
-            FundingRate = entity.FundingRate,
-            FundingIntervalHours = entity.FundingIntervalHours,
-            NextFundingTime = entity.NextFundingTime,
-            LastCheck = entity.LastCheck,
-            PredictedNextRate = entity.PredictedNextRate,
-            IsActive = entity.IsActive
+            Exchange = ParseExchange(db.Exchange),
+            NormalizedSymbol = db.NormalizedSymbol,
+            BaseAsset = db.BaseAsset,
+            QuoteAsset = db.QuoteAsset,
+            MarkPrice = db.MarkPrice ?? 0,
+            IndexPrice = db.IndexPrice ?? 0,
+            FundingRate = db.FundingRate,
+            FundingIntervalHours = db.FundingIntervalHours,
+            NextFundingTime = db.NextFundingTime,
+            LastCheck = db.LastCheck,
+            PredictedNextRate = db.PredictedNextRate,
+            IsActive = db.IsActive
         };
     }
 
-    public static List<CurrentFundingRate> ToDomainList(List<CurrentFundingRateEntity>? entities)
+    /// <summary>
+    ///     Преобразовать коллекцию EF Core сущностей в список доменных моделей
+    /// </summary>
+    public static List<CurrentFundingRate> ToDomainModelList(this List<CurrentFundingRateDb>? entities)
     {
-        return entities?.Select(ToDomain).ToList() ?? [];
+        return entities?.Select(ToDomainModel).ToList() ?? [];
     }
 
-    // Historical Funding Rate mappings
-    public static HistoricalFundingRateEntity ToEntity(HistoricalFundingRate domain)
+    /// <summary>
+    ///     Преобразовать доменную модель истории в EF Core сущность
+    /// </summary>
+    public static HistoricalFundingRateDb ToDbEntity(this HistoricalFundingRate domain)
     {
         ArgumentNullException.ThrowIfNull(domain);
 
-        return new HistoricalFundingRateEntity
+        return new HistoricalFundingRateDb
         {
             Exchange = domain.Exchange.ToString(),
             NormalizedSymbol = domain.NormalizedSymbol,
@@ -71,18 +84,29 @@ public static class FundingRateMapper
         };
     }
 
-    public static HistoricalFundingRate ToDomain(HistoricalFundingRateEntity entity)
+    /// <summary>
+    ///     Преобразовать EF Core сущность истории в доменную модель
+    /// </summary>
+    public static HistoricalFundingRate ToDomainModel(this HistoricalFundingRateDb db)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(db);
 
         return new HistoricalFundingRate
         {
-            Exchange = ParseExchange(entity.Exchange),
-            NormalizedSymbol = entity.NormalizedSymbol,
-            FundingRate = entity.FundingRate,
-            FundingTime = entity.FundingTime,
-            CollectedAt = entity.CollectedAt
+            Exchange = ParseExchange(db.Exchange),
+            NormalizedSymbol = db.NormalizedSymbol,
+            FundingRate = db.FundingRate,
+            FundingTime = db.FundingTime,
+            CollectedAt = db.CollectedAt
         };
+    }
+
+    /// <summary>
+    ///     Преобразовать коллекцию EF Core сущностей истории в список доменных моделей
+    /// </summary>
+    public static List<HistoricalFundingRate> ToDomainModelList(this List<HistoricalFundingRateDb>? entities)
+    {
+        return entities?.Select(ToDomainModel).ToList() ?? [];
     }
 
     private static ExchangeType ParseExchange(string exchangeName)

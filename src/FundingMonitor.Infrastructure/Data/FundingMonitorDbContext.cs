@@ -9,12 +9,12 @@ public class FundingMonitorDbContext : DbContext
     {
     }
 
-    public DbSet<CurrentFundingRateEntity> CurrentFundingRate { get; set; }
-    public DbSet<HistoricalFundingRateEntity> HistoricalFundingRate { get; set; }
+    public DbSet<CurrentFundingRateDb> CurrentFundingRate { get; set; }
+    public DbSet<HistoricalFundingRateDb> HistoricalFundingRate { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<CurrentFundingRateEntity>(entity =>
+        modelBuilder.Entity<CurrentFundingRateDb>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.NormalizedSymbol, e.Exchange })
@@ -22,7 +22,7 @@ public class FundingMonitorDbContext : DbContext
             entity.HasIndex(e => new { e.IsActive, e.BaseAsset });
         });
 
-        modelBuilder.Entity<HistoricalFundingRateEntity>(entity =>
+        modelBuilder.Entity<HistoricalFundingRateDb>(entity =>
         {
             entity.HasKey(e => new { e.Exchange, e.NormalizedSymbol, e.FundingTime });
 

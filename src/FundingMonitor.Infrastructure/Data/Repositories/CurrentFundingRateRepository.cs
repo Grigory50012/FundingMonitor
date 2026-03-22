@@ -16,7 +16,7 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
 
     public async Task UpdateAsync(IEnumerable<CurrentFundingRate> rates, CancellationToken cancellationToken)
     {
-        var entities = rates.Select(FundingRateMapper.ToEntity).ToList();
+        var entities = rates.Select(r => r.ToDbEntity()).ToList();
         if (entities.Count == 0) return;
 
         await using var context = await CreateContextAsync(cancellationToken);
@@ -74,6 +74,6 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
             .ThenBy(r => r.Exchange)
             .ToListAsync(cancellationToken);
 
-        return FundingRateMapper.ToDomainList(entities);
+        return entities.ToDomainModelList();
     }
 }

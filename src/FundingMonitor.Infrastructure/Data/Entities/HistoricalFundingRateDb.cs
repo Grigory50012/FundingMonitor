@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace FundingMonitor.Infrastructure.Data.Entities;
 
 [Table("HistoricalFundingRate")]
-public class HistoricalFundingRateEntity
+public class HistoricalFundingRateDb
 {
     public int Id { get; set; }
 

@@ -3,39 +3,82 @@ using FundingMonitor.Core.Entities;
 
 namespace FundingMonitor.Api.Mappers;
 
-public static class FundingRateMapper
+/// <summary>
+///     Extension-методы для маппинга доменных моделей в DTO
+/// </summary>
+public static class FundingRateMapperExtensions
 {
-    private static FundingRateDto ToDto(CurrentFundingRate entity)
+    /// <summary>
+    ///     Преобразовать доменную модель в DTO
+    /// </summary>
+    public static FundingRateDto ToDto(this CurrentFundingRate entity)
     {
-        return new FundingRateDto
-        {
-            Exchange = entity.Exchange.ToString(),
-            Symbol = entity.NormalizedSymbol,
-            MarkPrice = entity.MarkPrice,
-            FundingRate = entity.FundingRate,
-            APR = entity.APR,
-            NumberOfPaymentsPerDay = entity.NumberOfPaymentsPerDay,
-            NextFundingTime = entity.NextFundingTime,
-        };
+        ArgumentNullException.ThrowIfNull(entity);
+
+        return new FundingRateDto(
+            entity.Exchange.ToString(),
+            entity.NormalizedSymbol,
+            entity.MarkPrice,
+            entity.FundingRate,
+            entity.APR,
+            entity.NumberOfPaymentsPerDay,
+            entity.NextFundingTime
+        );
     }
 
-    private static HistoricalFundingRateDto ToDto(HistoricalFundingRate entity)
+    /// <summary>
+    ///     Преобразовать доменную модель истории в DTO
+    /// </summary>
+    public static HistoricalFundingRateDto ToDto(this HistoricalFundingRate entity)
     {
-        return new HistoricalFundingRateDto
-        {
-            Exchange = entity.Exchange.ToString(),
-            Symbol = entity.NormalizedSymbol,
-            FundingRate = entity.FundingRate,
-            FundingTime = entity.FundingTime
-        };
+        ArgumentNullException.ThrowIfNull(entity);
+
+        return new HistoricalFundingRateDto(
+            entity.Exchange.ToString(),
+            entity.NormalizedSymbol,
+            entity.FundingRate,
+            entity.FundingTime
+        );
     }
 
-    public static List<FundingRateDto> ToDtoList(IEnumerable<CurrentFundingRate> entities)
+    /// <summary>
+    ///     Преобразовать доменную модель APR статистики в DTO
+    /// </summary>
+    public static AprPeriodStatsDto ToDto(this AprPeriodStats entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        return new AprPeriodStatsDto(
+            entity.Exchange,
+            entity.Period,
+            entity.Days,
+            entity.Apr,
+            entity.TotalFundingRatePercent,
+            entity.PaymentsCount,
+            entity.AvgFundingRatePercent
+        );
+    }
+
+    /// <summary>
+    ///     Преобразовать коллекцию доменных моделей в список DTO
+    /// </summary>
+    public static List<FundingRateDto> ToDtoList(this IEnumerable<CurrentFundingRate> entities)
     {
         return entities.Select(ToDto).ToList();
     }
 
-    public static List<HistoricalFundingRateDto> ToDtoList(IEnumerable<HistoricalFundingRate> entities)
+    /// <summary>
+    ///     Преобразовать коллекцию исторических моделей в список DTO
+    /// </summary>
+    public static List<HistoricalFundingRateDto> ToDtoList(this IEnumerable<HistoricalFundingRate> entities)
+    {
+        return entities.Select(ToDto).ToList();
+    }
+
+    /// <summary>
+    ///     Преобразовать коллекцию APR статистики в список DTO
+    /// </summary>
+    public static List<AprPeriodStatsDto> ToDtoList(this IEnumerable<AprPeriodStats> entities)
     {
         return entities.Select(ToDto).ToList();
     }

@@ -64,7 +64,7 @@ public class FundingRatesController : ControllerBase
             _logger.LogInformation("API Response - GetFundingRates - Found {Count} rates in {ElapsedMs}ms",
                 rates.Count(), stopwatch.ElapsedMilliseconds);
 
-            return Ok(FundingRateMapper.ToDtoList(rates));
+            return Ok(rates.ToDtoList());
         }
         catch (ArgumentException ex)
         {

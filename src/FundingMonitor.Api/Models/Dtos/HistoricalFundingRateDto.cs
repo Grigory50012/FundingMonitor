@@ -1,9 +1,15 @@
 namespace FundingMonitor.Api.Models.Dtos;
 
-public class HistoricalFundingRateDto
-{
-    public string Exchange { get; set; } = string.Empty;
-    public string Symbol { get; set; } = string.Empty;
-    public decimal FundingRate { get; set; }
-    public DateTime FundingTime { get; set; }
-}
+/// <summary>
+///     DTO для исторической ставки финансирования
+/// </summary>
+/// <param name="Exchange">Название биржи</param>
+/// <param name="Symbol">Торговая пара (например, BTC-USDT)</param>
+/// <param name="FundingRate">Ставка финансирования</param>
+/// <param name="FundingTime">Время выплаты</param>
+public record HistoricalFundingRateDto(
+    string Exchange,
+    string Symbol,
+    decimal FundingRate,
+    DateTime FundingTime
+);

@@ -1,5 +1,6 @@
 using FundingMonitor.Api.Mappers;
 using FundingMonitor.Api.Models;
+using FundingMonitor.Api.Models.Dtos;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Interfaces.Services;
@@ -35,8 +36,8 @@ public class HistoryController : ControllerBase
     /// <param name="limit">Максимальное количество записей (по умолчанию 100, макс 1000)</param>
     /// <returns>Исторические ставки</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(List<HistoricalFundingRate>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<HistoricalFundingRate>>> GetHistory(
+    [ProducesResponseType(typeof(List<HistoricalFundingRateDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<HistoricalFundingRateDto>>> GetHistory(
         [FromQuery] string symbol,
         [FromQuery] string? exchanges,
         [FromQuery] DateTime? from,
@@ -53,7 +54,7 @@ public class HistoryController : ControllerBase
         var history = await
             _repository.GetHistoryAsync(symbol, exchangeList, from, to, limit, CancellationToken.None);
 
-        return Ok(FundingRateMapper.ToDtoList(history));
+        return Ok(history.ToDtoList());
     }
 
     /// <summary>
@@ -63,8 +64,8 @@ public class HistoryController : ControllerBase
     /// <param name="exchanges">Список бирж (опционально, через запятую)</param>
     /// <returns>APR статистика по периодам для каждой биржи</returns>
     [HttpGet("apr-stats")]
-    [ProducesResponseType(typeof(List<AprPeriodStats>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<AprPeriodStats>>> GetAprStats(
+    [ProducesResponseType(typeof(List<AprPeriodStatsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<AprPeriodStatsDto>>> GetAprStats(
         [FromQuery] string symbol,
         [FromQuery] string? exchanges)
     {
@@ -78,10 +79,10 @@ public class HistoryController : ControllerBase
             exchangeList?.Select(e => e.ToString()).ToList(),
             CancellationToken.None);
 
-        return Ok(stats);
+        return Ok(stats.ToDtoList());
     }
 
-    private List<ExchangeType>? ParseExchanges(string? exchanges)
+    private static List<ExchangeType>? ParseExchanges(string? exchanges)
     {
         if (string.IsNullOrWhiteSpace(exchanges))
             return null;
