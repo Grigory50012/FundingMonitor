@@ -1,12 +1,10 @@
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Queues;
 using FundingMonitor.Core.Interfaces.Repositories;
-using FundingMonitor.Core.Interfaces.State;
 using FundingMonitor.Infrastructure.Data;
 using FundingMonitor.Infrastructure.Data.Repositories;
 using FundingMonitor.Infrastructure.ExchangeClients;
 using FundingMonitor.Infrastructure.Queues;
-using FundingMonitor.Infrastructure.State;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,9 +22,6 @@ public static class ServiceCollectionExtensions
                 .GetConnectionString("DefaultConnection");
             options.UseNpgsql(connectionStrings);
         });
-
-        // State
-        services.AddSingleton<IStateRepository, InMemorySymbolStateRepository>();
 
         // Регистрируем репозитории
         services.AddScoped<ICurrentFundingRateRepository, CurrentFundingRateRepository>();

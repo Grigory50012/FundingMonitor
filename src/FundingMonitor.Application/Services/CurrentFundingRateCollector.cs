@@ -4,31 +4,29 @@ using FundingMonitor.Core.Events;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Interfaces.Services;
-using FundingMonitor.Core.Interfaces.State;
-using FundingMonitor.Core.State;
 using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
 
+/// <summary>
+///     Сервис для сбора текущих ставок финансирования с бирж
+/// </summary>
 public class CurrentFundingRateCollector : ICurrentFundingRateCollector
 {
     private readonly IEnumerable<IExchangeFundingRateClient> _exchangeClients;
     private readonly ILogger<CurrentFundingRateCollector> _logger;
     private readonly IHistoricalCollectionProducer _producer;
     private readonly ICurrentFundingRateRepository _repository;
-    private readonly IStateRepository _stateRepository;
 
     public CurrentFundingRateCollector(
         IEnumerable<IExchangeFundingRateClient> exchangeClients,
         ICurrentFundingRateRepository repository,
         IHistoricalCollectionProducer producer,
-        IStateRepository stateRepository,
         ILogger<CurrentFundingRateCollector> logger)
     {
         _exchangeClients = exchangeClients;
         _repository = repository;
         _producer = producer;
-        _stateRepository = stateRepository;
         _logger = logger;
     }
 
@@ -71,25 +69,18 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
     {
         try
         {
-            var rates = await client.GetCurrentFundingRatesAsync(cancellationToken);
-            var currentState = rates.ToDictionary(
-                r => r.NormalizedSymbol,
-                r => new SymbolState
-                {
-                    NormalizedSymbol = r.NormalizedSymbol,
-                    NextFundingTime = r.NextFundingTime,
-                    FundingRate = r.FundingRate,
-                    FundingIntervalHours = r.FundingIntervalHours,
-                    LastCheck = r.LastCheck,
-                    IsActive = r.IsActive
-                });
+            // 1. Получаем новые данные от биржи
+            var newRates = await client.GetCurrentFundingRatesAsync(cancellationToken);
 
-            var previousState = await _stateRepository.GetExchangeStateAsync(client.ExchangeType);
-            var events = DetectChanges(client.ExchangeType, previousState, currentState, rates);
+            // 2. Читаем предыдущее состояние из БД (ДО обновления)
+            var previousRates = await _repository.GetRatesAsync(null, [client.ExchangeType], cancellationToken);
+            var previousState = previousRates.ToDictionary(r => r.NormalizedSymbol);
 
-            await _stateRepository.SaveExchangeStateAsync(client.ExchangeType, currentState);
+            // 3. Детектируем изменения (новые символы и изменения времени выплаты)
+            var events = DetectChanges(client.ExchangeType, previousState, newRates);
 
-            return (rates, events);
+            // 4. Возвращаем данные для обновления в БД
+            return (newRates, events);
         }
         catch (Exception ex)
         {
@@ -98,32 +89,36 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         }
     }
 
+    /// <summary>
+    ///     Детектирует изменения в ставках финансирования
+    /// </summary>
     private List<FundingRateEvent> DetectChanges(
         ExchangeType exchange,
-        Dictionary<string, SymbolState> previous,
-        Dictionary<string, SymbolState> current,
-        List<CurrentFundingRate> rates)
+        Dictionary<string, CurrentFundingRate> previous,
+        List<CurrentFundingRate> current)
     {
         var events = new List<FundingRateEvent>();
-        var now = DateTime.UtcNow;
+        var currentDict = current.ToDictionary(r => r.NormalizedSymbol);
 
-        foreach (var symbol in current.Keys.Except(previous.Keys))
+        // 1. Обнаружение новых символов
+        foreach (var symbol in currentDict.Keys.Except(previous.Keys))
         {
-            var rate = rates.First(r => r.NormalizedSymbol == symbol);
+            var rate = currentDict[symbol];
             events.Add(new NewSymbolFundingEvent
             {
                 Exchange = exchange,
                 NormalizedSymbol = symbol,
-                DetectedAt = now,
+                DetectedAt = DateTime.UtcNow,
                 FundingIntervalHours = rate.FundingIntervalHours,
                 NextFundingTime = rate.NextFundingTime
             });
             _logger.LogDebug("🔍 New symbol: {Exchange}:{Symbol}", exchange, symbol);
         }
 
-        foreach (var symbol in current.Keys.Intersect(previous.Keys))
+        // 2. Обнаружение изменений времени выплаты
+        foreach (var symbol in currentDict.Keys.Intersect(previous.Keys))
         {
-            var curr = current[symbol];
+            var curr = currentDict[symbol];
             var prev = previous[symbol];
 
             if (curr.NextFundingTime != prev.NextFundingTime)
