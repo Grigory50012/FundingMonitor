@@ -6,7 +6,8 @@ public interface IHistoricalFundingRateRepository
 {
     Task AddRangeAsync(IEnumerable<HistoricalFundingRate> rates, CancellationToken cancellationToken);
 
-    Task<List<HistoricalFundingRate>> GetHistoryAsync(string? symbol,
+    Task<List<HistoricalFundingRate>> GetHistoryAsync(
+        string symbol,
         List<ExchangeType>? exchanges,
         DateTime? from,
         DateTime? to,

@@ -32,7 +32,7 @@ public class HistoryController : ControllerBase
     /// <param name="exchanges">Список бирж (опционально, через запятую)</param>
     /// <param name="from">Начальная дата (опционально, ISO формат)</param>
     /// <param name="to">Конечная дата (опционально, ISO формат)</param>
-    /// <param name="limit">Максимальное количество записей (по умолчанию 100, макс 1000)</param>
+    /// <param name="limit">Максимальное количество записей (по умолчанию 1000, макс 1000)</param>
     /// <returns>Исторические ставки</returns>
     [HttpGet]
     [ProducesResponseType(typeof(List<HistoricalFundingRateDto>), StatusCodes.Status200OK)]
@@ -42,7 +42,7 @@ public class HistoryController : ControllerBase
         [FromQuery] string? exchanges,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
-        [FromQuery] int? limit = 100)
+        [FromQuery] int? limit = 1000)
     {
         if (string.IsNullOrWhiteSpace(symbol))
             throw new ArgumentException("Symbol is required", nameof(symbol));

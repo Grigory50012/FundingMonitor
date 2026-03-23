@@ -52,7 +52,7 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
     }
 
     public async Task<List<HistoricalFundingRate>> GetHistoryAsync(
-        string? symbol,
+        string symbol,
         List<ExchangeType>? exchanges,
         DateTime? from,
         DateTime? to,
@@ -72,7 +72,6 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
         }
 
         if (from.HasValue) query = query.Where(r => r.FundingTime >= from.Value);
-
         if (to.HasValue) query = query.Where(r => r.FundingTime <= to.Value);
 
         query = query.OrderByDescending(r => r.FundingTime);

@@ -79,8 +79,8 @@ public class HistoricalCollectionBackgroundService : BackgroundService
             var symbol = task.NormalizedSymbol.Replace("-", "");
             var client = exchangeApiClients.First(c => c.ExchangeType == task.Exchange);
             var fromTime = DateTime.UtcNow.AddMonths(-_options.Value.MaxHistoryMonths);
-            var limit = _options.Value.ApiPageSize;
             var toTime = DateTime.UtcNow;
+            var limit = _options.Value.ApiPageSize;
 
             var rates = await client.GetHistoricalFundingRatesAsync(
                 symbol, fromTime, toTime, limit, cancellationToken);

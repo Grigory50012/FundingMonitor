@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
 
+/// <summary>
+///     Продюсер задач для сбора истории
+/// </summary>
 public class HistoricalCollectionProducer : IHistoricalCollectionProducer
 {
     private readonly ILogger<HistoricalCollectionProducer> _logger;
@@ -24,24 +27,13 @@ public class HistoricalCollectionProducer : IHistoricalCollectionProducer
     {
         foreach (var @event in events)
         {
-            var task = @event switch
+            var task = new HistoricalCollectionTask
             {
-                NewSymbolFundingEvent e => new HistoricalCollectionTask
-                {
-                    Exchange = e.Exchange,
-                    NormalizedSymbol = e.NormalizedSymbol,
-                    Type = HistoricalCollectionTaskType.CollectHistoryForNewSymbol
-                },
-                FundingTimeChangeEvent e => new HistoricalCollectionTask
-                {
-                    Exchange = e.Exchange,
-                    NormalizedSymbol = e.NormalizedSymbol,
-                    Type = HistoricalCollectionTaskType.RefreshHistoryAfterTimeChange
-                },
-                _ => null
+                Exchange = @event.Exchange,
+                NormalizedSymbol = @event.NormalizedSymbol
             };
 
-            if (task != null) _taskQueue.Enqueue(task);
+            _taskQueue.Enqueue(task);
         }
 
         _logger.LogInformation("Added {Count} tasks to history queue (total: {QueueCount})",
