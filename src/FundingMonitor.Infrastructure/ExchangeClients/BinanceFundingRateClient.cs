@@ -77,7 +77,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                         intervalHours > 0 ? intervalHours : null));
                 }
 
-                _logger.LogInformation("[Binance] Collected {Count} funding rates", rates.Count);
+                _logger.LogDebug("[Binance] Collected {Count} funding rates", rates.Count);
                 return rates;
             },
             cancellationToken);
@@ -117,7 +117,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                         item.FundingTime));
                 }
 
-                _logger.LogInformation("[Binance] Collected {Count} funding rates history", rates.Count);
+                _logger.LogDebug("[Binance] Collected {Count} funding rates history", rates.Count);
                 return rates;
             },
             cancellationToken);

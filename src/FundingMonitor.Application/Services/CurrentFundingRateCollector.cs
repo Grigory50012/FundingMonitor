@@ -36,7 +36,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         using var _ = _logger.BeginScope("CollectionCycle:{CycleId}", Guid.NewGuid().ToString("N")[..8]);
 
         var sw = Stopwatch.StartNew();
-        _logger.LogInformation("Collection cycle started");
+        _logger.LogDebug("Collection cycle started");
 
         var results = await Task.WhenAll(
             _exchangeClients.Select(client => CollectFromExchangeAsync(client, cancellationToken))
@@ -48,18 +48,18 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         if (allRates.Count != 0)
         {
             await _repository.UpdateAsync(allRates, cancellationToken);
-            _logger.LogInformation("Updated {Rates} rates", allRates.Count);
+            _logger.LogDebug("Updated {Rates} rates", allRates.Count);
         }
 
         if (allEvents.Count != 0)
         {
             await _producer.EnqueueHistoricalCollectionTasksAsync(allEvents, cancellationToken);
-            _logger.LogInformation("Published {Events} events", allEvents.Count);
+            _logger.LogDebug("Published {Events} events", allEvents.Count);
         }
 
         sw.Stop();
-        _logger.LogInformation("Collection cycle completed in {Elapsed}ms. Total rates: {Count}",
-            sw.ElapsedMilliseconds, allRates.Count);
+        _logger.LogInformation("Collection cycle completed: {Count} rates, {Events} events, {Elapsed}ms",
+            allRates.Count, allEvents.Count, sw.ElapsedMilliseconds);
 
         return allRates;
     }
@@ -67,18 +67,31 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
     private async Task<(List<CurrentFundingRate> Rates, List<FundingRateChangedEvent> Events)> CollectFromExchangeAsync(
         IExchangeFundingRateClient client, CancellationToken cancellationToken)
     {
-        // 1. Получаем новые данные от биржи
-        var newRates = await client.GetCurrentFundingRatesAsync(cancellationToken);
+        try
+        {
+            _logger.LogDebug("[{Exchange}] Starting collection", client.ExchangeType);
 
-        // 2. Читаем предыдущее состояние из БД (ДО обновления)
-        var previousRates = await _repository.GetRatesAsync(null, [client.ExchangeType], cancellationToken);
-        var previousState = previousRates.ToDictionary(r => r.NormalizedSymbol);
+            // 1. Получаем новые данные от биржи
+            var newRates = await client.GetCurrentFundingRatesAsync(cancellationToken);
 
-        // 3. Детектируем изменения (новые символы и изменения времени выплаты)
-        var events = DetectChanges(client.ExchangeType, previousState, newRates);
+            // 2. Читаем предыдущее состояние из БД (ДО обновления)
+            var previousRates = await _repository.GetRatesAsync(null, [client.ExchangeType], cancellationToken);
+            var previousState = previousRates.ToDictionary(r => r.NormalizedSymbol);
 
-        // 4. Возвращаем данные для обновления в БД
-        return (newRates, events);
+            // 3. Детектируем изменения (новые символы и изменения времени выплаты)
+            var events = DetectChanges(client.ExchangeType, previousState, newRates);
+
+            _logger.LogDebug("[{Exchange}] Collection completed: {Count} rates, {Events} events",
+                client.ExchangeType, newRates.Count, events.Count);
+
+            // 4. Возвращаем данные для обновления в БД
+            return (newRates, events);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[{Exchange}] Collection failed", client.ExchangeType);
+            return (Rates: [], Events: []);
+        }
     }
 
     /// <summary>
@@ -104,7 +117,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                 FundingIntervalHours = rate.FundingIntervalHours,
                 NextFundingTime = rate.NextFundingTime
             });
-            _logger.LogDebug("🔍 New symbol: {Exchange}:{Symbol}", exchange, symbol);
+            _logger.LogInformation("🔍 New symbol detected: {Exchange}:{Symbol}", exchange, symbol);
         }
 
         // 2. Обнаружение изменений времени выплаты
@@ -123,7 +136,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                     FundingIntervalHours = curr.FundingIntervalHours,
                     NextFundingTime = curr.NextFundingTime
                 });
-                _logger.LogDebug("🕐 Funding time changed: {Exchange}:{Symbol} {Old:HH:mm}->{New:HH:mm}",
+                _logger.LogInformation("🕐 Funding time changed: {Exchange}:{Symbol} {Old:HH:mm}→{New:HH:mm}",
                     exchange, symbol, prev.NextFundingTime, curr.NextFundingTime);
             }
         }

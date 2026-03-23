@@ -67,7 +67,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
                         item.FundingInterval));
                 }
 
-                _logger.LogInformation("[Bybit] Collected {Count} funding rates", rates.Count);
+                _logger.LogDebug("[Bybit] Collected {Count} funding rates", rates.Count);
                 return rates;
             },
             cancellationToken);
@@ -107,7 +107,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
                         item.Timestamp));
                 }
 
-                _logger.LogInformation("[Bybit] Collected {Count} funding rates history", rates.Count);
+                _logger.LogDebug("[Bybit] Collected {Count} funding rates history", rates.Count);
                 return rates;
             },
             cancellationToken);

@@ -48,7 +48,6 @@ builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
-// Middleware глобальной обработки исключений (должен быть первым)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())

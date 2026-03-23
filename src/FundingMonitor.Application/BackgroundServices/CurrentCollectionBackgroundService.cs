@@ -26,7 +26,7 @@ public class CurrentCollectionBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("CurrentCollectionBackgroundService starting...");
+        _logger.LogInformation("CurrentCollectionBackgroundService started");
 
         // Небольшая задержка при старте
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
@@ -50,17 +50,16 @@ public class CurrentCollectionBackgroundService : BackgroundService
         try
         {
             var sw = Stopwatch.StartNew();
-            _logger.LogInformation("Start of collecting funding rates");
 
             var rates = await collector.CollectFundingRatesAsync(stoppingToken);
 
             sw.Stop();
-            _logger.LogInformation("Funding rates collection cycle completed: {Count} rates, {Elapsed}ms",
+            _logger.LogInformation("Collection cycle completed: {Count} rates, {Elapsed}ms",
                 rates.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "The funding rates cycle was not completed");
+            _logger.LogError(ex, "Collection cycle failed");
         }
     }
 

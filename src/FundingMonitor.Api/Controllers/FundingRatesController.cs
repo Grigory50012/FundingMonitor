@@ -45,8 +45,7 @@ public class FundingRatesController : ControllerBase
         // Парсим биржи из строки
         var exchangeList = ParseExchanges(exchanges);
 
-        _logger.LogInformation(
-            "API Request - GetFundingRates - Symbol: {Symbol}, Exchanges: {Exchanges}, IncludeInactive: {IncludeInactive}",
+        _logger.LogDebug("GetFundingRates: symbol={Symbol}, exchanges={Exchanges}, includeInactive={IncludeInactive}",
             symbol, exchanges ?? "all", includeInactive);
 
         var stopwatch = Stopwatch.StartNew();
@@ -58,7 +57,8 @@ public class FundingRatesController : ControllerBase
 
         if (!includeInactive) rates = rates.Where(r => r.IsActive);
 
-        _logger.LogInformation("API Response - GetFundingRates - Found {Count} rates in {ElapsedMs}ms",
+        stopwatch.Stop();
+        _logger.LogInformation("GetFundingRates completed: {Count} rates in {Elapsed}ms",
             rates.Count(), stopwatch.ElapsedMilliseconds);
 
         return Ok(rates.ToDtoList());

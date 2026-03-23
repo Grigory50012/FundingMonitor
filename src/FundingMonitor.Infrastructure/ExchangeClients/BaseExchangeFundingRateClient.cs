@@ -45,6 +45,8 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
 
         try
         {
+            _logger.LogDebug("[{Exchange}] {Operation} started", ExchangeType, operationName);
+
             var result = await action(cancellationToken);
 
             sw.Stop();

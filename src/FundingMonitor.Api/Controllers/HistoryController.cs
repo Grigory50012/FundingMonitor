@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FundingMonitor.Api.Mappers;
 using FundingMonitor.Api.Models.Dtos;
 using FundingMonitor.Core.Entities;
@@ -49,10 +50,19 @@ public class HistoryController : ControllerBase
 
         if (limit > 1000) limit = 1000;
 
+        _logger.LogDebug("GetHistory: symbol={Symbol}, exchanges={Exchanges}, from={From}, to={To}, limit={Limit}",
+            symbol, exchanges, from, to, limit);
+
+        var stopwatch = Stopwatch.StartNew();
+
         var exchangeList = ParseExchanges(exchanges);
 
         var history = await
             _repository.GetHistoryAsync(symbol, exchangeList, from, to, limit, CancellationToken.None);
+
+        stopwatch.Stop();
+        _logger.LogInformation("GetHistory completed: {Count} rates in {Elapsed}ms",
+            history.Count, stopwatch.ElapsedMilliseconds);
 
         return Ok(history.ToDtoList());
     }
@@ -73,12 +83,20 @@ public class HistoryController : ControllerBase
         if (string.IsNullOrWhiteSpace(symbol))
             throw new ArgumentException("Symbol is required", nameof(symbol));
 
+        _logger.LogDebug("GetAprStats: symbol={Symbol}, exchanges={Exchanges}", symbol, exchanges);
+
+        var stopwatch = Stopwatch.StartNew();
+
         var exchangeList = ParseExchanges(exchanges);
 
         var stats = await _aprStatsService.GetAprStatsAsync(
             symbol,
             exchangeList?.Select(e => e.ToString()).ToList(),
             CancellationToken.None);
+
+        stopwatch.Stop();
+        _logger.LogInformation("GetAprStats completed: {Count} periods in {Elapsed}ms",
+            stats.Count, stopwatch.ElapsedMilliseconds);
 
         return Ok(stats.ToDtoList());
     }
