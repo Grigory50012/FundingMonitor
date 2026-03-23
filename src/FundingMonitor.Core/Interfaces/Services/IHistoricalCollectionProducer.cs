@@ -4,5 +4,6 @@ namespace FundingMonitor.Core.Interfaces.Services;
 
 public interface IHistoricalCollectionProducer
 {
-    Task EnqueueHistoricalCollectionTasksAsync(List<FundingRateEvent> events, CancellationToken cancellationToken);
+    Task EnqueueHistoricalCollectionTasksAsync(List<FundingRateChangedEvent> events,
+        CancellationToken cancellationToken);
 }

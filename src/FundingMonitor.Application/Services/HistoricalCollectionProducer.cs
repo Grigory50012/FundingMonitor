@@ -22,7 +22,7 @@ public class HistoricalCollectionProducer : IHistoricalCollectionProducer
         _logger = logger;
     }
 
-    public Task EnqueueHistoricalCollectionTasksAsync(List<FundingRateEvent> events,
+    public Task EnqueueHistoricalCollectionTasksAsync(List<FundingRateChangedEvent> events,
         CancellationToken cancellationToken)
     {
         foreach (var @event in events)

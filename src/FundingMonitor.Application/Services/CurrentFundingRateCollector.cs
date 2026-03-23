@@ -64,7 +64,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         return allRates;
     }
 
-    private async Task<(List<CurrentFundingRate> Rates, List<FundingRateEvent> Events)> CollectFromExchangeAsync(
+    private async Task<(List<CurrentFundingRate> Rates, List<FundingRateChangedEvent> Events)> CollectFromExchangeAsync(
         IExchangeFundingRateClient client, CancellationToken cancellationToken)
     {
         // 1. Получаем новые данные от биржи
@@ -84,19 +84,19 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
     /// <summary>
     ///     Детектирует изменения в ставках финансирования
     /// </summary>
-    private List<FundingRateEvent> DetectChanges(
+    private List<FundingRateChangedEvent> DetectChanges(
         ExchangeType exchange,
         Dictionary<string, CurrentFundingRate> previous,
         List<CurrentFundingRate> current)
     {
-        var events = new List<FundingRateEvent>();
+        var events = new List<FundingRateChangedEvent>();
         var currentDict = current.ToDictionary(r => r.NormalizedSymbol);
 
         // 1. Обнаружение новых символов
         foreach (var symbol in currentDict.Keys.Except(previous.Keys))
         {
             var rate = currentDict[symbol];
-            events.Add(new NewSymbolFundingEvent
+            events.Add(new FundingRateChangedEvent
             {
                 Exchange = exchange,
                 NormalizedSymbol = symbol,
@@ -115,13 +115,13 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
 
             if (curr.NextFundingTime != prev.NextFundingTime)
             {
-                events.Add(new FundingTimeChangeEvent
+                events.Add(new FundingRateChangedEvent
                 {
                     Exchange = exchange,
                     NormalizedSymbol = symbol,
-                    OldFundingTime = prev.NextFundingTime ?? DateTime.MinValue,
-                    NewFundingTime = curr.NextFundingTime ?? DateTime.MinValue,
-                    PreviousCheckTime = prev.LastCheck
+                    DetectedAt = DateTime.UtcNow,
+                    FundingIntervalHours = curr.FundingIntervalHours,
+                    NextFundingTime = curr.NextFundingTime
                 });
                 _logger.LogDebug("🕐 Funding time changed: {Exchange}:{Symbol} {Old:HH:mm}->{New:HH:mm}",
                     exchange, symbol, prev.NextFundingTime, curr.NextFundingTime);
