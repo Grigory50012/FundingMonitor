@@ -1,4 +1,5 @@
 using System.Reflection;
+using FundingMonitor.Api.Middleware;
 using FundingMonitor.Application.Extensions;
 using FundingMonitor.Core.Extensions;
 using FundingMonitor.Infrastructure.Data;
@@ -46,6 +47,9 @@ builder.Services.AddResponseCaching();
 builder.Services.AddMemoryCache();
 
 var app = builder.Build();
+
+// Middleware глобальной обработки исключений (должен быть первым)
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

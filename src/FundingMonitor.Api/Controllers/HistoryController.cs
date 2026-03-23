@@ -1,5 +1,4 @@
 using FundingMonitor.Api.Mappers;
-using FundingMonitor.Api.Models;
 using FundingMonitor.Api.Models.Dtos;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Repositories;
@@ -37,6 +36,7 @@ public class HistoryController : ControllerBase
     /// <returns>Исторические ставки</returns>
     [HttpGet]
     [ProducesResponseType(typeof(List<HistoricalFundingRateDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<HistoricalFundingRateDto>>> GetHistory(
         [FromQuery] string symbol,
         [FromQuery] string? exchanges,
@@ -45,7 +45,7 @@ public class HistoryController : ControllerBase
         [FromQuery] int? limit = 100)
     {
         if (string.IsNullOrWhiteSpace(symbol))
-            return BadRequest(new ApiErrorResponse { Error = "Symbol is required" });
+            throw new ArgumentException("Symbol is required", nameof(symbol));
 
         if (limit > 1000) limit = 1000;
 
@@ -65,12 +65,13 @@ public class HistoryController : ControllerBase
     /// <returns>APR статистика по периодам для каждой биржи</returns>
     [HttpGet("apr-stats")]
     [ProducesResponseType(typeof(List<AprPeriodStatsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<AprPeriodStatsDto>>> GetAprStats(
         [FromQuery] string symbol,
         [FromQuery] string? exchanges)
     {
         if (string.IsNullOrWhiteSpace(symbol))
-            return BadRequest(new ApiErrorResponse { Error = "Symbol is required" });
+            throw new ArgumentException("Symbol is required", nameof(symbol));
 
         var exchangeList = ParseExchanges(exchanges);
 
@@ -87,8 +88,16 @@ public class HistoryController : ControllerBase
         if (string.IsNullOrWhiteSpace(exchanges))
             return null;
 
-        return exchanges.Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(e => Enum.Parse<ExchangeType>(e.Trim(), true))
+        var exchangeList = exchanges.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(e =>
+            {
+                if (!Enum.TryParse<ExchangeType>(e.Trim(), true, out var exchange))
+                    throw new ArgumentException(
+                        $"Invalid exchange name: '{e.Trim()}'. Valid values: Binance, Bybit, OKX");
+                return exchange;
+            })
             .ToList();
+
+        return exchangeList;
     }
 }

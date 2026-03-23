@@ -2,7 +2,6 @@ using Bybit.Net;
 using Bybit.Net.Clients;
 using Bybit.Net.Enums;
 using FundingMonitor.Core.Entities;
-using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
@@ -49,7 +48,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
                 if (!result.Success)
                 {
                     _logger.LogError("[Bybit] API Error: {Error}", result.Error?.Message);
-                    throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
+                    return [];
                 }
 
                 var rates = new List<CurrentFundingRate>(result.Data.List.Length);
@@ -92,7 +91,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
                 {
                     _logger.LogError("[Bybit] Historical API Error for {Symbol}: {Error}",
                         symbol, result.Error?.Message);
-                    throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
+                    return [];
                 }
 
                 var rates = new List<HistoricalFundingRate>(result.Data.List.Length);

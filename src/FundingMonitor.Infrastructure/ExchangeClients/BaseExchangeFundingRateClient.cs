@@ -1,11 +1,16 @@
 using System.Diagnostics;
+using System.Net;
 using FundingMonitor.Core.Entities;
+using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Infrastructure.ExchangeClients;
 
+/// <summary>
+///     Базовый класс для клиентов бирж с единой обработкой ошибок
+/// </summary>
 public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
 {
     private readonly ILogger _logger;
@@ -29,7 +34,7 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
     public abstract Task<bool> IsAvailableAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Выполняет запрос к API
+    /// Выполняет запрос к API с глобальной обработкой ошибок
     /// </summary>
     protected async Task<T> ExecuteApiCallAsync<T>(
         string operationName,
@@ -43,27 +48,55 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
             var result = await action(cancellationToken);
 
             sw.Stop();
-            _logger.LogDebug("{Operation} completed in {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
+            _logger.LogDebug("[{Exchange}] {Operation} completed in {Elapsed}ms",
+                ExchangeType, operationName, sw.ElapsedMilliseconds);
 
             return result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             sw.Stop();
-            _logger.LogDebug("{Operation} cancelled", operationName);
+            _logger.LogDebug("[{Exchange}] {Operation} cancelled", ExchangeType, operationName);
             throw;
+        }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            sw.Stop();
+            _logger.LogWarning(ex, "[{Exchange}] {Operation} connection timeout after {Elapsed}ms",
+                ExchangeType, operationName, sw.ElapsedMilliseconds);
+            throw new TimeoutException($"Connection timeout for {ExchangeType}", ex);
         }
         catch (OperationCanceledException ex)
         {
             sw.Stop();
-            _logger.LogWarning("{Operation} timed out after {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
-            throw new TimeoutException($"Operation {operationName} timed out", ex);
+            _logger.LogWarning(ex, "[{Exchange}] {Operation} timed out after {Elapsed}ms",
+                ExchangeType, operationName, sw.ElapsedMilliseconds);
+            throw new TimeoutException($"Operation '{operationName}' for {ExchangeType} timed out", ex);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode.HasValue &&
+                                              ex.StatusCode.Value >= HttpStatusCode.InternalServerError &&
+                                              ex.StatusCode.Value < HttpStatusCode.Ambiguous)
+        {
+            sw.Stop();
+            _logger.LogWarning(ex, "[{Exchange}] {Operation} server error ({StatusCode}) after {Elapsed}ms",
+                ExchangeType, operationName, ex.StatusCode, sw.ElapsedMilliseconds);
+            throw new ExchangeApiException(ExchangeType, $"Server error: {ex.Message}", (int)ex.StatusCode.Value);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode.HasValue &&
+                                              ex.StatusCode.Value >= HttpStatusCode.BadRequest &&
+                                              ex.StatusCode.Value < HttpStatusCode.InternalServerError)
+        {
+            sw.Stop();
+            _logger.LogError(ex, "[{Exchange}] {Operation} client error ({StatusCode}) after {Elapsed}ms",
+                ExchangeType, operationName, ex.StatusCode, sw.ElapsedMilliseconds);
+            throw new ExchangeApiException(ExchangeType, $"Client error: {ex.Message}", (int)ex.StatusCode.Value);
         }
         catch (Exception ex)
         {
             sw.Stop();
-            _logger.LogError(ex, "{Operation} failed after {Elapsed}ms", operationName, sw.ElapsedMilliseconds);
-            throw;
+            _logger.LogError(ex, "[{Exchange}] {Operation} unexpected error after {Elapsed}ms",
+                ExchangeType, operationName, sw.ElapsedMilliseconds);
+            throw new ExchangeApiException(ExchangeType, $"Unexpected error: {ex.Message}");
         }
     }
 

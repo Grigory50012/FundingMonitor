@@ -1,7 +1,6 @@
 using Binance.Net;
 using Binance.Net.Clients;
 using FundingMonitor.Core.Entities;
-using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
@@ -53,7 +52,7 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                 if (!markPricesResult.Success)
                 {
                     _logger.LogError("[Binance] API Error: {Error}", markPricesResult.Error?.Message);
-                    throw new ExchangeApiException(ExchangeType, markPricesResult.Error?.Message ?? "Unknown error");
+                    return [];
                 }
 
                 var rates = new List<CurrentFundingRate>(markPricesResult.Data.Length);
@@ -102,12 +101,8 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                 {
                     _logger.LogError("[Binance] Historical API Error for {Symbol}: {Error}",
                         symbol, result.Error?.Message);
-                    throw new ExchangeApiException(ExchangeType, result.Error?.Message ?? "Unknown error");
+                    return [];
                 }
-
-                // Логируем заголовки rate limit
-                if (result.ResponseHeaders?.TryGetValues("X-MBX-USED-WEIGHT-5M", out var usedWeight5M) == true)
-                    _logger.LogDebug("[Binance] Used weight (5m): {Weight}", usedWeight5M.FirstOrDefault());
 
                 var rates = new List<HistoricalFundingRate>(result.Data.Length);
 

@@ -67,26 +67,18 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
     private async Task<(List<CurrentFundingRate> Rates, List<FundingRateEvent> Events)> CollectFromExchangeAsync(
         IExchangeFundingRateClient client, CancellationToken cancellationToken)
     {
-        try
-        {
-            // 1. Получаем новые данные от биржи
-            var newRates = await client.GetCurrentFundingRatesAsync(cancellationToken);
+        // 1. Получаем новые данные от биржи
+        var newRates = await client.GetCurrentFundingRatesAsync(cancellationToken);
 
-            // 2. Читаем предыдущее состояние из БД (ДО обновления)
-            var previousRates = await _repository.GetRatesAsync(null, [client.ExchangeType], cancellationToken);
-            var previousState = previousRates.ToDictionary(r => r.NormalizedSymbol);
+        // 2. Читаем предыдущее состояние из БД (ДО обновления)
+        var previousRates = await _repository.GetRatesAsync(null, [client.ExchangeType], cancellationToken);
+        var previousState = previousRates.ToDictionary(r => r.NormalizedSymbol);
 
-            // 3. Детектируем изменения (новые символы и изменения времени выплаты)
-            var events = DetectChanges(client.ExchangeType, previousState, newRates);
+        // 3. Детектируем изменения (новые символы и изменения времени выплаты)
+        var events = DetectChanges(client.ExchangeType, previousState, newRates);
 
-            // 4. Возвращаем данные для обновления в БД
-            return (newRates, events);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error collecting data from {Exchange}", client.ExchangeType);
-            return (Rates: [], Events: []);
-        }
+        // 4. Возвращаем данные для обновления в БД
+        return (newRates, events);
     }
 
     /// <summary>
