@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Queues;
@@ -43,15 +42,24 @@ public class HistoricalCollectionBackgroundService : BackgroundService
             // Очищаем завершённые задачи
             activeTasks.RemoveAll(t => t.IsCompleted);
 
-            if (_taskQueue.TryDequeue(out var task))
+            // Используем блокирующий DequeueAsync
+            var task = await _taskQueue.DequeueAsync(stoppingToken);
+
+            if (task != null)
+            {
                 // Есть задача - запускаем с ограничением параллелизма
-                activeTasks.Add(ProcessHistoricalCollectionTaskAsync(task!, stoppingToken));
+                activeTasks.Add(ProcessHistoricalCollectionTaskAsync(task, stoppingToken));
+            }
             else if (activeTasks.Count == 0)
+            {
                 // Очередь пуста и нет активных задач - ждём
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
             else
+            {
                 // Очередь пуста, но есть активные задачи - ждём завершения любой
                 await Task.WhenAny(activeTasks);
+            }
         }
 
         // Ждём завершения всех активных задач перед остановкой
@@ -65,7 +73,6 @@ public class HistoricalCollectionBackgroundService : BackgroundService
         CancellationToken cancellationToken)
     {
         await _semaphore.WaitAsync(cancellationToken);
-        var sw = Stopwatch.StartNew();
 
         try
         {
@@ -78,18 +85,17 @@ public class HistoricalCollectionBackgroundService : BackgroundService
 
             var symbol = task.NormalizedSymbol.Replace("-", "");
             var client = exchangeApiClients.First(c => c.ExchangeType == task.Exchange);
-            var fromTime = DateTime.UtcNow.AddMonths(-_options.Value.MaxHistoryMonths);
-            var toTime = DateTime.UtcNow;
-            var limit = _options.Value.ApiPageSize;
 
+            // Запрашиваем историю за последний месяц
+            var fromTime = DateTime.UtcNow.AddMonths(-_options.Value.MaxHistoryMonths);
             var rates = await client.GetHistoricalFundingRatesAsync(
-                symbol, fromTime, toTime, limit, cancellationToken);
+                symbol, fromTime, DateTime.UtcNow, _options.Value.ApiPageSize, cancellationToken);
 
             if (rates.Count > 0)
             {
                 await historyRepo.AddRangeAsync(rates, cancellationToken);
-                _logger.LogInformation("✅ {Exchange}:{Symbol} collected {Count} rates in {Elapsed}ms",
-                    task.Exchange, task.NormalizedSymbol, rates.Count, sw.ElapsedMilliseconds);
+                _logger.LogInformation("✅ {Exchange}:{Symbol} collected {Count} rates",
+                    task.Exchange, task.NormalizedSymbol, rates.Count);
             }
             else
             {
@@ -113,7 +119,7 @@ public class HistoricalCollectionBackgroundService : BackgroundService
             else
             {
                 task.RetryCount = retryCount;
-                _taskQueue.Enqueue(task);
+                await _taskQueue.EnqueueAsync(task, cancellationToken);
                 _logger.LogWarning(ex,
                     "⚠️ {Exchange}:{Symbol} Task will be retried (attempt {RetryCount}/{MaxRetries})",
                     task.Exchange, task.NormalizedSymbol, retryCount, _options.Value.MaxRetries);

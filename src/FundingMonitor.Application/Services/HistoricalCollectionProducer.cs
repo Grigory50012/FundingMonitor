@@ -22,7 +22,7 @@ public class HistoricalCollectionProducer : IHistoricalCollectionProducer
         _logger = logger;
     }
 
-    public Task EnqueueHistoricalCollectionTasksAsync(List<FundingRateChangedEvent> events,
+    public async Task EnqueueHistoricalCollectionTasksAsync(List<FundingRateChangedEvent> events,
         CancellationToken cancellationToken)
     {
         foreach (var @event in events)
@@ -33,12 +33,10 @@ public class HistoricalCollectionProducer : IHistoricalCollectionProducer
                 NormalizedSymbol = @event.NormalizedSymbol
             };
 
-            _taskQueue.Enqueue(task);
+            await _taskQueue.EnqueueAsync(task, cancellationToken);
         }
 
         _logger.LogInformation("Added {Count} tasks to history queue (total: {QueueCount})",
             events.Count, _taskQueue.Count);
-
-        return Task.CompletedTask;
     }
 }

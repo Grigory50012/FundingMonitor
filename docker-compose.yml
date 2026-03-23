@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # ==================== PostgreSQL ====================
+  postgres:
+    image: postgres:17
+    container_name: funding_monitor_db
+    environment:
+      POSTGRES_DB: funding_monitor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d funding_monitor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - funding_monitor
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: funding_monitor_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - funding_monitor
+
+# ==================== Volumes ====================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ==================== Networks ====================
+networks:
+  funding_monitor:
+    driver: bridge
