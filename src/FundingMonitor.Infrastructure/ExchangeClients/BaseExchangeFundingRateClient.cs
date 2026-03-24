@@ -145,7 +145,7 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
         };
     }
 
-    protected static bool IsValidSymbol(string symbol)
+    protected virtual bool IsValidSymbol(string symbol)
     {
         return symbol.EndsWith("USDT");
     }

@@ -94,6 +94,8 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
             $"Collection of funding rate history: {symbol}",
             async ct =>
             {
+                symbol = ConvertToBinanceSymbol(symbol);
+
                 var result = await _binanceClient.UsdFuturesApi.ExchangeData
                     .GetFundingRatesAsync(symbol, fromTime, toTime, limit, ct);
 
@@ -108,9 +110,6 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
 
                 foreach (var item in result.Data)
                 {
-                    if (!IsValidSymbol(item.Symbol))
-                        continue;
-
                     rates.Add(CreateHistoricalFundingRate(
                         item.Symbol,
                         item.FundingRate,
@@ -163,5 +162,13 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
             _logger.LogDebug(ex, "[Binance] Failed to fetch funding intervals");
             return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         }
+    }
+
+    /// <summary>
+    ///     Конвертирует символ из формата "BTC-USDT" в "BTCUSDT"
+    /// </summary>
+    private static string ConvertToBinanceSymbol(string symbol)
+    {
+        return symbol.Replace("-", "");
     }
 }

@@ -18,7 +18,7 @@ public static class ServiceCollectionExtensions
     {
         // Redis
         var redisConnection = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
             var config = ConfigurationOptions.Parse(redisConnection);
             config.AbortOnConnectFail = false;
@@ -43,5 +43,6 @@ public static class ServiceCollectionExtensions
         // Регистрируем клиенты бирж с rate limiting
         services.AddScoped<IExchangeFundingRateClient, BinanceFundingRateClient>();
         services.AddScoped<IExchangeFundingRateClient, BybitFundingRateClient>();
+        services.AddScoped<IExchangeFundingRateClient, OkxFundingRateClient>();
     }
 }

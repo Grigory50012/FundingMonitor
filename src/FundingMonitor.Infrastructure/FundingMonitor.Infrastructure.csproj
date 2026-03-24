@@ -9,6 +9,7 @@
     <ItemGroup>
         <PackageReference Include="Binance.Net" Version="12.10.0"/>
         <PackageReference Include="Bybit.Net" Version="6.9.0"/>
+        <PackageReference Include="JK.OKX.Net" Version="4.9.0"/>
         <PackageReference Include="EFCore.BulkExtensions.PostgreSql" Version="10.0.1"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5"/>
 

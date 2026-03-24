@@ -83,11 +83,10 @@ public class HistoricalCollectionBackgroundService : BackgroundService
             var historyRepo = scope.ServiceProvider
                 .GetRequiredService<IHistoricalFundingRateRepository>();
 
-            var symbol = task.NormalizedSymbol.Replace("-", "");
             var client = exchangeApiClients.First(c => c.ExchangeType == task.Exchange);
-
-            // Запрашиваем историю за последний месяц
+            var symbol = task.NormalizedSymbol;
             var fromTime = DateTime.UtcNow.AddMonths(-_options.Value.MaxHistoryMonths);
+
             var rates = await client.GetHistoricalFundingRatesAsync(
                 symbol, fromTime, DateTime.UtcNow, _options.Value.ApiPageSize, cancellationToken);
 

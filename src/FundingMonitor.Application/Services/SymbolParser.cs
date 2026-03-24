@@ -12,7 +12,8 @@ public class SymbolParser : ISymbolParser
         new Dictionary<ExchangeType, Func<string, (string Base, string Quote)>>
         {
             [ExchangeType.Binance] = ParseBinance,
-            [ExchangeType.Bybit] = ParseBybit
+            [ExchangeType.Bybit] = ParseBybit,
+            [ExchangeType.OKX] = ParseOKX
         };
 
     private readonly MemoryCache _cache = new(new MemoryCacheOptions());
@@ -34,16 +35,28 @@ public class SymbolParser : ISymbolParser
 
     private static (string Base, string Quote) ParseBinance(string symbol)
     {
-        return symbol.EndsWith("USDT") ? (symbol[..^4], "USDT") :
-            symbol.EndsWith("BUSD") ? (symbol[..^4], "BUSD") :
-            symbol.EndsWith("USDC") ? (symbol[..^4], "USDC") :
-            throw new ArgumentException($"Unknown Binance symbol format: {symbol}");
+        return symbol.EndsWith("USDT")
+            ? (symbol[..^4], "USDT")
+            : throw new ArgumentException($"Unknown Binance symbol format: {symbol}");
     }
 
     private static (string Base, string Quote) ParseBybit(string symbol)
     {
-        return symbol.EndsWith("USDT") ? (symbol[..^4], "USDT") :
-            symbol.EndsWith("USDC") ? (symbol[..^4], "USDC") :
-            throw new ArgumentException($"Unknown Bybit symbol format: {symbol}");
+        return symbol.EndsWith("USDT")
+            ? (symbol[..^4], "USDT")
+            : throw new ArgumentException($"Unknown Bybit symbol format: {symbol}");
+    }
+
+    private static (string Base, string Quote) ParseOKX(string symbol)
+    {
+        // OKX формат: BTC-USDT-SWAP
+        if (symbol.EndsWith("-SWAP"))
+        {
+            var parts = symbol[..^5].Split('-'); // Убираем "-SWAP", получаем "BTC-USDT"
+            if (parts.Length >= 2)
+                return (parts[0], parts[1]);
+        }
+
+        throw new ArgumentException($"Unknown OKX symbol format: {symbol}");
     }
 }

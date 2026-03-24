@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,13 +48,7 @@ public class CurrentCollectionBackgroundService : BackgroundService
 
         try
         {
-            var sw = Stopwatch.StartNew();
-
-            var rates = await collector.CollectFundingRatesAsync(stoppingToken);
-
-            sw.Stop();
-            _logger.LogInformation("Collection cycle completed: {Count} rates, {Elapsed}ms",
-                rates.Count, sw.ElapsedMilliseconds);
+            await collector.CollectFundingRatesAsync(stoppingToken);
         }
         catch (Exception ex)
         {

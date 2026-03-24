@@ -84,6 +84,8 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
             $"Collection of funding rate history: {symbol}",
             async ct =>
             {
+                symbol = ConvertToBybitSymbol(symbol);
+
                 var result = await _bybitClient.V5Api.ExchangeData
                     .GetFundingRateHistoryAsync(Category.Linear, symbol, fromTime, toTime, limit, ct);
 
@@ -98,9 +100,6 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
 
                 foreach (var item in result.Data.List)
                 {
-                    if (!IsValidSymbol(item.Symbol))
-                        continue;
-
                     rates.Add(CreateHistoricalFundingRate(
                         item.Symbol,
                         item.FundingRate,
@@ -128,5 +127,13 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
         {
             return false;
         }
+    }
+
+    /// <summary>
+    ///     Конвертирует символ из формата "BTC-USDT" в "BTCUSDT"
+    /// </summary>
+    private static string ConvertToBybitSymbol(string symbol)
+    {
+        return symbol.Replace("-", "");
     }
 }
