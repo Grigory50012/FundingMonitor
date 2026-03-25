@@ -91,6 +91,7 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
         await using var context = await CreateContextAsync(cancellationToken);
 
         var entity = await context.HistoricalFundingRate
+            .AsNoTracking()
             .Where(r => r.Exchange == exchange && r.NormalizedSymbol == normalizedSymbol)
             .OrderByDescending(r => r.FundingTime)
             .FirstOrDefaultAsync(cancellationToken);

@@ -58,7 +58,7 @@ public class HistoryController : ControllerBase
         var exchangeList = exchanges.ParseExchanges();
 
         var history = await
-            _repository.GetHistoryAsync(symbol, exchangeList, from, to, limit, CancellationToken.None);
+            _repository.GetHistoryAsync(symbol, exchangeList, from, to, limit, HttpContext.RequestAborted);
 
         stopwatch.Stop();
         _logger.LogInformation("GetHistory completed: {Count} rates in {Elapsed}ms",
@@ -92,12 +92,12 @@ public class HistoryController : ControllerBase
         var stats = await _aprStatsService.GetAprStatsAsync(
             symbol,
             exchangeList?.Select(e => e.ToString()).ToList(),
-            CancellationToken.None);
+            HttpContext.RequestAborted);
 
         stopwatch.Stop();
         _logger.LogInformation("GetAprStats completed: {Count} periods in {Elapsed}ms",
-            stats.Count, stopwatch.ElapsedMilliseconds);
+            stats?.Count, stopwatch.ElapsedMilliseconds);
 
-        return Ok(stats.ToDtoList());
+        return Ok(stats?.ToDtoList());
     }
 }

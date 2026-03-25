@@ -16,7 +16,11 @@ public class SymbolParser : ISymbolParser
             [ExchangeType.OKX] = ParseOKX
         };
 
-    private readonly MemoryCache _cache = new(new MemoryCacheOptions());
+    private readonly MemoryCache _cache = new(new MemoryCacheOptions
+    {
+        SizeLimit = 1000,
+        CompactionPercentage = 0.5
+    });
 
     public (string Base, string Quote) Parse(string symbol, ExchangeType exchange)
     {
@@ -24,6 +28,7 @@ public class SymbolParser : ISymbolParser
 
         return _cache.GetOrCreate(cacheKey, entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = CacheDuration;
 
             if (!Parsers.TryGetValue(exchange, out var parser))

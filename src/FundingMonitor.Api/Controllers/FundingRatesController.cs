@@ -52,7 +52,7 @@ public class FundingRatesController : ControllerBase
         var rates = await _repository.GetRatesAsync(
             symbol,
             exchangeList,
-            CancellationToken.None);
+            HttpContext.RequestAborted);
 
         if (!includeInactive) rates = rates.Where(r => r.IsActive);
 

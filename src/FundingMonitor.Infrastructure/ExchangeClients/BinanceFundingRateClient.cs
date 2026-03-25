@@ -46,8 +46,8 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
 
                 await Task.WhenAll(markPricesTask, intervalsTask);
 
-                var markPricesResult = markPricesTask.Result;
-                var intervalsMap = intervalsTask.Result;
+                var markPricesResult = await markPricesTask;
+                var intervalsMap = await intervalsTask;
 
                 if (!markPricesResult.Success)
                 {

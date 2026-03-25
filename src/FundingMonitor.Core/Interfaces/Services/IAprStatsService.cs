@@ -14,7 +14,7 @@ public interface IAprStatsService
     /// <param name="exchanges">Список бирж (опционально)</param>
     /// <param name="cancellationToken">Токен отмены</param>
     /// <returns>Список APR статистики по периодам для каждой биржи</returns>
-    Task<List<AprPeriodStats>> GetAprStatsAsync(
+    Task<List<AprPeriodStats>?> GetAprStatsAsync(
         string symbol,
         List<string>? exchanges,
         CancellationToken cancellationToken);
