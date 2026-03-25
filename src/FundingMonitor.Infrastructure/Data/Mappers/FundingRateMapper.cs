@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Infrastructure.Data.Entities;
 
@@ -9,8 +8,6 @@ namespace FundingMonitor.Infrastructure.Data.Mappers;
 /// </summary>
 public static class FundingRateMapperExtensions
 {
-    private static readonly ConcurrentDictionary<string, ExchangeType> ExchangeCache = new();
-
     /// <summary>
     ///     Преобразовать доменную модель в EF Core сущность
     /// </summary>
@@ -44,7 +41,7 @@ public static class FundingRateMapperExtensions
 
         return new CurrentFundingRate
         {
-            Exchange = ParseExchange(db.Exchange),
+            Exchange = db.Exchange.ParseExchange(),
             NormalizedSymbol = db.NormalizedSymbol,
             BaseAsset = db.BaseAsset,
             QuoteAsset = db.QuoteAsset,
@@ -93,7 +90,7 @@ public static class FundingRateMapperExtensions
 
         return new HistoricalFundingRate
         {
-            Exchange = ParseExchange(db.Exchange),
+            Exchange = db.Exchange.ParseExchange(),
             NormalizedSymbol = db.NormalizedSymbol,
             FundingRate = db.FundingRate,
             FundingTime = db.FundingTime,
@@ -107,13 +104,5 @@ public static class FundingRateMapperExtensions
     public static List<HistoricalFundingRate> ToDomainModelList(this List<HistoricalFundingRateDb>? entities)
     {
         return entities?.Select(ToDomainModel).ToList() ?? [];
-    }
-
-    private static ExchangeType ParseExchange(string exchangeName)
-    {
-        return ExchangeCache.GetOrAdd(exchangeName, name =>
-            Enum.TryParse<ExchangeType>(name, true, out var result)
-                ? result
-                : throw new InvalidOperationException($"Unknown exchange: {name}"));
     }
 }

@@ -42,8 +42,7 @@ public class FundingRatesController : ControllerBase
         [FromQuery] string? exchanges,
         [FromQuery] bool includeInactive = false)
     {
-        // Парсим биржи из строки
-        var exchangeList = ParseExchanges(exchanges);
+        var exchangeList = exchanges.ParseExchanges();
 
         _logger.LogDebug("GetFundingRates: symbol={Symbol}, exchanges={Exchanges}, includeInactive={IncludeInactive}",
             symbol, exchanges ?? "all", includeInactive);
@@ -62,23 +61,5 @@ public class FundingRatesController : ControllerBase
             rates.Count(), stopwatch.ElapsedMilliseconds);
 
         return Ok(rates.ToDtoList());
-    }
-
-    private static List<ExchangeType>? ParseExchanges(string? exchanges)
-    {
-        if (string.IsNullOrWhiteSpace(exchanges))
-            return null;
-
-        var exchangeList = exchanges.Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(e =>
-            {
-                if (!Enum.TryParse<ExchangeType>(e.Trim(), true, out var exchange))
-                    throw new ArgumentException(
-                        $"Invalid exchange name: '{e.Trim()}'. Valid values: Binance, Bybit, OKX");
-                return exchange;
-            })
-            .ToList();
-
-        return exchangeList;
     }
 }

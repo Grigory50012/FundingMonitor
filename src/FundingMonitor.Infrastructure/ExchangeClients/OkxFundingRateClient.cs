@@ -61,7 +61,7 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
                         markPrice,
                         indexPrice,
                         rate.FundingRate ?? 0,
-                        rate.NextFundingTime,
+                        rate.FundingTime,
                         CalculateFundingIntervalHours(rate.FundingTime, rate.NextFundingTime)));
                 }
 
@@ -218,14 +218,12 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
 
     /// <summary>
     ///     Вычисляет интервал выплат из разницы между fundingTime и nextFundingTime
-    ///     OKX динамически меняет интервал (1ч, 2ч, 4ч, 8ч) в зависимости от рыночных условий
     /// </summary>
     private static int? CalculateFundingIntervalHours(DateTime fundingTime, DateTime nextFundingTime)
     {
         var diff = nextFundingTime - fundingTime;
         var hours = (int)diff.TotalHours;
 
-        // Проверяем, что интервал в разумных пределах (1, 2, 4, 8 часов)
         return hours > 0 && hours <= 24 ? hours : 8;
     }
 

@@ -56,7 +56,7 @@ public class AprStatsService : IAprStatsService
         // Получаем исторические данные
         var history = await _repository.GetHistoryAsync(
             normalizedSymbol,
-            exchanges?.Select(e => Enum.Parse<ExchangeType>(e, true)).ToList(),
+            exchanges?.Select(e => e.ParseExchange()).ToList(),
             null,
             null,
             10000, // Максимальное количество для покрытия всех периодов

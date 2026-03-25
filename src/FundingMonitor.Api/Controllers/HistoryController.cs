@@ -55,7 +55,7 @@ public class HistoryController : ControllerBase
 
         var stopwatch = Stopwatch.StartNew();
 
-        var exchangeList = ParseExchanges(exchanges);
+        var exchangeList = exchanges.ParseExchanges();
 
         var history = await
             _repository.GetHistoryAsync(symbol, exchangeList, from, to, limit, CancellationToken.None);
@@ -87,7 +87,7 @@ public class HistoryController : ControllerBase
 
         var stopwatch = Stopwatch.StartNew();
 
-        var exchangeList = ParseExchanges(exchanges);
+        var exchangeList = exchanges.ParseExchanges();
 
         var stats = await _aprStatsService.GetAprStatsAsync(
             symbol,
@@ -99,23 +99,5 @@ public class HistoryController : ControllerBase
             stats.Count, stopwatch.ElapsedMilliseconds);
 
         return Ok(stats.ToDtoList());
-    }
-
-    private static List<ExchangeType>? ParseExchanges(string? exchanges)
-    {
-        if (string.IsNullOrWhiteSpace(exchanges))
-            return null;
-
-        var exchangeList = exchanges.Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(e =>
-            {
-                if (!Enum.TryParse<ExchangeType>(e.Trim(), true, out var exchange))
-                    throw new ArgumentException(
-                        $"Invalid exchange name: '{e.Trim()}'. Valid values: Binance, Bybit, OKX");
-                return exchange;
-            })
-            .ToList();
-
-        return exchangeList;
     }
 }
