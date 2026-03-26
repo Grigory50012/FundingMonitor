@@ -21,7 +21,7 @@ public class ExchangeAvailabilityChecker : IExchangeAvailabilityChecker
     public async Task<Dictionary<ExchangeType, bool>> CheckAllExchangesAsync(CancellationToken cancellationToken)
     {
         var results = new Dictionary<ExchangeType, bool>();
-        var tasks = _clients.Select(CheckClientAsync);
+        var tasks = _clients.Select(c => CheckClientAsync(c, cancellationToken));
         var clientResults = await Task.WhenAll(tasks);
 
         foreach (var result in clientResults) results[result.Exchange] = result.IsAvailable;
@@ -29,11 +29,13 @@ public class ExchangeAvailabilityChecker : IExchangeAvailabilityChecker
         return results;
     }
 
-    private async Task<(ExchangeType Exchange, bool IsAvailable)> CheckClientAsync(IExchangeFundingRateClient client)
+    private async Task<(ExchangeType Exchange, bool IsAvailable)> CheckClientAsync(
+        IExchangeFundingRateClient client,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var isAvailable = await client.IsAvailableAsync(CancellationToken.None);
+            var isAvailable = await client.IsAvailableAsync(cancellationToken);
 
             var logLevel = isAvailable ? LogLevel.Information : LogLevel.Warning;
             _logger.Log(logLevel, "{Exchange} is {Status}",

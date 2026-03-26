@@ -27,13 +27,7 @@ public class CurrentCollectionBackgroundService : BackgroundService
     {
         _logger.LogInformation("CurrentCollectionBackgroundService started");
 
-        // Небольшая задержка при старте
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(_options.Value.UpdateIntervalSeconds));
-
-        // Первый запуск сразу
-        await DoCollectionAsync(stoppingToken);
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
