@@ -19,16 +19,6 @@ public class FundingRateChangedEvent
     public string NormalizedSymbol { get; init; } = string.Empty;
 
     /// <summary>
-    ///     Время обнаружения события
-    /// </summary>
-    public DateTime DetectedAt { get; set; }
-
-    /// <summary>
-    ///     Интервал выплат в часах
-    /// </summary>
-    public int? FundingIntervalHours { get; set; }
-
-    /// <summary>
     ///     Время следующей выплаты
     /// </summary>
     public DateTime? NextFundingTime { get; set; }

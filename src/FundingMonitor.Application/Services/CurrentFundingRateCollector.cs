@@ -124,8 +124,6 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                 {
                     Exchange = exchange,
                     NormalizedSymbol = rate.NormalizedSymbol,
-                    DetectedAt = DateTime.UtcNow,
-                    FundingIntervalHours = rate.FundingIntervalHours,
                     NextFundingTime = rate.NextFundingTime
                 });
                 _logger.LogInformation("🔍 New symbol detected: {Exchange}:{Symbol}", exchange, rate.NormalizedSymbol);
@@ -137,8 +135,6 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                 {
                     Exchange = exchange,
                     NormalizedSymbol = rate.NormalizedSymbol,
-                    DetectedAt = DateTime.UtcNow,
-                    FundingIntervalHours = rate.FundingIntervalHours,
                     NextFundingTime = rate.NextFundingTime
                 });
                 _logger.LogInformation("🕐 Funding time changed: {Exchange}:{Symbol} {Old:HH:mm}→{New:HH:mm}",
