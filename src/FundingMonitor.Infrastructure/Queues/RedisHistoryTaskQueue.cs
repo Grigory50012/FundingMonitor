@@ -48,18 +48,4 @@ public class RedisHistoryTaskQueue : IHistoryTaskQueue
 
         return task;
     }
-
-    public bool TryDequeue(out HistoricalCollectionTask? task)
-    {
-        var result = _db.ListRightPop(QueueKey);
-
-        if (result.IsNullOrEmpty)
-        {
-            task = null;
-            return false;
-        }
-
-        task = JsonSerializer.Deserialize<HistoricalCollectionTask>(result.ToString(), _jsonOptions);
-        return true;
-    }
 }

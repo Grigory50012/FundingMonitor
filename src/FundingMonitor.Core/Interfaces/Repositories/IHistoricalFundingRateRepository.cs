@@ -13,7 +13,4 @@ public interface IHistoricalFundingRateRepository
         DateTime? to,
         int? limit,
         CancellationToken cancellationToken);
-
-    Task<HistoricalFundingRate?> GetLastAsync(string exchange, string normalizedSymbol,
-        CancellationToken cancellationToken);
 }

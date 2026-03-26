@@ -82,20 +82,4 @@ public class HistoricalFundingRateRepository : RepositoryBase, IHistoricalFundin
 
         return entities.ToDomainModelList();
     }
-
-    public async Task<HistoricalFundingRate?> GetLastAsync(
-        string exchange,
-        string normalizedSymbol,
-        CancellationToken cancellationToken)
-    {
-        await using var context = await CreateContextAsync(cancellationToken);
-
-        var entity = await context.HistoricalFundingRate
-            .AsNoTracking()
-            .Where(r => r.Exchange == exchange && r.NormalizedSymbol == normalizedSymbol)
-            .OrderByDescending(r => r.FundingTime)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return entity is null ? null : entity.ToDomainModel();
-    }
 }

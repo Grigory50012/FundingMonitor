@@ -21,9 +21,4 @@ public interface IHistoryTaskQueue
     ///     Извлечь задачу из очереди (блокирующая операция)
     /// </summary>
     Task<HistoricalCollectionTask?> DequeueAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///     Извлечь задачу из очереди (неблокирующая операция)
-    /// </summary>
-    bool TryDequeue(out HistoricalCollectionTask? task);
 }
