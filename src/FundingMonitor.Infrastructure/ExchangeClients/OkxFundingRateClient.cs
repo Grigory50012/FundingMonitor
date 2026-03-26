@@ -1,7 +1,6 @@
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
-using OKX.Net;
 using OKX.Net.Clients;
 using OKX.Net.Enums;
 using OKX.Net.Objects.Public;
@@ -15,21 +14,11 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
 
     public OkxFundingRateClient(
         ILogger<OkxFundingRateClient> logger,
-        ISymbolParser symbolParser)
-        : base(logger, symbolParser)
+        ISymbolService symbolService,
+        OKXRestClient okxClient)
+        : base(logger, symbolService)
     {
-        _okxClient = new OKXRestClient(options =>
-        {
-            options.Environment = OKXEnvironment.Live;
-            options.AutoTimestamp = true;
-            options.TimestampRecalculationInterval = TimeSpan.FromHours(1);
-            options.HttpVersion = new Version(2, 0);
-            options.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
-            options.RateLimiterEnabled = true;
-            options.OutputOriginalData = true;
-            options.CachingEnabled = false;
-        });
-
+        _okxClient = okxClient;
         _logger = logger;
     }
 
@@ -46,10 +35,10 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
                 var swapInstruments = await GetAllInstrumentsAsync(ct);
 
                 // 2. Получаем mark prices для всех инструментов
-                var markPricesMap = await GetMarkPricesMapAsync(ct);
+                var markPrices = await GetMarkPricesMapAsync(ct);
 
                 // 3. Получаем index prices для всех инструментов
-                var indexPricesMap = await GetIndexPricesMapAsync(ct);
+                var indexPrices = await GetIndexPricesMapAsync(ct);
 
                 // 4. Параллельно получаем funding rate для каждого инструмента
                 var validRates = await GetAllFundingRatesAsync(swapInstruments, ct);
@@ -58,8 +47,8 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
 
                 foreach (var rate in validRates)
                 {
-                    markPricesMap.TryGetValue(rate.Symbol, out var markPrice);
-                    indexPricesMap.TryGetValue(rate.Symbol, out var indexPrice);
+                    markPrices.TryGetValue(rate.Symbol, out var markPrice);
+                    indexPrices.TryGetValue(rate.Symbol, out var indexPrice);
 
                     rates.Add(CreateFundingRate(
                         rate.Symbol,
@@ -124,9 +113,8 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
         }
 
         return result.Data
-            .Where(p => p.Symbol.EndsWith("-USDT"))
             .ToDictionary(
-                p => p.Symbol + "-SWAP",
+                p => ConvertToExchangeSymbol(p.Symbol), // В этом запросе OKX возвращает в формате "BTC-USDT"
                 p => p.IndexPrice ?? 0,
                 StringComparer.OrdinalIgnoreCase);
     }
@@ -156,6 +144,14 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
         return validRates;
     }
 
+    private static int CalculateFundingIntervalHours(DateTime fundingTime, DateTime nextFundingTime)
+    {
+        var diff = nextFundingTime - fundingTime;
+        var hours = (int)diff.TotalHours;
+
+        return hours is > 0 and <= 24 ? hours : 8;
+    }
+
     public override async Task<List<HistoricalFundingRate>> GetHistoricalFundingRatesAsync(
         string symbol,
         DateTime fromTime,
@@ -167,7 +163,7 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
             $"Collection of funding rate history: {symbol}",
             async ct =>
             {
-                symbol = ConvertToOkxSymbol(symbol);
+                symbol = ConvertToExchangeSymbol(symbol);
                 limit = 100; // OKX позволяет максимум 100 записей
 
                 var result = await _okxClient.UnifiedApi.ExchangeData
@@ -194,16 +190,6 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
             cancellationToken);
     }
 
-    /// <summary>
-    ///     Конвертирует символ из формата "BTC-USDT" в "BTC-USDT-SWAP"
-    /// </summary>
-    private static string ConvertToOkxSymbol(string symbol)
-    {
-        if (!symbol.EndsWith("-SWAP"))
-            return symbol + "-SWAP";
-        return symbol;
-    }
-
     public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
     {
         try
@@ -219,22 +205,5 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
         {
             return false;
         }
-    }
-
-    /// <summary>
-    ///     Вычисляет интервал выплат из разницы между fundingTime и nextFundingTime
-    /// </summary>
-    private static int? CalculateFundingIntervalHours(DateTime fundingTime, DateTime nextFundingTime)
-    {
-        var diff = nextFundingTime - fundingTime;
-        var hours = (int)diff.TotalHours;
-
-        return hours > 0 && hours <= 24 ? hours : 8;
-    }
-
-    protected override bool IsValidSymbol(string symbol)
-    {
-        // OKX формат: BTC-USDT-SWAP
-        return symbol.EndsWith("-USDT-SWAP");
     }
 }

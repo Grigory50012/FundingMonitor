@@ -1,4 +1,3 @@
-using Bybit.Net;
 using Bybit.Net.Clients;
 using Bybit.Net.Enums;
 using FundingMonitor.Core.Entities;
@@ -15,21 +14,11 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
 
     public BybitFundingRateClient(
         ILogger<BybitFundingRateClient> logger,
-        ISymbolParser symbolParser)
-        : base(logger, symbolParser)
+        ISymbolService symbolService,
+        BybitRestClient bybitClient)
+        : base(logger, symbolService)
     {
-        _bybitClient = new BybitRestClient(options =>
-        {
-            options.Environment = BybitEnvironment.Live;
-            options.AutoTimestamp = true;
-            options.TimestampRecalculationInterval = TimeSpan.FromHours(1);
-            options.HttpVersion = new Version(2, 0);
-            options.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
-            options.RateLimiterEnabled = true;
-            options.OutputOriginalData = true;
-            options.CachingEnabled = false;
-        });
-
+        _bybitClient = bybitClient;
         _logger = logger;
     }
 
@@ -84,7 +73,7 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
             $"Collection of funding rate history: {symbol}",
             async ct =>
             {
-                symbol = ConvertToBybitSymbol(symbol);
+                symbol = ConvertToExchangeSymbol(symbol);
 
                 var result = await _bybitClient.V5Api.ExchangeData
                     .GetFundingRateHistoryAsync(Category.Linear, symbol, fromTime, toTime, limit, ct);
@@ -127,13 +116,5 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
         {
             return false;
         }
-    }
-
-    /// <summary>
-    ///     Конвертирует символ из формата "BTC-USDT" в "BTCUSDT"
-    /// </summary>
-    private static string ConvertToBybitSymbol(string symbol)
-    {
-        return symbol.Replace("-", "");
     }
 }

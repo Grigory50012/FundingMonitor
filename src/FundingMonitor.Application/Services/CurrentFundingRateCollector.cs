@@ -126,7 +126,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                     NormalizedSymbol = rate.NormalizedSymbol,
                     NextFundingTime = rate.NextFundingTime
                 });
-                _logger.LogInformation("🔍 New symbol detected: {Exchange}:{Symbol}", exchange, rate.NormalizedSymbol);
+                _logger.LogInformation("+ New symbol detected: {Exchange}:{Symbol}", exchange, rate.NormalizedSymbol);
             }
             else if (rate.NextFundingTime != prev.NextFundingTime)
             {
@@ -137,7 +137,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                     NormalizedSymbol = rate.NormalizedSymbol,
                     NextFundingTime = rate.NextFundingTime
                 });
-                _logger.LogInformation("🕐 Funding time changed: {Exchange}:{Symbol} {Old:HH:mm}→{New:HH:mm}",
+                _logger.LogInformation("Funding time changed: {Exchange}:{Symbol} {Old:HH:mm}->{New:HH:mm}",
                     exchange, rate.NormalizedSymbol, prev.NextFundingTime, rate.NextFundingTime);
             }
         }
