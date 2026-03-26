@@ -6,7 +6,7 @@ namespace FundingMonitor.Core.Events;
 ///     Событие изменения данных о ставке финансирования
 ///     (новый символ или изменение времени выплаты)
 /// </summary>
-public class FundingRateChangedEvent
+public record FundingRateChangedEvent
 {
     /// <summary>
     ///     Биржа

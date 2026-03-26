@@ -1,10 +1,32 @@
 namespace FundingMonitor.Core.Entities;
 
-public class HistoricalFundingRate
+/// <summary>
+///     Исторические данные начисления ставки финансирования
+/// </summary>
+public record HistoricalFundingRate
 {
-    public ExchangeType Exchange { get; set; }
-    public string NormalizedSymbol { get; set; } = string.Empty;
-    public decimal FundingRate { get; set; }
-    public DateTime FundingTime { get; set; }
-    public DateTime CollectedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+    ///     Название биржи
+    /// </summary>
+    public required ExchangeType Exchange { get; init; }
+
+    /// <summary>
+    ///     Символ, например "BTC-USDT"
+    /// </summary>
+    public required string NormalizedSymbol { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     Ставка финансирования
+    /// </summary>
+    public required decimal FundingRate { get; init; }
+
+    /// <summary>
+    ///     Время выплаты
+    /// </summary>
+    public required DateTime FundingTime { get; init; }
+
+    /// <summary>
+    ///     Время сбора данных
+    /// </summary>
+    public required DateTime CollectedAt { get; init; } = DateTime.UtcNow;
 }

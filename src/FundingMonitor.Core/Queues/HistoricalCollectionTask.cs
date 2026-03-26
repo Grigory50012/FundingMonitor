@@ -5,7 +5,7 @@ namespace FundingMonitor.Core.Queues;
 /// <summary>
 ///     Задача на сбор исторических данных
 /// </summary>
-public class HistoricalCollectionTask
+public record HistoricalCollectionTask
 {
     /// <summary>
     ///     Биржа
