@@ -14,14 +14,14 @@ namespace FundingMonitor.Infrastructure.ExchangeClients;
 public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
 {
     private readonly ILogger _logger;
-    private readonly ISymbolParser _symbolParser;
+    private readonly ISymbolService _symbolService;
 
     protected BaseExchangeFundingRateClient(
         ILogger logger,
-        ISymbolParser symbolParser)
+        ISymbolService symbolService)
     {
         _logger = logger;
-        _symbolParser = symbolParser;
+        _symbolService = symbolService;
     }
 
     public abstract ExchangeType ExchangeType { get; }
@@ -108,9 +108,9 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
         decimal indexPrice,
         decimal fundingRate,
         DateTime? nextFundingTime,
-        int? fundingIntervalHours = null)
+        int? fundingIntervalHours = 8)
     {
-        var parsed = _symbolParser.Parse(symbol, ExchangeType);
+        var parsed = _symbolService.Parse(symbol, ExchangeType);
 
         return new CurrentFundingRate
         {
@@ -133,7 +133,7 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
         decimal fundingRate,
         DateTime fundingTime)
     {
-        var parsed = _symbolParser.Parse(symbol, ExchangeType);
+        var parsed = _symbolService.Parse(symbol, ExchangeType);
 
         return new HistoricalFundingRate
         {
@@ -145,8 +145,13 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
         };
     }
 
-    protected virtual bool IsValidSymbol(string symbol)
+    protected bool IsValidSymbol(string symbol)
     {
-        return symbol.EndsWith("USDT");
+        return _symbolService.IsValidSymbol(symbol, ExchangeType);
+    }
+
+    protected string ConvertToExchangeSymbol(string symbol)
+    {
+        return _symbolService.ConvertToExchange(symbol, ExchangeType);
     }
 }

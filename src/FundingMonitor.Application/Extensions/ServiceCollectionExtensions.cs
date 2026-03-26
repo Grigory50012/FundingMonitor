@@ -15,7 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IHistoricalCollectionProducer, HistoricalCollectionProducer>();
         services.AddScoped<IAprStatsService, AprStatsService>();
 
-        services.AddSingleton<ISymbolParser, SymbolParser>();
+        services.AddSingleton<ISymbolService, SymbolService>();
 
         services.AddHostedService<CurrentCollectionBackgroundService>();
         services.AddHostedService<HistoricalCollectionBackgroundService>();
