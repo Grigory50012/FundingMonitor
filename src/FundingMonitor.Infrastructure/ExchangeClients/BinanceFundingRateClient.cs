@@ -17,16 +17,16 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
         ISymbolParser symbolParser)
         : base(logger, symbolParser)
     {
-        _binanceClient = new BinanceRestClient(binanceClientOptions =>
+        _binanceClient = new BinanceRestClient(options =>
         {
-            binanceClientOptions.Environment = BinanceEnvironment.Live;
-            binanceClientOptions.AutoTimestamp = true;
-            binanceClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
-            binanceClientOptions.HttpVersion = new Version(2, 0);
-            binanceClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
-            binanceClientOptions.RateLimiterEnabled = true;
-            binanceClientOptions.OutputOriginalData = true;
-            binanceClientOptions.CachingEnabled = false;
+            options.Environment = BinanceEnvironment.Live;
+            options.AutoTimestamp = true;
+            options.TimestampRecalculationInterval = TimeSpan.FromHours(1);
+            options.HttpVersion = new Version(2, 0);
+            options.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.RateLimiterEnabled = true;
+            options.OutputOriginalData = true;
+            options.CachingEnabled = false;
         });
 
         _logger = logger;

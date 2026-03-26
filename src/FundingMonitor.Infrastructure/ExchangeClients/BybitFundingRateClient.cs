@@ -18,16 +18,16 @@ public class BybitFundingRateClient : BaseExchangeFundingRateClient
         ISymbolParser symbolParser)
         : base(logger, symbolParser)
     {
-        _bybitClient = new BybitRestClient(bybitClientOptions =>
+        _bybitClient = new BybitRestClient(options =>
         {
-            bybitClientOptions.Environment = BybitEnvironment.Live;
-            bybitClientOptions.AutoTimestamp = true;
-            bybitClientOptions.TimestampRecalculationInterval = TimeSpan.FromHours(1);
-            bybitClientOptions.HttpVersion = new Version(2, 0);
-            bybitClientOptions.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
-            bybitClientOptions.RateLimiterEnabled = true;
-            bybitClientOptions.OutputOriginalData = true;
-            bybitClientOptions.CachingEnabled = false;
+            options.Environment = BybitEnvironment.Live;
+            options.AutoTimestamp = true;
+            options.TimestampRecalculationInterval = TimeSpan.FromHours(1);
+            options.HttpVersion = new Version(2, 0);
+            options.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.RateLimiterEnabled = true;
+            options.OutputOriginalData = true;
+            options.CachingEnabled = false;
         });
 
         _logger = logger;

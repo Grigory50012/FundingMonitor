@@ -21,8 +21,13 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
         _okxClient = new OKXRestClient(options =>
         {
             options.Environment = OKXEnvironment.Live;
+            options.AutoTimestamp = true;
+            options.TimestampRecalculationInterval = TimeSpan.FromHours(1);
+            options.HttpVersion = new Version(2, 0);
+            options.HttpKeepAliveInterval = TimeSpan.FromSeconds(15);
             options.RateLimiterEnabled = true;
             options.OutputOriginalData = true;
+            options.CachingEnabled = false;
         });
 
         _logger = logger;
