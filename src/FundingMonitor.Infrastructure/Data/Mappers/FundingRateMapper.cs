@@ -6,7 +6,7 @@ namespace FundingMonitor.Infrastructure.Data.Mappers;
 /// <summary>
 ///     Extension-методы для маппинга между доменными моделями и EF Core сущностями
 /// </summary>
-public static class FundingRateMapperExtensions
+public static class DomainToDbMapper
 {
     /// <summary>
     ///     Преобразовать доменную модель в EF Core сущность

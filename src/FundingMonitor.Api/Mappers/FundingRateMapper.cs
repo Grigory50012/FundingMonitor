@@ -6,12 +6,12 @@ namespace FundingMonitor.Api.Mappers;
 /// <summary>
 ///     Extension-методы для маппинга доменных моделей в DTO
 /// </summary>
-public static class FundingRateMapperExtensions
+public static class DomainToDtoMapper
 {
     /// <summary>
     ///     Преобразовать доменную модель в DTO
     /// </summary>
-    public static FundingRateDto ToDto(this CurrentFundingRate entity)
+    private static FundingRateDto ToDto(this CurrentFundingRate entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
@@ -29,7 +29,7 @@ public static class FundingRateMapperExtensions
     /// <summary>
     ///     Преобразовать доменную модель истории в DTO
     /// </summary>
-    public static HistoricalFundingRateDto ToDto(this HistoricalFundingRate entity)
+    private static HistoricalFundingRateDto ToDto(this HistoricalFundingRate entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
@@ -44,7 +44,7 @@ public static class FundingRateMapperExtensions
     /// <summary>
     ///     Преобразовать доменную модель APR статистики в DTO
     /// </summary>
-    public static AprPeriodStatsDto ToDto(this AprPeriodStats entity)
+    private static AprPeriodStatsDto ToDto(this AprPeriodStats entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 

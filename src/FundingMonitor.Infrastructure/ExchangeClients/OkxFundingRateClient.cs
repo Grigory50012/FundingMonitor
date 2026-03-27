@@ -139,8 +139,8 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
             return rate;
         });
 
-        var ratesResults = await Task.WhenAll(tasks);
-        var validRates = ratesResults.Where(r => r != null).Select(r => r!).ToList();
+        var results = await Task.WhenAll(tasks);
+        var validRates = results.Where(r => r != null).Select(r => r!).ToList();
         return validRates;
     }
 
