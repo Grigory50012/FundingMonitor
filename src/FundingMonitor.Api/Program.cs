@@ -31,7 +31,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddCoreServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {

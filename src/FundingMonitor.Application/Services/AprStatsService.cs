@@ -1,8 +1,10 @@
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Application.Services;
 
@@ -11,9 +13,6 @@ namespace FundingMonitor.Application.Services;
 /// </summary>
 public class AprStatsService : IAprStatsService
 {
-    // Периоды по умолчанию (в днях)
-    private static readonly List<int> DefaultPeriods = [1, 2, 3, 7, 14, 21, 30];
-
     // Названия периодов на русском
     private static readonly Dictionary<int, string> PeriodLabels = new()
     {
@@ -27,18 +26,20 @@ public class AprStatsService : IAprStatsService
     };
 
     private readonly IMemoryCache _cache;
-
     private readonly ILogger<AprStatsService> _logger;
+    private readonly AprStatsOptions _options;
     private readonly IHistoricalFundingRateRepository _repository;
 
     public AprStatsService(
         IHistoricalFundingRateRepository repository,
         ILogger<AprStatsService> logger,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IOptions<AprStatsOptions> options)
     {
         _repository = repository;
         _logger = logger;
         _cache = cache;
+        _options = options.Value;
     }
 
     public async Task<List<AprPeriodStats>?> GetAprStatsAsync(
@@ -50,7 +51,7 @@ public class AprStatsService : IAprStatsService
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_options.CacheDurationMinutes);
             entry.Size = 1;
 
             // Нормализуем символ (добавляем -USDT если нет)
@@ -64,8 +65,8 @@ public class AprStatsService : IAprStatsService
                 normalizedSymbol,
                 exchanges != null ? string.Join(", ", exchanges) : "все");
 
-            // Получаем исторические данные только за последние 30 дней (максимальный период)
-            var fromDate = DateTime.UtcNow.AddDays(-30);
+            // Получаем исторические данные только за последние N дней (максимальный период)
+            var fromDate = DateTime.UtcNow.AddDays(-_options.MaxHistoryDays);
             var history = await _repository.GetHistoryAsync(
                 normalizedSymbol,
                 exchanges?.Select(e => e.ParseExchange()).ToList(),
@@ -100,7 +101,7 @@ public class AprStatsService : IAprStatsService
                     .OrderByDescending(d => d)
                     .ToList();
 
-                foreach (var days in DefaultPeriods)
+                foreach (var days in _options.Periods)
                 {
                     // Берём первые N уникальных дат
                     var datesToInclude = uniqueDates.Take(days).ToHashSet();

@@ -1,13 +1,15 @@
 using FundingMonitor.Application.BackgroundServices;
 using FundingMonitor.Application.Services;
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Interfaces.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FundingMonitor.Application.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static void AddApplicationServices(this IServiceCollection services)
+    public static void AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         // Регистрируем сервисы приложения
         services.AddScoped<ICurrentFundingRateCollector, CurrentFundingRateCollector>();
@@ -16,6 +18,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAprStatsService, AprStatsService>();
 
         services.AddSingleton<ISymbolService, SymbolService>();
+
+        // Регистрируем конфигурацию
+        services.Configure<AprStatsOptions>(configuration.GetSection(AprStatsOptions.SectionName));
 
         services.AddHostedService<CurrentCollectionBackgroundService>();
         services.AddHostedService<HistoricalCollectionBackgroundService>();
