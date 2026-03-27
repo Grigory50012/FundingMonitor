@@ -27,8 +27,19 @@ public class RedisHistoryTaskQueue : IHistoryTaskQueue
 
     public async Task EnqueueAsync(HistoricalCollectionTask task, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var json = JsonSerializer.Serialize(task, _jsonOptions);
-        await _db.ListLeftPushAsync(QueueKey, json);
+
+        try
+        {
+            await _db.ListLeftPushAsync(QueueKey, json);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Redis timeout или другая ошибка
+            throw;
+        }
 
         _logger.LogDebug("Task pushed to Redis queue: {Exchange}:{Symbol} (queue size: {Count})",
             task.Exchange, task.NormalizedSymbol, Count);
@@ -36,16 +47,26 @@ public class RedisHistoryTaskQueue : IHistoryTaskQueue
 
     public async Task<HistoricalCollectionTask?> DequeueAsync(CancellationToken cancellationToken = default)
     {
-        var result = await _db.ListRightPopAsync(QueueKey);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (result.IsNullOrEmpty)
-            return null;
+        try
+        {
+            var result = await _db.ListRightPopAsync(QueueKey);
 
-        var task = JsonSerializer.Deserialize<HistoricalCollectionTask>(result.ToString(), _jsonOptions);
+            if (result.IsNullOrEmpty)
+                return null;
 
-        _logger.LogDebug("Task popped from Redis queue: {Exchange}:{Symbol} (queue size: {Count})",
-            task?.Exchange, task?.NormalizedSymbol, Count);
+            var task = JsonSerializer.Deserialize<HistoricalCollectionTask>(result.ToString(), _jsonOptions);
 
-        return task;
+            _logger.LogDebug("Task popped from Redis queue: {Exchange}:{Symbol} (queue size: {Count})",
+                task?.Exchange, task?.NormalizedSymbol, Count);
+
+            return task;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Redis timeout или другая ошибка
+            throw;
+        }
     }
 }
