@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
     {
         // Регистрируем сервисы приложения
         services.AddScoped<ICurrentFundingRateCollector, CurrentFundingRateCollector>();
+        services.AddScoped<IHistoricalFundingRateCollector, HistoricalFundingRateCollector>();
         services.AddScoped<IExchangeAvailabilityChecker, ExchangeAvailabilityChecker>();
         services.AddScoped<IHistoricalCollectionProducer, HistoricalCollectionProducer>();
         services.AddScoped<IAprStatsService, AprStatsService>();

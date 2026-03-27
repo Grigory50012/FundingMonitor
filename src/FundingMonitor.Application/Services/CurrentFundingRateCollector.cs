@@ -4,6 +4,7 @@ using FundingMonitor.Core.Events;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Interfaces.Services;
+using FundingMonitor.Core.Results;
 using Microsoft.Extensions.Logging;
 
 namespace FundingMonitor.Application.Services;
@@ -30,45 +31,60 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         _logger = logger;
     }
 
-    public async Task<IReadOnlyCollection<CurrentFundingRate>> CollectFundingRatesAsync(
-        CancellationToken cancellationToken)
+    public async Task<CurrentCollectionResult> CollectFundingRatesAsync(CancellationToken cancellationToken)
     {
-        using var _ = _logger.BeginScope("CollectionCycle:{CycleId}", Guid.NewGuid().ToString("N")[..8]);
+        using var scope = _logger.BeginScope("CollectionCycle:{CycleId}", Guid.NewGuid().ToString("N")[..8]);
 
         var sw = Stopwatch.StartNew();
         _logger.LogDebug("Collection cycle started");
 
-        // 1. Сначала получаем все предыдущие данные ОДНИМ запросом (исправление N+1)
-        var allPreviousRates = await _repository.GetRatesAsync(null, null, cancellationToken);
-        var previousStateByExchange = allPreviousRates
-            .GroupBy(r => r.Exchange)
-            .ToDictionary(g => g.Key, g => g.ToDictionary(r => r.NormalizedSymbol));
-
-        var results = await Task.WhenAll(
-            _exchangeClients.Select(client =>
-                CollectFromExchangeAsync(client, previousStateByExchange, cancellationToken))
-        );
-
-        var allRates = results.SelectMany(r => r.Rates).ToList();
-        var allEvents = results.SelectMany(r => r.Events).ToList();
-
-        if (allRates.Count != 0)
+        try
         {
-            await _repository.UpdateAsync(allRates, cancellationToken);
-            _logger.LogDebug("Updated {Rates} rates", allRates.Count);
-        }
+            // 1. Сначала получаем все предыдущие данные ОДНИМ запросом
+            var allPreviousRates = await _repository.GetRatesAsync(null, null, cancellationToken);
+            var ratesByExchange = allPreviousRates
+                .GroupBy(r => r.Exchange)
+                .ToDictionary(g => g.Key, g => g.ToDictionary(r => r.NormalizedSymbol));
 
-        if (allEvents.Count != 0)
+            // 2. Получаем данные о текущих ставках со всех бирж одновременно
+            var results = await Task.WhenAll(
+                _exchangeClients.Select(client =>
+                    CollectFromExchangeAsync(client, ratesByExchange, cancellationToken))
+            );
+
+            var allRates = results.SelectMany(r => r.Rates).ToList();
+            var allEvents = results.SelectMany(r => r.Events).ToList();
+
+            if (allRates.Count != 0)
+            {
+                await _repository.UpdateAsync(allRates, cancellationToken);
+                _logger.LogDebug("Updated {Rates} rates", allRates.Count);
+            }
+
+            if (allEvents.Count != 0)
+            {
+                await _producer.EnqueueHistoricalCollectionTasksAsync(allEvents, cancellationToken);
+                _logger.LogDebug("Published {Events} events", allEvents.Count);
+            }
+
+            sw.Stop();
+            _logger.LogInformation("Collection cycle completed: {Count} rates, {Events} events, {Elapsed}ms",
+                allRates.Count, allEvents.Count, sw.ElapsedMilliseconds);
+
+            return new CurrentCollectionResult(
+                true,
+                RatesCount: allRates.Count,
+                EventsCount: allEvents.Count);
+        }
+        catch (Exception ex)
         {
-            await _producer.EnqueueHistoricalCollectionTasksAsync(allEvents, cancellationToken);
-            _logger.LogDebug("Published {Events} events", allEvents.Count);
+            sw.Stop();
+            _logger.LogError(ex, "Collection cycle failed after {Elapsed}ms", sw.ElapsedMilliseconds);
+
+            return new CurrentCollectionResult(
+                false,
+                ex.Message);
         }
-
-        sw.Stop();
-        _logger.LogInformation("Collection cycle completed: {Count} rates, {Events} events, {Elapsed}ms",
-            allRates.Count, allEvents.Count, sw.ElapsedMilliseconds);
-
-        return allRates;
     }
 
     private async Task<(List<CurrentFundingRate> Rates, List<FundingRateChangedEvent> Events)> CollectFromExchangeAsync(
