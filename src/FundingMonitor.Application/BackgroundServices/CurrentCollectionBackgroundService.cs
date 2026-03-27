@@ -40,17 +40,7 @@ public class CurrentCollectionBackgroundService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var collector = scope.ServiceProvider.GetRequiredService<ICurrentFundingRateCollector>();
 
-        var result = await collector.CollectFundingRatesAsync(stoppingToken);
-
-        if (result.Success)
-        {
-            _logger.LogInformation("Collection cycle completed: {Rates} rates, {Events} events",
-                result.RatesCount, result.EventsCount);
-        }
-        else
-        {
-            _logger.LogError("Collection cycle failed: {Error}", result.ErrorMessage);
-        }
+        await collector.CollectFundingRatesAsync(stoppingToken);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
