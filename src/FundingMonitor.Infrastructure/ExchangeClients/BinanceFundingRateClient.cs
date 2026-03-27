@@ -54,8 +54,8 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
                         continue;
                     if (item is { EstimatedSettlePrice: 0, FundingRate: 0 })
                         continue;
-
-                    intervalsMap.TryGetValue(item.Symbol, out var intervalHours);
+                    if (!intervalsMap.TryGetValue(item.Symbol, out var intervalHours))
+                        continue;
 
                     rates.Add(CreateFundingRate(
                         item.Symbol,

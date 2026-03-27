@@ -21,7 +21,11 @@ public record CurrentFundingRate
     public required string QuoteAsset { get; init; } = string.Empty; // "USDT"
 
     // Расчетные свойства
-    public int NumberOfPaymentsPerDay => 24 / FundingIntervalHours ?? 8;
-    public decimal APR => FundingRate * 100m * (365m * 24m / (FundingIntervalHours ?? 8m));
-    public decimal Deviation => (MarkPrice / IndexPrice - 1m) * 100m;
+    public int NumberOfPaymentsPerDay => FundingIntervalHours is > 0 ? 24 / FundingIntervalHours.Value : 3;
+
+    public decimal APR => FundingIntervalHours is > 0
+        ? FundingRate * 100m * (365m * 24m / FundingIntervalHours.Value)
+        : 0m;
+
+    public decimal Deviation => IndexPrice is > 0 ? (MarkPrice / IndexPrice - 1m) * 100m : 0m;
 }
