@@ -14,6 +14,7 @@ namespace FundingMonitor.Application.Services;
 /// </summary>
 public class CurrentFundingRateCollector : ICurrentFundingRateCollector
 {
+    private readonly IFundingRateChangeDetector _changeDetector;
     private readonly IEnumerable<IExchangeFundingRateClient> _exchangeClients;
     private readonly ILogger<CurrentFundingRateCollector> _logger;
     private readonly IHistoricalCollectionProducer _producer;
@@ -23,12 +24,14 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         IEnumerable<IExchangeFundingRateClient> exchangeClients,
         ICurrentFundingRateRepository repository,
         IHistoricalCollectionProducer producer,
-        ILogger<CurrentFundingRateCollector> logger)
+        ILogger<CurrentFundingRateCollector> logger,
+        IFundingRateChangeDetector changeDetector)
     {
         _exchangeClients = exchangeClients;
         _repository = repository;
         _producer = producer;
         _logger = logger;
+        _changeDetector = changeDetector;
     }
 
     public async Task<CurrentCollectionResult> CollectFundingRatesAsync(CancellationToken cancellationToken)
@@ -105,7 +108,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                 : new Dictionary<string, CurrentFundingRate>();
 
             // 3. Детектируем изменения (новые символы и изменения времени выплаты)
-            var events = DetectChanges(client.ExchangeType, previousState, newRates);
+            var events = _changeDetector.DetectChanges(client.ExchangeType, previousState, newRates);
 
             _logger.LogDebug("[{Exchange}] Collection completed: {Count} rates, {Events} events",
                 client.ExchangeType, newRates.Count, events.Count);
@@ -118,46 +121,5 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
             _logger.LogError(ex, "[{Exchange}] Collection failed", client.ExchangeType);
             return (Rates: [], Events: []);
         }
-    }
-
-    /// <summary>
-    ///     Детектирует изменения в ставках финансирования
-    /// </summary>
-    private List<FundingRateChangedEvent> DetectChanges(
-        ExchangeType exchange,
-        Dictionary<string, CurrentFundingRate> previous,
-        List<CurrentFundingRate> current)
-    {
-        var events = new List<FundingRateChangedEvent>(current.Count);
-
-        // Проходим по текущим данным и сравниваем с предыдущими
-        foreach (var rate in current)
-        {
-            if (!previous.TryGetValue(rate.NormalizedSymbol, out var prev))
-            {
-                // Новый символ
-                events.Add(new FundingRateChangedEvent
-                {
-                    Exchange = exchange,
-                    NormalizedSymbol = rate.NormalizedSymbol,
-                    NextFundingTime = rate.NextFundingTime
-                });
-                _logger.LogInformation("+ New symbol detected: {Exchange}:{Symbol}", exchange, rate.NormalizedSymbol);
-            }
-            else if (rate.NextFundingTime != prev.NextFundingTime)
-            {
-                // Изменение времени выплаты
-                events.Add(new FundingRateChangedEvent
-                {
-                    Exchange = exchange,
-                    NormalizedSymbol = rate.NormalizedSymbol,
-                    NextFundingTime = rate.NextFundingTime
-                });
-                _logger.LogInformation("Funding time changed: {Exchange}:{Symbol} {Old:HH:mm}->{New:HH:mm}",
-                    exchange, rate.NormalizedSymbol, prev.NextFundingTime, rate.NextFundingTime);
-            }
-        }
-
-        return events;
     }
 }

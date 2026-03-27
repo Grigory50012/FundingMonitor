@@ -17,6 +17,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IExchangeAvailabilityChecker, ExchangeAvailabilityChecker>();
         services.AddScoped<IHistoricalCollectionProducer, HistoricalCollectionProducer>();
         services.AddScoped<IAprStatsService, AprStatsService>();
+        services.AddScoped<IFundingRateChangeDetector, FundingRateChangeDetector>();
 
         services.AddSingleton<ISymbolService, SymbolService>();
 
