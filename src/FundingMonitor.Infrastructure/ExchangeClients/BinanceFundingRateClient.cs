@@ -1,5 +1,6 @@
 using Binance.Net.Clients;
 using FundingMonitor.Core.Entities;
+using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using ExchangeType = FundingMonitor.Core.Entities.ExchangeType;
@@ -40,8 +41,11 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
 
                 if (!markPricesResult.Success)
                 {
-                    _logger.LogError("[Binance] API Error: {Error}", markPricesResult.Error?.Message);
-                    return [];
+                    var errorMessage = markPricesResult.Error?.Message ?? "Unknown error";
+                    _logger.LogError("[Binance] API Error: {Error}", errorMessage);
+                    throw new ExchangeApiException(
+                        ExchangeType.Binance,
+                        $"Binance API error: {errorMessage}");
                 }
 
                 var rates = new List<CurrentFundingRate>(markPricesResult.Data.Length);
@@ -90,9 +94,22 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
 
                 if (!result.Success)
                 {
-                    _logger.LogError("[Binance] Historical API Error for {Symbol}: {Error}",
-                        symbol, result.Error?.Message);
-                    return [];
+                    var errorMessage = result.Error?.Message ?? "Unknown error";
+                    var isForbidden = errorMessage.Contains("403", StringComparison.OrdinalIgnoreCase)
+                                      || errorMessage.Contains("Forbidden", StringComparison.OrdinalIgnoreCase);
+
+                    if (isForbidden)
+                        _logger.LogWarning(
+                            "[Binance] Access denied (403) for {Symbol}: {Error}. This may be due to rate limiting, geoblocking, or invalid symbol.",
+                            symbol, errorMessage);
+                    else
+                        _logger.LogError("[Binance] Historical API Error for {Symbol}: {Error}",
+                            symbol, errorMessage);
+
+                    throw new ExchangeApiException(
+                        ExchangeType.Binance,
+                        $"Binance API error: {errorMessage}",
+                        result.Error?.Code ?? 0);
                 }
 
                 var rates = new List<HistoricalFundingRate>(result.Data.Length);

@@ -1,4 +1,5 @@
 using FundingMonitor.Core.Entities;
+using FundingMonitor.Core.Exceptions;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using OKX.Net.Clients;
@@ -72,8 +73,9 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
 
         if (!instrumentsResult.Success)
         {
-            _logger.LogError("[OKX] Failed to get instruments: {Error}", instrumentsResult.Error?.Message);
-            return [];
+            var errorMessage = instrumentsResult.Error?.Message ?? "Unknown error";
+            _logger.LogError("[OKX] Failed to get instruments: {Error}", errorMessage);
+            throw new ExchangeApiException(ExchangeType.OKX, $"OKX API error: {errorMessage}");
         }
 
         var swapInstruments = instrumentsResult.Data
@@ -90,8 +92,9 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
 
         if (!result.Success)
         {
-            _logger.LogError("[OKX] Failed to get mark prices: {Error}", result.Error?.Message);
-            return new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var errorMessage = result.Error?.Message ?? "Unknown error";
+            _logger.LogError("[OKX] Failed to get mark prices: {Error}", errorMessage);
+            throw new ExchangeApiException(ExchangeType.OKX, $"OKX API error: {errorMessage}");
         }
 
         return result.Data
@@ -108,8 +111,9 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
 
         if (!result.Success)
         {
-            _logger.LogError("[OKX] Failed to get index prices: {Error}", result.Error?.Message);
-            return new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var errorMessage = result.Error?.Message ?? "Unknown error";
+            _logger.LogError("[OKX] Failed to get index prices: {Error}", errorMessage);
+            throw new ExchangeApiException(ExchangeType.OKX, $"OKX API error: {errorMessage}");
         }
 
         return result.Data
@@ -171,9 +175,10 @@ public class OkxFundingRateClient : BaseExchangeFundingRateClient
 
                 if (!result.Success)
                 {
+                    var errorMessage = result.Error?.Message ?? "Unknown error";
                     _logger.LogError("[OKX] Historical API Error for {Symbol}: {Error}",
-                        symbol, result.Error?.Message);
-                    return [];
+                        symbol, errorMessage);
+                    throw new ExchangeApiException(ExchangeType.OKX, $"OKX API error: {errorMessage}");
                 }
 
                 var historicalRates = new List<HistoricalFundingRate>(result.Data.Length);
