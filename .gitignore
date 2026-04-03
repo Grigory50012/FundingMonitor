@@ -49,3 +49,6 @@ Thumbs.db
 # Логи нашего приложения
 logs/*.log
 !logs/.gitkeep
+.qwen/settings.json
+.qwen/settings.json.orig
+USE_CASE_DIAGRAM.md

@@ -110,6 +110,7 @@
 ### **1. Требования**
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Node.js 18+](https://nodejs.org/) (для фронтенда)
 - [Docker](https://www.docker.com/get-started) (опционально)
 
 ### **2. Запуск инфраструктуры (Docker)**
@@ -130,7 +131,7 @@ funding_monitor_db        Up (healthy)
 funding_monitor_redis     Up (healthy)
 ```
 
-### **3. Запуск приложения**
+### **3. Запуск backend**
 
 ```bash
 # Восстановить зависимости
@@ -140,11 +141,23 @@ dotnet restore
 dotnet run --project src/FundingMonitor.Api
 ```
 
-### **4. Открыть Swagger UI**
+### **4. Запуск frontend**
 
+```bash
+# Перейти в папку фронтенда
+cd frontend/FundingMonitor.Web
+
+# Установить зависимости
+npm install
+
+# Запустить dev-сервер
+npm run dev
 ```
-http://localhost:5000
-```
+
+### **5. Открыть приложение**
+
+- **Swagger UI**: http://localhost:5000/swagger
+- **Frontend**: http://localhost:5173
 
 ---
 
@@ -312,12 +325,24 @@ cd frontend/FundingMonitor.Web
 # Установить зависимости
 npm install
 
-# Запустить dev-сервер
+# Запустить dev-сервер (с горячей перезагрузкой)
 npm run dev
 
 # Сборка production версии
 npm run build
+
+# Предпросмотр production сборки
+npm run preview
 ```
+
+### **Фронтенд скрипты**
+
+| Команда           | Описание                       |
+| ----------------- | ------------------------------ |
+| `npm run dev`     | Запуск dev-сервера с HMR       |
+| `npm run build`   | Сборка production версии       |
+| `npm run preview` | Предпросмотр production сборки |
+| `npm run lint`    | Проверка кода ESLint           |
 
 ### **Миграции БД**
 
@@ -347,6 +372,17 @@ dotnet ef database update --project src/FundingMonitor.Infrastructure
 
 ---
 
+## 🎯 Возможности фронтенда
+
+- **Дашборд реального времени** — текущие ставки с автообновлением
+- **Фильтрация и сортировка** — по бирже, символу, APR
+- **Исторические графики** — визуализация изменений ставок
+- **APR аналитика** — статистика за разные периоды
+- **Адаптивный дизайн** — работает на всех устройствах
+- **Темная тема** — переключение светлой/темной темы
+
+---
+
 ## 📝 Лицензия
 
 MIT
@@ -355,4 +391,15 @@ MIT
 
 ## 📞 Контакты
 
-Вопросы и предложения: [Your Email]
+Вопросы и предложения: создайте Issue в репозитории
+
+---
+
+## 🤝 Вклад
+
+Приветствуем вклад в проект! Пожалуйста:
+
+1. Форкните репозиторий
+2. Создайте ветку для новой функциональности
+3. Внесите изменения
+4. Откройте Pull Request
