@@ -31,16 +31,24 @@ public class CurrentCollectionBackgroundService : BackgroundService
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
-            await DoCollectionAsync(stoppingToken);
+            using var scope = _scopeFactory.CreateScope();
+            var collector = scope.ServiceProvider.GetRequiredService<ICurrentFundingRateCollector>();
+            var detector = scope.ServiceProvider.GetRequiredService<IFundingArbitrageDetector>();
+            var cache = scope.ServiceProvider.GetRequiredService<IFundingArbitrageService>();
+
+            await collector.CollectFundingRatesAsync(stoppingToken);
+
+            try
+            {
+                var opportunities = await detector.DetectAsync(stoppingToken);
+                cache.UpdateOpportunities(opportunities);
+                _logger.LogDebug("Arbitrage: {Count} opportunities", opportunities.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Arbitrage detection error: {Message}", ex.Message);
+            }
         }
-    }
-
-    private async Task DoCollectionAsync(CancellationToken stoppingToken)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var collector = scope.ServiceProvider.GetRequiredService<ICurrentFundingRateCollector>();
-
-        await collector.CollectFundingRatesAsync(stoppingToken);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

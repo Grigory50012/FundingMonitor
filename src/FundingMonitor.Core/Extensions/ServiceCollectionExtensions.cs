@@ -14,5 +14,7 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(CurrentDataCollectionOptions.SectionName));
         services.Configure<HistoricalDataCollectionOptions>(
             configuration.GetSection(HistoricalDataCollectionOptions.SectionName));
+        services.Configure<FundingArbitrageOptions>(
+            configuration.GetSection(FundingArbitrageOptions.SectionName));
     }
 }

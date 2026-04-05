@@ -1,5 +1,6 @@
 using FundingMonitor.Application.BackgroundServices;
 using FundingMonitor.Application.Services;
+using FundingMonitor.Application.Services.Arbitrage;
 using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +12,6 @@ public static class ServiceCollectionExtensions
 {
     public static void AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Регистрируем сервисы приложения
         services.AddScoped<ICurrentFundingRateCollector, CurrentFundingRateCollector>();
         services.AddScoped<IHistoricalFundingRateCollector, HistoricalFundingRateCollector>();
         services.AddScoped<IExchangeAvailabilityChecker, ExchangeAvailabilityChecker>();
@@ -21,8 +21,11 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ISymbolService, SymbolService>();
 
-        // Регистрируем конфигурацию
         services.Configure<AprStatsOptions>(configuration.GetSection(AprStatsOptions.SectionName));
+
+        // Arbitrage
+        services.AddSingleton<IFundingArbitrageService, FundingArbitrageService>();
+        services.AddScoped<IFundingArbitrageDetector, FundingArbitrageDetector>();
 
         services.AddHostedService<CurrentCollectionBackgroundService>();
         services.AddHostedService<HistoricalCollectionBackgroundService>();

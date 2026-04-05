@@ -27,5 +27,5 @@ public record CurrentFundingRate
         ? FundingRate * 100m * (365m * 24m / FundingIntervalHours.Value)
         : 0m;
 
-    public decimal Deviation => IndexPrice is > 0 ? (MarkPrice / IndexPrice - 1m) * 100m : 0m;
+    public decimal Deviation => IndexPrice > 0 ? (MarkPrice / IndexPrice - 1m) * 100m : 0m;
 }
