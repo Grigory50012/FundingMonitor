@@ -3,6 +3,7 @@ import type { FundingArbitrageDto } from "../types";
 
 interface ArbitrageTableProps {
   data: FundingArbitrageDto[];
+  onArbitrageClick?: (symbol: string, exchanges: string[]) => void;
 }
 
 type SortColumn =
@@ -41,11 +42,19 @@ const renderRow = (
   key: string,
   showSymbol: boolean,
   isExpanded?: boolean,
+  onArbitrageClick?: (symbol: string, exchanges: string[]) => void,
 ): React.ReactNode => {
   const isLongA = item.longExchange === item.exchangeA;
   const fundingRateSpread = calcFundingSpread(item);
   const fundingRateA = calcFundingRate(item.fundingRateA);
   const fundingRateB = calcFundingRate(item.fundingRateB);
+
+  const handleClick = () => {
+    if (onArbitrageClick) {
+      const symbol = item.symbol.replace("-USDT", "");
+      onArbitrageClick(symbol, [item.exchangeA, item.exchangeB]);
+    }
+  };
 
   const symbolCell = showSymbol ? (
     <td
@@ -66,7 +75,8 @@ const renderRow = (
   return (
     <React.Fragment key={key}>
       <tr
-        className={`border-t border-gray-800 transition-colors ${isExpanded ? "bg-gray-800/30" : "hover:bg-gray-800/50"}`}
+        className={`border-t border-gray-800 transition-colors ${isExpanded ? "bg-gray-800/30" : "hover:bg-gray-800/50"} ${onArbitrageClick ? "cursor-pointer" : ""}`}
+        onClick={handleClick}
       >
         {symbolCell}
         {/* Биржа A */}
@@ -136,7 +146,8 @@ const renderRow = (
         </td>
       </tr>
       <tr
-        className={`border-t border-gray-800/30 transition-colors ${isExpanded ? "bg-gray-800/30" : "hover:bg-gray-800/50"}`}
+        className={`border-t border-gray-800/30 transition-colors ${isExpanded ? "bg-gray-800/30" : "hover:bg-gray-800/50"} ${onArbitrageClick ? "cursor-pointer" : ""}`}
+        onClick={handleClick}
       >
         {/* Биржа B */}
         <td className="px-4 py-2 border-l border-gray-800/50">
@@ -187,7 +198,10 @@ const getExchangeColorClass = (exchange: string): string => {
       : "bg-gray-700 text-gray-400";
 };
 
-export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({ data }) => {
+export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
+  data,
+  onArbitrageClick,
+}) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     column: "profitabilityPercent",
     direction: "desc",
@@ -377,7 +391,18 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({ data }) => {
                 <React.Fragment key={group.symbol}>
                   {/* Лучшая связка */}
                   <React.Fragment>
-                    <tr className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
+                    <tr
+                      className={`border-t border-gray-800 hover:bg-gray-800/50 transition-colors ${onArbitrageClick ? "cursor-pointer" : ""}`}
+                      onClick={() => {
+                        if (onArbitrageClick) {
+                          const symbol = group.best.symbol.replace("-USDT", "");
+                          onArbitrageClick(symbol, [
+                            group.best.exchangeA,
+                            group.best.exchangeB,
+                          ]);
+                        }
+                      }}
+                    >
                       {/* Пара + кнопка разворота */}
                       <td
                         className="px-4 py-3 text-center border-l border-gray-800/50 align-middle"
@@ -389,7 +414,10 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({ data }) => {
                           </span>
                           {group.others.length > 0 && (
                             <button
-                              onClick={() => toggleExpand(group.symbol)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(group.symbol);
+                              }}
                               className="p-0.5 rounded hover:bg-gray-700 transition-colors"
                             >
                               {isExpanded ? (
@@ -502,7 +530,18 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({ data }) => {
                         </p>
                       </td>
                     </tr>
-                    <tr className="border-t border-gray-800/30 hover:bg-gray-800/50 transition-colors">
+                    <tr
+                      className={`border-t border-gray-800/30 hover:bg-gray-800/50 transition-colors ${onArbitrageClick ? "cursor-pointer" : ""}`}
+                      onClick={() => {
+                        if (onArbitrageClick) {
+                          const symbol = group.best.symbol.replace("-USDT", "");
+                          onArbitrageClick(symbol, [
+                            group.best.exchangeA,
+                            group.best.exchangeB,
+                          ]);
+                        }
+                      }}
+                    >
                       {/* Биржа B */}
                       <td className="px-4 py-2 border-l border-gray-800/50">
                         <div className="flex items-center gap-2">
@@ -556,6 +595,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({ data }) => {
                         `${item.symbol}-${item.exchangeA}-${item.exchangeB}-extra-${idx}`,
                         false,
                         true,
+                        onArbitrageClick,
                       ),
                     )}
                 </React.Fragment>

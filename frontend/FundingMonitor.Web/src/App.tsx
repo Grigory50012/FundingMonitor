@@ -379,7 +379,13 @@ function App() {
                 </div>
               </div>
             ) : (
-              <ArbitrageTable data={arbitrageData} />
+              <ArbitrageTable
+                data={arbitrageData}
+                onArbitrageClick={(symbol, exchanges) => {
+                  setSelectedCoin(symbol);
+                  setSelectedExchanges(exchanges as ExchangeType[]);
+                }}
+              />
             )}
           </div>
         </div>
