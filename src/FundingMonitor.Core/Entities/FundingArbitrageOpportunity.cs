@@ -15,9 +15,13 @@ public record FundingArbitrageOpportunity
     public decimal PriceSpread => PriceA - PriceB;
     public decimal PriceSpreadPercent => PriceB > 0 ? Math.Abs(PriceA - PriceB) / PriceB * 100m : 0m;
 
+    public required decimal FundingRateA { get; init; }
+    public required decimal FundingRateB { get; init; }
+
     public required decimal APRFundingRateA { get; init; }
     public required decimal APRFundingRateB { get; init; }
     public decimal APRSpread => APRFundingRateA - APRFundingRateB;
+    public decimal FundingRateSpread => FundingRateA - FundingRateB;
 
     public decimal ProfitabilityPercent => Math.Abs(APRSpread);
 

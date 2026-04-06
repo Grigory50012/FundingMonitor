@@ -5,6 +5,7 @@ import {
   CurrentDataTable,
   HistoryPanel,
   HistoryTable,
+  ArbitrageTable,
 } from "./components";
 import type { TimeRangeType } from "./components";
 import { fundingRatesApi } from "./api/fundingRates";
@@ -12,6 +13,7 @@ import type {
   FundingRateDto,
   HistoricalFundingRateDto,
   ExchangeType,
+  FundingArbitrageDto,
 } from "./types";
 
 const DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE"];
@@ -30,6 +32,8 @@ function App() {
   const [allCoins, setAllCoins] = useState<string[]>([]);
   const [isLoadingCurrent, setIsLoadingCurrent] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingArbitrage, setIsLoadingArbitrage] = useState(false);
+  const [arbitrageData, setArbitrageData] = useState<FundingArbitrageDto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [historyViewMode, setHistoryViewMode] =
     useState<HistoryViewMode>("chart");
@@ -104,6 +108,28 @@ function App() {
     }
   }, []);
 
+  // Загрузка арбитражных данных
+  const loadArbitrageData = useCallback(async () => {
+    setIsLoadingArbitrage(true);
+    setError(null);
+
+    try {
+      const data = await fundingRatesApi.getArbitrageSortedByApr({
+        symbol: selectedCoin,
+      });
+      setArbitrageData(data);
+    } catch (err: any) {
+      console.error("Failed to load arbitrage data:", err);
+      setError(
+        err.response?.data?.details ||
+          err.message ||
+          "Не удалось загрузить арбитражные данные",
+      );
+    } finally {
+      setIsLoadingArbitrage(false);
+    }
+  }, [selectedCoin]);
+
   // Загрузка данных при изменении параметров
   useEffect(() => {
     loadCurrentData();
@@ -112,6 +138,10 @@ function App() {
   useEffect(() => {
     loadHistoryData();
   }, [loadHistoryData]);
+
+  useEffect(() => {
+    loadArbitrageData();
+  }, [loadArbitrageData]);
 
   // Загрузка всех монет при старте
   useEffect(() => {
@@ -123,10 +153,11 @@ function App() {
     const interval = setInterval(() => {
       loadCurrentData();
       loadAllCoins();
+      loadArbitrageData();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [loadCurrentData, loadAllCoins]);
+  }, [loadCurrentData, loadAllCoins, loadArbitrageData]);
 
   // Получаем доступные монеты (дефолтные + все из API)
   const availableCoins = Array.from(
@@ -306,6 +337,50 @@ function App() {
                 />
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Арбитражные возможности — на всю ширину */}
+        <div className="mt-6 bg-gray-800/50 rounded-2xl border border-gray-700 p-6 overflow-hidden flex flex-col h-[500px]">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <span className="text-green-400">🔥</span>
+              Арбитражные возможности
+            </h2>
+            <button
+              onClick={loadArbitrageData}
+              disabled={isLoadingArbitrage}
+              className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg font-medium transition-colors flex items-center gap-1.5"
+            >
+              <svg
+                className={`w-3.5 h-3.5 ${isLoadingArbitrage ? "animate-spin" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Обновить
+            </button>
+          </div>
+          <div className="flex-1 min-h-0">
+            {isLoadingArbitrage ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-gray-400">
+                    Загрузка арбитражных данных...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ArbitrageTable data={arbitrageData} />
+            )}
           </div>
         </div>
       </main>

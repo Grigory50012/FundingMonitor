@@ -5,3 +5,4 @@ export { HistoryPanel } from "./HistoryPanel";
 export type { TimeRangeType } from "./HistoryPanel";
 export { TIME_RANGES } from "./HistoryPanel";
 export { HistoryTable } from "./HistoryTable";
+export { ArbitrageTable } from "./ArbitrageTable";

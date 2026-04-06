@@ -68,6 +68,8 @@ public class FundingArbitrageDetector : IFundingArbitrageDetector
                     ExchangeB = rateB.Exchange,
                     PriceA = rateA.MarkPrice,
                     PriceB = rateB.MarkPrice,
+                    FundingRateA = rateA.FundingRate,
+                    FundingRateB = rateB.FundingRate,
                     APRFundingRateA = rateA.APR,
                     APRFundingRateB = rateB.APR,
                     PaymentsA = rateA.NumberOfPaymentsPerDay,

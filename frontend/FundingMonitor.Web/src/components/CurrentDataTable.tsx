@@ -25,10 +25,10 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
 
   // Функция форматирования числа с удалением лишних нулей
   const formatRate = (value: number): string => {
-    // Форматируем с 6 знаками и убираем trailing zeros
+    // Форматируем с 4 знаками и убираем trailing zeros
     return value.toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 6,
+      maximumFractionDigits: 4,
     });
   };
 

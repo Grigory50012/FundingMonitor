@@ -33,6 +33,26 @@ export interface ApiErrorResponse {
   requestId?: string;
 }
 
+export interface FundingArbitrageDto {
+  symbol: string;
+  exchangeA: string;
+  exchangeB: string;
+  priceA: number;
+  priceB: number;
+  priceSpread: number;
+  priceSpreadPercent: number;
+  fundingRateA: number;
+  fundingRateB: number;
+  aprFundingRateA: number;
+  aprFundingRateB: number;
+  aprSpread: number;
+  fundingRateSpread: number;
+  paymentsA: number;
+  paymentsB: number;
+  shortExchange: string;
+  longExchange: string;
+}
+
 export const PERIODS = [
   { label: "1 день", days: 1 },
   { label: "2 дня", days: 2 },
