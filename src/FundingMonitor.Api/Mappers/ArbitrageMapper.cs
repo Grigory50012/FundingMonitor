@@ -26,7 +26,6 @@ public static class ArbitrageMapper
             entity.APRFundingRateA,
             entity.APRFundingRateB,
             entity.APRSpread,
-            entity.ProfitabilityPercent,
             entity.PaymentsA,
             entity.PaymentsB,
             entity.ShortExchange.ToString(),
