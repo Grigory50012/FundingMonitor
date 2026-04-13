@@ -70,8 +70,6 @@ public class FundingArbitrageDetector : IFundingArbitrageDetector
                     PriceB = rateB.MarkPrice,
                     FundingRateA = rateA.FundingRate,
                     FundingRateB = rateB.FundingRate,
-                    APRFundingRateA = rateA.APR,
-                    APRFundingRateB = rateB.APR,
                     PaymentsA = rateA.NumberOfPaymentsPerDay,
                     PaymentsB = rateB.NumberOfPaymentsPerDay
                 });

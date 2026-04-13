@@ -17,17 +17,13 @@ public record FundingArbitrageOpportunity
 
     public required decimal FundingRateA { get; init; }
     public required decimal FundingRateB { get; init; }
-
-    public required decimal APRFundingRateA { get; init; }
-    public required decimal APRFundingRateB { get; init; }
-    public decimal APRSpread => APRFundingRateA - APRFundingRateB;
     public decimal FundingRateSpread => FundingRateA - FundingRateB;
 
-    public decimal ProfitabilityPercent => Math.Abs(APRSpread);
+    public decimal ProfitabilityPercent => Math.Abs(FundingRateSpread);
 
     public required int PaymentsA { get; init; }
     public required int PaymentsB { get; init; }
 
-    public ExchangeType ShortExchange => APRFundingRateA > APRFundingRateB ? ExchangeA : ExchangeB;
-    public ExchangeType LongExchange => APRFundingRateA <= APRFundingRateB ? ExchangeA : ExchangeB;
+    public ExchangeType ShortExchange => FundingRateA > FundingRateB ? ExchangeA : ExchangeB;
+    public ExchangeType LongExchange => FundingRateA <= FundingRateB ? ExchangeA : ExchangeB;
 }
