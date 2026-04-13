@@ -10,6 +10,7 @@ namespace FundingMonitor.Api.Models.Dtos;
 /// <param name="TotalFundingRatePercent">Суммарная ставка финансирования за период в процентах</param>
 /// <param name="PaymentsCount">Количество выплат за период</param>
 /// <param name="AvgFundingRatePercent">Средняя ставка за выплату в процентах</param>
+/// <param name="StdDev">Среднеквадратическое отклонение ставки за период в процентах</param>
 public record AprPeriodStatsDto(
     string Exchange,
     string Period,
@@ -17,5 +18,6 @@ public record AprPeriodStatsDto(
     decimal Apr,
     decimal TotalFundingRatePercent,
     int PaymentsCount,
-    decimal AvgFundingRatePercent
+    decimal AvgFundingRatePercent,
+    decimal StdDev
 );

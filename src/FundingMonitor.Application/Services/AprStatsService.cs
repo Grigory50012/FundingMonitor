@@ -119,6 +119,12 @@ public class AprStatsService : IAprStatsService
                     var apr = totalFundingRate * 100 * (365m / days);
                     var avgFundingRate = totalFundingRate / ratesForPeriod.Count;
 
+                    // Расчёт среднеквадратического отклонения
+                    var variance = ratesForPeriod
+                        .Select(h => Math.Pow((double)(h.FundingRate - avgFundingRate), 2))
+                        .Average();
+                    var stdDev = (decimal)Math.Sqrt(variance) * 100m;
+
                     var periodLabel = GetPeriodLabel(days);
 
                     result.Add(new AprPeriodStats
@@ -129,7 +135,8 @@ public class AprStatsService : IAprStatsService
                         Apr = apr,
                         TotalFundingRatePercent = totalFundingRate * 100,
                         PaymentsCount = ratesForPeriod.Count,
-                        AvgFundingRatePercent = avgFundingRate * 100
+                        AvgFundingRatePercent = avgFundingRate * 100,
+                        StdDev = stdDev
                     });
                 }
             }

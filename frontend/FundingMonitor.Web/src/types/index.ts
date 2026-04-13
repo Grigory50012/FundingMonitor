@@ -25,6 +25,7 @@ export interface AprPeriodStatsDto {
   totalFundingRatePercent: number;
   paymentsCount: number;
   avgFundingRatePercent: number;
+  stdDev: number;
 }
 
 export interface ApiErrorResponse {

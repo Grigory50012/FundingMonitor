@@ -39,4 +39,9 @@ public record AprPeriodStats
     ///     Средняя ставка за выплату в процентах
     /// </summary>
     public decimal AvgFundingRatePercent { get; init; }
+
+    /// <summary>
+    ///     Среднеквадратическое отклонение ставки за период в процентах
+    /// </summary>
+    public decimal StdDev { get; init; }
 }

@@ -299,6 +299,10 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                           <span>•</span>
                           <span>{stat.avgFundingRatePercent.toFixed(3)}%</span>
                         </div>
+                        <div className="flex items-center gap-1 text-xs text-purple-400">
+                          <span>σ</span>
+                          <span>{(stat.stdDev ?? 0).toFixed(4)}%</span>
+                        </div>
                       </div>
                     </td>
                   );
@@ -320,6 +324,9 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
           <span className="text-gray-600">число</span> — количество выплат.
           <span className="mx-2">|</span>
           <span className="text-gray-600">%</span> — средняя ставка за выплату.
+          <span className="mx-2">|</span>
+          <span className="text-purple-400">σ</span> — среднеквадратическое
+          отклонение (волатильность).
         </p>
       </div>
     </div>

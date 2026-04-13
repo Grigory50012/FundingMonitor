@@ -55,7 +55,8 @@ public static class DomainToDtoMapper
             entity.Apr,
             entity.TotalFundingRatePercent,
             entity.PaymentsCount,
-            entity.AvgFundingRatePercent
+            entity.AvgFundingRatePercent,
+            entity.StdDev
         );
     }
 
