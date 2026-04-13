@@ -26,10 +26,10 @@ interface SymbolGroup {
 
 // Хелпер для расчёта спрэда фандинга
 const calcFundingSpread = (item: FundingArbitrageDto): number => {
-  return (
+  const spread =
     item.fundingRateSpread ??
-    ((item.fundingRateA ?? 0) - (item.fundingRateB ?? 0)) * 100
-  );
+    (item.fundingRateA ?? 0) - (item.fundingRateB ?? 0);
+  return spread * 100;
 };
 
 const calcFundingRate = (rate: number): number => rate * 100;
