@@ -34,7 +34,6 @@ export const fundingRatesApi = {
     const response = await apiClient.get<FundingRateDto[]>(
       `/FundingRates?${queryParams.toString()}`,
     );
-    console.log("getCurrentRates response:", response.data);
     return Array.isArray(response.data) ? response.data : [];
   },
 

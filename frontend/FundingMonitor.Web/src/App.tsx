@@ -14,6 +14,9 @@ import type {
   ExchangeType,
   FundingArbitrageDto,
 } from "./types";
+import { useCurrentRates, useHistoryRates, useArbitrageRates } from "./hooks/useFundingRates";
+import { useLocalStorage } from "./hooks/useLocalStorage";
+import { STORAGE_KEYS } from "./config/storageKeys";
 
 const DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE"];
 
@@ -24,110 +27,52 @@ interface FilterState {
   symbol: string;
 }
 
-const STORAGE_KEYS = {
-  mainFilters: "fundingMonitor.mainFilters",
-  arbitrageFilters: "fundingMonitor.arbitrageFilters",
-};
-
 function App() {
-  const [mainFilters, setMainFilters] = useState<FilterState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.mainFilters);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return { exchanges: [], symbol: "BTC" };
-      }
-    }
-    return { exchanges: [], symbol: "BTC" };
+  // mainFilters хранится в localStorage через хук useLocalStorage
+  const [mainFilters, setMainFilters] = useLocalStorage<FilterState>(STORAGE_KEYS.mainFilters, {
+    exchanges: [],
+    symbol: "BTC",
   });
 
-  const [arbitrageFilters, setArbitrageFilters] = useState<FilterState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.arbitrageFilters);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        // Default to empty symbol (show all arbitrage opportunities by default)
-        return { exchanges: [], symbol: "" };
-      }
-    }
-    // Default to empty symbol (show all arbitrage opportunities by default)
-    return { exchanges: [], symbol: "" };
+  const [arbitrageFilters, setArbitrageFilters] = useLocalStorage<FilterState>(STORAGE_KEYS.arbitrageFilters, {
+    exchanges: [],
+    symbol: "",
   });
 
-  const [currentData, setCurrentData] = useState<FundingRateDto[]>([]);
-  const [historyData, setHistoryData] = useState<HistoricalFundingRateDto[]>(
-    [],
-  );
+  // Data loading via hooks (refactor Step 1)
+  const {
+    data: currentData,
+    isLoading: isLoadingCurrent,
+    error: currentError,
+    refresh: refreshCurrent,
+  } = useCurrentRates({ symbol: mainFilters.symbol, exchanges: mainFilters.exchanges.length > 0 ? mainFilters.exchanges : undefined });
+
+  const historySymbol = mainFilters.symbol && mainFilters.symbol.length > 0
+    ? (mainFilters.symbol.includes("-") ? mainFilters.symbol : `${mainFilters.symbol}-USDT`)
+    : "";
+  const {
+    data: historyData,
+    isLoading: isLoadingHistory,
+    error: historyError,
+    refresh: refreshHistory,
+  } = useHistoryRates({ symbol: historySymbol, exchanges: mainFilters.exchanges.length > 0 ? mainFilters.exchanges : undefined, limit: 1000 });
+
+  const {
+    data: arbitrageData,
+    isLoading: isLoadingArbitrage,
+    error: arbitrageError,
+    refresh: refreshArbitrage,
+  } = useArbitrageRates({ symbol: arbitrageFilters.symbol || undefined, exchanges: arbitrageFilters.exchanges.length > 0 ? arbitrageFilters.exchanges : undefined });
+
   const [allCoins, setAllCoins] = useState<string[]>([]);
-  const [isLoadingCurrent, setIsLoadingCurrent] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [isLoadingArbitrage, setIsLoadingArbitrage] = useState(false);
-  const [arbitrageData, setArbitrageData] = useState<FundingArbitrageDto[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  // Aggregate error from all data hooks
+  const errorMessage = currentError ?? historyError ?? arbitrageError ?? null;
   const [historyViewMode, setHistoryViewMode] =
     useState<HistoryViewMode>("chart");
   const [timeRange, setTimeRange] = useState<TimeRangeType>("1d");
 
-  // Загрузка текущих данных
-  const loadCurrentData = useCallback(async () => {
-    if (!mainFilters.symbol) return;
-
-    setIsLoadingCurrent(true);
-    setError(null);
-
-    try {
-      const data = await fundingRatesApi.getCurrentRates({
-        symbol: mainFilters.symbol,
-        exchanges:
-          mainFilters.exchanges.length > 0 ? mainFilters.exchanges : undefined,
-      });
-      setCurrentData(data);
-    } catch (err: any) {
-      console.error("Failed to load current data:", err);
-      setError(
-        err.response?.data?.details ||
-          err.message ||
-          "Не удалось загрузить текущие данные",
-      );
-    } finally {
-      setIsLoadingCurrent(false);
-    }
-  }, [mainFilters.symbol, mainFilters.exchanges]);
-
-  // Загрузка исторических данных
-  const loadHistoryData = useCallback(async () => {
-    if (!mainFilters.symbol) return;
-
-    setIsLoadingHistory(true);
-    setError(null);
-
-    try {
-      // Для истории нужен полный символ с -USDT
-      const historySymbol = mainFilters.symbol.includes("-")
-        ? mainFilters.symbol
-        : `${mainFilters.symbol}-USDT`;
-
-      const data = await fundingRatesApi.getHistory({
-        symbol: historySymbol,
-        exchanges:
-          mainFilters.exchanges.length > 0 ? mainFilters.exchanges : undefined,
-        limit: 1000,
-      });
-      setHistoryData(data);
-    } catch (err: any) {
-      console.error("Failed to load history data:", err);
-      setError(
-        err.response?.data?.details ||
-          err.message ||
-          "Не удалось загрузить исторические данные",
-      );
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  }, [mainFilters.symbol, mainFilters.exchanges]);
-
+  // Загрузка текущих данных и историй теперь через кастомные хуки (refactor Step 1)
+  // Вспомогательные данные (coins) — пока сохраняем существующую логику
   // Загрузка всех доступных монет
   const loadAllCoins = useCallback(async () => {
     try {
@@ -141,69 +86,14 @@ function App() {
     }
   }, []);
 
-  // Загрузка арбитражных данных
-  const loadArbitrageData = useCallback(async () => {
-    setIsLoadingArbitrage(true);
-    setError(null);
+  // Загрузка арбитражных данных перенесена в хук useArbitrageRates
 
-    try {
-      const data = await fundingRatesApi.getArbitrageOpportunities({
-        symbol: arbitrageFilters.symbol || undefined,
-        exchanges:
-          arbitrageFilters.exchanges.length > 0
-            ? arbitrageFilters.exchanges
-            : undefined,
-      });
-      setArbitrageData(data);
-    } catch (err: any) {
-      console.error("Failed to load arbitrage data:", err);
-      setError(
-        err.response?.data?.details ||
-          err.message ||
-          "Не удалось загрузить арбитражные данные",
-      );
-    } finally {
-      setIsLoadingArbitrage(false);
-    }
-  }, [arbitrageFilters.symbol, arbitrageFilters.exchanges]);
+  // Локальное хранилище управляется хуком useLocalStorage
 
-  // Сохранение фильтров в localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.mainFilters, JSON.stringify(mainFilters));
-  }, [mainFilters]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEYS.arbitrageFilters,
-      JSON.stringify(arbitrageFilters),
-    );
-  }, [arbitrageFilters]);
-
-  useEffect(() => {
-    loadCurrentData();
-  }, [loadCurrentData]);
-
-  useEffect(() => {
-    loadHistoryData();
-  }, [loadHistoryData]);
-
-  useEffect(() => {
-    loadArbitrageData();
-  }, [loadArbitrageData]);
-
+  // Логика загрузки вынесена в кастомные хуки. Поддерживаем загрузку монет разово
   useEffect(() => {
     loadAllCoins();
   }, [loadAllCoins]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadCurrentData();
-      loadAllCoins();
-      loadArbitrageData();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [loadCurrentData, loadAllCoins, loadArbitrageData]);
 
   // Получаем доступные монеты (дефолтные + все из API)
   const availableCoins = Array.from(
@@ -217,7 +107,7 @@ function App() {
     >
       {/* Основной контент */}
       <main className="max-w-[1920px] mx-auto p-6">
-        {error && (
+        {errorMessage && (
           <div
             className="mb-6 p-4 rounded-xl"
             style={{
@@ -226,7 +116,7 @@ function App() {
               color: "var(--tg-negative)",
             }}
           >
-            {error}
+            {errorMessage}
           </div>
         )}
 
@@ -259,8 +149,8 @@ function App() {
               </div>
               <button
                 onClick={() => {
-                  loadCurrentData();
-                  loadHistoryData();
+                  refreshCurrent?.();
+                  refreshHistory?.();
                 }}
                 disabled={isLoadingCurrent || isLoadingHistory}
                 className="px-3 py-1.5 text-sm rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:cursor-not-allowed"
@@ -455,7 +345,7 @@ function App() {
               />
             </div>
             <button
-              onClick={loadArbitrageData}
+              onClick={refreshArbitrage}
               disabled={isLoadingArbitrage}
               className="px-3 py-1.5 text-sm rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:cursor-not-allowed"
               style={{
