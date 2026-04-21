@@ -12,22 +12,8 @@ import {
 } from "recharts";
 import type { HistoricalFundingRateDto, ExchangeType } from "../types";
 import { EXCHANGE_COLORS } from "../types";
-
-export type TimeRangeType = "1d" | "2d" | "3d" | "1w" | "2w" | "3w" | "1m";
-
-export const TIME_RANGES: {
-  value: TimeRangeType;
-  label: string;
-  days: number;
-}[] = [
-  { value: "1d", label: "1 день", days: 1 },
-  { value: "2d", label: "2 дня", days: 2 },
-  { value: "3d", label: "3 дня", days: 3 },
-  { value: "1w", label: "1 неделя", days: 7 },
-  { value: "2w", label: "2 недели", days: 14 },
-  { value: "3w", label: "3 недели", days: 21 },
-  { value: "1m", label: "1 месяц", days: 30 },
-];
+import type { TimeRangeType } from "../types/history";
+import { TIME_RANGES } from "../types/history";
 
 interface HistoryPanelProps {
   data: HistoricalFundingRateDto[];
@@ -192,10 +178,25 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     [filteredData],
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  type TooltipDatum = {
+    time?: string;
+    xAxisLabel?: string;
+    tooltipTime?: string;
+    timestamp?: number;
+    rawTime?: Date;
+    [key: string]: number | string | Date | undefined;
+  };
+  type TooltipPayloadEntry = {
+    dataKey?: string;
+    color?: string;
+    payload?: TooltipDatum;
+  };
+  type TooltipPayload = TooltipPayloadEntry[];
+  const CustomTooltip: React.FC<{ active?: boolean; payload?: TooltipPayload }>
+    = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const payloadData = payload[0]?.payload;
-      const rawTime = payloadData?.rawTime;
+      const rawTime = payloadData?.rawTime as Date | undefined;
       const dateStr = rawTime
         ? new Date(rawTime).toLocaleString("ru-RU", {
             day: "2-digit",
@@ -203,27 +204,23 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             hour: "2-digit",
             minute: "2-digit",
           })
-        : payloadData?.tooltipTime || "00:00";
+        : (payloadData?.tooltipTime ?? "00:00");
 
       return (
         <div className="rounded-xl p-3 shadow-xl" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
           <p className="text-sm mb-2 font-medium" style={{ color: 'var(--tg-text-secondary)' }}>{dateStr}</p>
           {/* Показываем все биржи, а не только те, что есть в payload */}
           {allExchanges.map((exchange) => {
-            const value = payloadData?.[exchange];
-            if (value === undefined || value === null) return null;
+            const value = payloadData ? (payloadData as { [key: string]: number | string | Date | undefined })[exchange] : undefined;
+            if (typeof value !== "number") return null;
 
             // Находим цвет для биржи
-            const line = payload.find((p: any) => p.dataKey === exchange);
-            const color =
-              line?.color || EXCHANGE_COLORS[exchange as ExchangeType];
+            const line = payload.find((p) => p.dataKey === exchange);
+            const color = line?.color || EXCHANGE_COLORS[exchange as ExchangeType];
 
             return (
               <div key={exchange} className="flex items-center gap-2 text-sm">
-                <span
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: color }}
-                />
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
                 <span style={{ color: 'var(--tg-text-secondary)' }}>{exchange}:</span>
                 <span
                   className="font-semibold"

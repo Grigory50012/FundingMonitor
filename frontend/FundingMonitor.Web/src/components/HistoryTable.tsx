@@ -52,9 +52,10 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
             selectedExchanges.length > 0 ? selectedExchanges : undefined,
         });
         setData(stats);
-      } catch (err: any) {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Ошибка загрузки данных";
         console.error("Failed to load APR stats:", err);
-        setError(err.message || "Ошибка загрузки данных");
+        setError(message);
       } finally {
         setIsLoading(false);
       }

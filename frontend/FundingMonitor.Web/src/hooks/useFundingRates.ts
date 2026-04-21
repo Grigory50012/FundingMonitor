@@ -33,11 +33,11 @@ export function useCurrentRates(params?: CurrentParams) {
         includeInactive: params?.includeInactive,
       });
       setData(res);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.details ||
-        err?.message ||
-        "Не удалось загрузить текущие данные";
+    } catch (err: unknown) {
+      const isObj = typeof err === "object" && err !== null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const detail = isObj ? (err as any).response?.data?.details : undefined;
+      const msg = detail ?? (isObj ? (err as any).message : undefined) ?? "Не удалось загрузить текущие данные";
       console.error("Failed to load current data:", err);
       setError(msg);
     } finally {
@@ -82,11 +82,10 @@ export function useHistoryRates(params?: HistoryParams) {
         limit: params?.limit,
       });
       setData(res);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.details ||
-        err?.message ||
-        "Не удалось загрузить исторические данные";
+    } catch (err: unknown) {
+      const isObj = typeof err === "object" && err !== null;
+      const detail = isObj ? (err as any).response?.data?.details : undefined;
+      const msg = detail ?? (isObj ? (err as any).message : undefined) ?? "Не удалось загрузить исторические данные";
       console.error("Failed to load history data:", err);
       setError(msg);
     } finally {
@@ -120,11 +119,10 @@ export function useArbitrageRates(params?: ArbitrageParams) {
         exchanges: params?.exchanges?.length ? params.exchanges : undefined,
       });
       setData(res);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.details ||
-        err?.message ||
-        "Не удалось загрузить арбитражные данные";
+    } catch (err: unknown) {
+      const isObj = typeof err === "object" && err !== null;
+      const detail = isObj ? (err as any).response?.data?.details : undefined;
+      const msg = detail ?? (isObj ? (err as any).message : undefined) ?? "Не удалось загрузить арбитражные данные";
       console.error("Failed to load arbitrage data:", err);
       setError(msg);
     } finally {
