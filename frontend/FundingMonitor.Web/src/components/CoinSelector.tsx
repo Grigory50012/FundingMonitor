@@ -33,16 +33,20 @@ export const CoinSelector: React.FC<CoinSelectorProps> = ({
 
   return (
     <div className="relative">
-      <label className="text-sm font-medium text-gray-300 block mb-2">
+      <label className="text-sm font-medium block mb-2" style={{ color: 'var(--tg-text-secondary)' }}>
         Монета
       </label>
 
       {/* Кнопка выбора */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full min-w-[200px] bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white 
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                   hover:border-gray-600 transition-colors flex items-center justify-between gap-2"
+        className="w-full min-w-[200px] rounded-xl px-4 py-2.5 
+                   focus:outline-none transition-all flex items-center justify-between gap-2"
+        style={{
+          backgroundColor: 'var(--tg-bg-tertiary)',
+          border: '1px solid var(--tg-border)',
+          color: 'var(--tg-text)',
+        }}
       >
         <span className="font-semibold">
           {selectedCoin || "Выберите монету"}
@@ -72,24 +76,30 @@ export const CoinSelector: React.FC<CoinSelectorProps> = ({
           />
 
           {/* Контейнер списка */}
-          <div className="absolute z-20 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+          <div className="absolute z-20 mt-2 w-80 rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
             {/* Поиск */}
-            <div className="p-3 border-b border-gray-700">
+            <div className="p-3" style={{ borderBottom: '1px solid var(--tg-border)' }}>
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Поиск монеты..."
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 pl-10 text-white 
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                  className="w-full rounded-xl px-4 py-2.5 pl-10 
+                             focus:outline-none placeholder-opacity-50"
+                  style={{
+                    backgroundColor: 'var(--tg-bg-tertiary)',
+                    border: '1px solid var(--tg-border)',
+                    color: 'var(--tg-text)',
+                  }}
                   autoFocus
                 />
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  style={{ color: 'var(--tg-hint)' }}
                 >
                   <path
                     strokeLinecap="round"
@@ -101,7 +111,8 @@ export const CoinSelector: React.FC<CoinSelectorProps> = ({
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--tg-hint)' }}
                   >
                     <svg
                       className="w-4 h-4"
@@ -124,7 +135,7 @@ export const CoinSelector: React.FC<CoinSelectorProps> = ({
             {/* Список монет */}
             <div className="max-h-96 overflow-auto">
               {displayCoins.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center" style={{ color: 'var(--tg-text-tertiary)' }}>
                   {searchQuery ? "Монеты не найдены" : "Нет доступных монет"}
                 </div>
               ) : (
@@ -132,20 +143,25 @@ export const CoinSelector: React.FC<CoinSelectorProps> = ({
                   <button
                     key={coin}
                     onClick={() => handleSelectCoin(coin)}
-                    className={`w-full px-4 py-3 text-left hover:bg-gray-700 transition-colors flex items-center justify-between ${
-                      selectedCoin === coin ? "bg-blue-900/30" : ""
-                    }`}
+                    className="w-full px-4 py-3 text-left transition-all flex items-center justify-between"
+                    style={{
+                      backgroundColor: selectedCoin === coin ? 'rgba(0, 136, 204, 0.15)' : 'transparent',
+                    }}
                   >
                     <span
-                      className={`font-medium ${selectedCoin === coin ? "text-blue-400" : "text-white"}`}
+                      className="font-medium"
+                      style={{
+                        color: selectedCoin === coin ? 'var(--tg-link)' : 'var(--tg-text)',
+                      }}
                     >
                       {coin}
                     </span>
                     {selectedCoin === coin && (
                       <svg
-                        className="w-5 h-5 text-blue-400"
+                        className="w-5 h-5"
                         fill="currentColor"
                         viewBox="0 0 20 20"
+                        style={{ color: 'var(--tg-link)' }}
                       >
                         <path
                           fillRule="evenodd"
@@ -161,7 +177,7 @@ export const CoinSelector: React.FC<CoinSelectorProps> = ({
 
             {/* Инфо о количестве */}
             {filteredCoins.length > 100 && (
-              <div className="px-4 py-2 bg-gray-900/50 border-t border-gray-700 text-xs text-gray-500 text-center">
+              <div className="px-4 py-2 text-xs text-center" style={{ backgroundColor: 'var(--tg-bg-tertiary)', borderTop: '1px solid var(--tg-border)', color: 'var(--tg-text-tertiary)' }}>
                 Показано 100 из {filteredCoins.length} монет
                 {searchQuery && " (уточните поиск)"}
               </div>

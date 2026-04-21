@@ -193,7 +193,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-text-secondary)' }}>
         <p>Загрузка данных...</p>
       </div>
     );
@@ -201,7 +201,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full text-red-400">
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-negative)' }}>
         <p>Ошибка: {error}</p>
       </div>
     );
@@ -209,7 +209,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
 
   if (filteredData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-text-tertiary)' }}>
         <p>Нет исторических данных для отображения</p>
       </div>
     );
@@ -219,17 +219,18 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
     <div className="h-full overflow-auto">
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
-          <thead className="bg-gray-800 sticky top-0 z-10">
+          <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
             <tr>
-              <th className="px-4 py-3 text-left text-gray-400 font-medium sticky left-0 bg-gray-800 z-20 min-w-[120px] border-b border-gray-700">
+              <th className="px-4 py-3 text-left font-medium sticky left-0 z-20 min-w-[120px] border-b" style={{ backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
                 Биржа
               </th>
               {PERIODS.map(({ label }) => (
                 <th
                   key={label}
-                  className="px-4 py-3 text-center text-gray-400 font-medium min-w-[160px] border-b border-gray-700 cursor-pointer hover:bg-gray-700 transition-colors"
+                  className="px-4 py-3 text-center font-medium min-w-[160px] border-b cursor-pointer transition-colors"
                   onClick={() => handleSort(label, "apr")}
                   title="Кликните для сортировки бирж по APR"
+                  style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span>{label}</span>
@@ -243,17 +244,16 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
             {sortedExchanges.map((exchange) => (
               <tr
                 key={exchange}
-                className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors"
+                className="border-t transition-colors"
+                style={{ borderColor: 'var(--tg-border)' }}
               >
-                <td className="px-4 py-4 text-white font-medium sticky left-0 bg-gray-900 z-10 border-r border-gray-700/50">
+                <td className="px-4 py-4 font-medium sticky left-0 z-10 border-r" style={{ backgroundColor: 'var(--tg-bg)', color: 'var(--tg-text)', borderColor: 'var(--tg-border)' }}>
                   <span
-                    className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                      exchange === "Binance"
-                        ? "bg-yellow-900/50 text-yellow-400"
-                        : exchange === "Bybit"
-                          ? "bg-orange-900/50 text-orange-400"
-                          : "bg-gray-700 text-gray-400"
-                    }`}
+                    className="px-3 py-1.5 rounded-xl text-sm font-semibold"
+                    style={{
+                      backgroundColor: exchange === "Binance" ? 'rgba(241, 196, 15, 0.15)' : exchange === "Bybit" ? 'rgba(230, 126, 34, 0.15)' : 'var(--tg-bg-tertiary)',
+                      color: exchange === "Binance" ? '#F1C40F' : exchange === "Bybit" ? '#E67E22' : 'var(--tg-text-secondary)',
+                    }}
                   >
                     {exchange}
                   </span>
@@ -267,7 +267,8 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                     return (
                       <td
                         key={label}
-                        className="px-4 py-4 text-center text-gray-600 border-l border-gray-800/50"
+                        className="px-4 py-4 text-center border-l"
+                        style={{ borderColor: 'var(--tg-border)', color: 'var(--tg-text-tertiary)' }}
                       >
                         —
                       </td>
@@ -277,29 +278,27 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                   return (
                     <td
                       key={label}
-                      className="px-4 py-4 text-center border-l border-gray-800/50"
+                      className="px-4 py-4 text-center border-l"
+                      style={{ borderColor: 'var(--tg-border)' }}
                     >
                       <div className="flex flex-col items-center gap-1">
                         <p
-                          className={`text-lg font-bold ${
-                            stat.apr > 0
-                              ? "text-green-400"
-                              : stat.apr < 0
-                                ? "text-red-400"
-                                : "text-gray-400"
-                          }`}
+                          className="text-lg font-bold"
+                          style={{
+                            color: stat.apr > 0 ? 'var(--tg-positive)' : stat.apr < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
+                          }}
                         >
                           {stat.apr.toFixed(2)}%
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs" style={{ color: 'var(--tg-text-secondary)' }}>
                           ∑ {stat.totalFundingRatePercent.toFixed(3)}%
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
                           <span>{stat.paymentsCount}</span>
                           <span>•</span>
                           <span>{stat.avgFundingRatePercent.toFixed(3)}%</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-purple-400">
+                        <div className="flex items-center gap-1 text-xs" style={{ color: '#BB86FC' }}>
                           <span>σ</span>
                           <span>{(stat.stdDev ?? 0).toFixed(4)}%</span>
                         </div>
@@ -314,18 +313,18 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
       </div>
 
       {/* Пояснение */}
-      <div className="mt-4 pt-4 border-t border-gray-700">
-        <p className="text-xs text-gray-500">
-          <span className="text-green-400 font-medium">APR</span> — годовой
+      <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--tg-border)' }}>
+        <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
+          <span className="font-medium" style={{ color: 'var(--tg-positive)' }}>APR</span> — годовой
           процент на основе суммарной ставки за период.
           <span className="mx-2">|</span>
-          <span className="text-gray-400">∑</span> — суммарная ставка за период.
+          <span style={{ color: 'var(--tg-text-secondary)' }}>∑</span> — суммарная ставка за период.
           <span className="mx-2">|</span>
-          <span className="text-gray-600">число</span> — количество выплат.
+          <span>число</span> — количество выплат.
           <span className="mx-2">|</span>
-          <span className="text-gray-600">%</span> — средняя ставка за выплату.
+          <span>%</span> — средняя ставка за выплату.
           <span className="mx-2">|</span>
-          <span className="text-purple-400">σ</span> — среднеквадратическое
+          <span style={{ color: '#BB86FC' }}>σ</span> — среднеквадратическое
           отклонение (волатильность).
         </p>
       </div>

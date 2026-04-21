@@ -40,7 +40,7 @@ public class FundingArbitrageDetector : IFundingArbitrageDetector
         }
 
         var opportunities = new List<FundingArbitrageOpportunity>();
-        var groupedBySymbol = ratesList.GroupBy(r => r.NormalizedSymbol);
+        var groupedBySymbol = ratesList.GroupBy(r => r.BaseAsset);
 
         foreach (var symbolGroup in groupedBySymbol)
         {
@@ -73,10 +73,6 @@ public class FundingArbitrageDetector : IFundingArbitrageDetector
                     PaymentsA = rateA.NumberOfPaymentsPerDay,
                     PaymentsB = rateB.NumberOfPaymentsPerDay
                 });
-
-                _logger.LogDebug(
-                    "Found: {Symbol} | {A}: {AprA:F2}% vs {B}: {AprB:F2}% | Diff: {Diff:F2}%",
-                    symbolGroup.Key, rateA.Exchange, rateA.APR, rateB.Exchange, rateB.APR, aprDiff);
             }
         }
 

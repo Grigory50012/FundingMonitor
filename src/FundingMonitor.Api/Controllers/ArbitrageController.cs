@@ -1,5 +1,6 @@
 using FundingMonitor.Api.Mappers;
 using FundingMonitor.Api.Models.Dtos;
+using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,22 +19,16 @@ public class ArbitrageController : ControllerBase
     }
 
     /// <summary>
-    ///     Получить арбитражные возможности по символу
+    ///     Получить арбитражные возможности с фильтрацией по символу и биржам
     /// </summary>
-    [HttpGet("symbol/{symbol}")]
+    [HttpGet]
     [ProducesResponseType(typeof(List<FundingArbitrageDto>), StatusCodes.Status200OK)]
-    public ActionResult<List<FundingArbitrageDto>> GetBySymbol(string symbol)
+    public ActionResult<List<FundingArbitrageDto>> GetArbitrageOpportunities(
+        [FromQuery] string? symbol = null,
+        [FromQuery] string? exchanges = null)
     {
-        return Ok(_service.GetBySymbol(symbol).ToArbitrageDtoList());
-    }
+        var exchangeList = exchanges.ParseExchanges();
 
-    /// <summary>
-    ///     Получить арбитражные возможности, отсортированные по разнице APR (по доходности)
-    /// </summary>
-    [HttpGet("sorted-by-apr")]
-    [ProducesResponseType(typeof(List<FundingArbitrageDto>), StatusCodes.Status200OK)]
-    public ActionResult<List<FundingArbitrageDto>> GetSortedByProfitabilityPercent()
-    {
-        return Ok(_service.GetSortedByAprDiff().ToArbitrageDtoList());
+        return Ok(_service.GetSortedByAprDiff(symbol, exchangeList).ToArbitrageDtoList());
     }
 }

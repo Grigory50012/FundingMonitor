@@ -25,18 +25,18 @@ export const ExchangeSelector: React.FC<ExchangeSelectorProps> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-gray-300">Биржи</label>
+      <label className="text-sm font-medium" style={{ color: 'var(--tg-text-secondary)' }}>Биржи</label>
       <div className="flex flex-wrap gap-2">
         {exchanges.map((exchange) => (
           <button
             key={exchange}
             onClick={() => toggleExchange(exchange)}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 
-                       ${
-                         selectedExchanges.includes(exchange)
-                           ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                           : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
-                       }`}
+            className="px-4 py-2 rounded-xl font-medium transition-all duration-200"
+            style={{
+              backgroundColor: selectedExchanges.includes(exchange) ? 'var(--tg-button)' : 'var(--tg-bg-tertiary)',
+              color: selectedExchanges.includes(exchange) ? 'var(--tg-button-text)' : 'var(--tg-text-secondary)',
+              border: selectedExchanges.includes(exchange) ? '1px solid var(--tg-button)' : '1px solid var(--tg-border)',
+            }}
           >
             {exchange}
           </button>
@@ -45,13 +45,15 @@ export const ExchangeSelector: React.FC<ExchangeSelectorProps> = ({
       <div className="flex gap-2 mt-1">
         <button
           onClick={selectAll}
-          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-xs transition-colors"
+          style={{ color: 'var(--tg-link)' }}
         >
           Выбрать все
         </button>
         <button
           onClick={deselectAll}
-          className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+          className="text-xs transition-colors"
+          style={{ color: 'var(--tg-text-tertiary)' }}
         >
           Сбросить
         </button>

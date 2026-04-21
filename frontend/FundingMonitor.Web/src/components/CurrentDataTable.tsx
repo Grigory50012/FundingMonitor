@@ -23,13 +23,15 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
     direction: null,
   });
 
-  // Функция форматирования числа с удалением лишних нулей
-  const formatRate = (value: number): string => {
-    // Форматируем с 4 знаками и убираем trailing zeros
+  // Unified formatting helpers
+  const formatFixed = (value: number, digits: number): string => {
     return value.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 4,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
     });
+  };
+  const formatFundingPct = (value: number): string => {
+    return formatFixed(value, 4);
   };
 
   const filteredData = data.filter(
@@ -147,7 +149,10 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
 
   if (sortedData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div
+        className="flex items-center justify-center h-full"
+        style={{ color: "var(--tg-text-tertiary)" }}
+      >
         <p>Нет данных для отображения</p>
       </div>
     );
@@ -157,41 +162,67 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
     <div className="h-full overflow-auto">
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
-          <thead className="bg-gray-800 sticky top-0 z-10">
+          <thead
+            className="sticky top-0 z-10"
+            style={{ backgroundColor: "var(--tg-bg-secondary)" }}
+          >
             <tr>
-              <th className="px-4 py-3 text-left text-gray-400 font-medium sticky left-0 bg-gray-800 z-20 min-w-[120px] border-b border-gray-700">
+              <th
+                className="px-4 py-1 text-left font-medium sticky left-0 z-20 min-w-[120px] border-b"
+                style={{
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
                 Биржа
               </th>
               <th
-                className="px-4 py-3 text-center text-gray-400 font-medium min-w-[140px] border-b border-gray-700 cursor-pointer hover:bg-gray-700 transition-colors"
+                className="px-4 py-3 text-center font-medium min-w-[140px] border-b cursor-pointer transition-colors"
                 onClick={() => handleSort("markPrice")}
+                style={{
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span>Mark Price</span>
+                  <span>Цена маркировки</span>
                   <SortIcon column="markPrice" />
                 </div>
               </th>
               <th
-                className="px-4 py-3 text-center text-gray-400 font-medium min-w-[140px] border-b border-gray-700 cursor-pointer hover:bg-gray-700 transition-colors"
+                className="px-4 py-3 text-center font-medium min-w-[120px] border-b cursor-pointer transition-colors"
                 onClick={() => handleSort("fundingRate")}
+                style={{
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span>Funding Rate</span>
+                  <span>Ставка финансирования</span>
                   <SortIcon column="fundingRate" />
                 </div>
               </th>
               <th
-                className="px-4 py-3 text-center text-gray-400 font-medium min-w-[140px] border-b border-gray-700 cursor-pointer hover:bg-gray-700 transition-colors"
+                className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors"
                 onClick={() => handleSort("nextFundingTime")}
+                style={{
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span>Next Funding</span>
+                  <span>Время выплаты</span>
                   <SortIcon column="nextFundingTime" />
                 </div>
               </th>
               <th
-                className="px-4 py-3 text-center text-gray-400 font-medium min-w-[140px] border-b border-gray-700 cursor-pointer hover:bg-gray-700 transition-colors"
+                className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors"
                 onClick={() => handleSort("apr")}
+                style={{
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>APR</span>
@@ -204,53 +235,88 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
             {sortedData.map((item) => (
               <tr
                 key={`${item.exchange}-${item.symbol}`}
-                className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors"
+                className="border-t transition-colors"
+                style={{ borderColor: "var(--tg-border)" }}
               >
-                <td className="px-4 py-4 text-white font-medium sticky left-0 bg-gray-900 z-10 border-r border-gray-700/50">
+                <td
+                  className="px-4 py-4 font-medium sticky left-0 z-10 border-r"
+                  style={{
+                    backgroundColor: "var(--tg-bg)",
+                    color: "var(--tg-text)",
+                    borderColor: "var(--tg-border)",
+                  }}
+                >
                   <div className="flex flex-col gap-1">
                     <span
-                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold w-fit ${
-                        item.exchange === "Binance"
-                          ? "bg-yellow-900/50 text-yellow-400"
-                          : item.exchange === "Bybit"
-                            ? "bg-orange-900/50 text-orange-400"
-                            : "bg-gray-700 text-gray-400"
-                      }`}
+                      className="px-3 py-1.5 rounded-xl text-sm font-semibold w-fit"
+                      style={{
+                        backgroundColor:
+                          item.exchange === "Binance"
+                            ? "rgba(241, 196, 15, 0.15)"
+                            : item.exchange === "Bybit"
+                              ? "rgba(230, 126, 34, 0.15)"
+                              : "var(--tg-bg-tertiary)",
+                        color:
+                          item.exchange === "Binance"
+                            ? "#F1C40F"
+                            : item.exchange === "Bybit"
+                              ? "#E67E22"
+                              : "var(--tg-text-secondary)",
+                      }}
                     >
                       {item.exchange}
                     </span>
-                    <span className="text-xs text-gray-500">{item.symbol}</span>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-center border-l border-gray-800/50">
-                  <p className="text-white font-semibold text-base">
+                <td
+                  className="px-4 py-4 text-center border-l"
+                  style={{ borderColor: "var(--tg-border)" }}
+                >
+                  <p
+                    className="font-semibold text-base"
+                    style={{ color: "var(--tg-text)" }}
+                  >
                     $
                     {item.markPrice.toLocaleString(undefined, {
                       minimumFractionDigits: 4,
-                      maximumFractionDigits: 8,
+                      maximumFractionDigits: 4,
                     })}
                   </p>
                 </td>
-                <td className="px-4 py-4 text-center border-l border-gray-800/50">
+                <td
+                  className="px-4 py-4 text-center border-l"
+                  style={{ borderColor: "var(--tg-border)" }}
+                >
                   <div className="flex flex-col items-center gap-1">
                     <p
-                      className={`text-lg font-bold ${
-                        item.fundingRate > 0
-                          ? "text-green-400"
-                          : item.fundingRate < 0
-                            ? "text-red-400"
-                            : "text-gray-400"
-                      }`}
+                      className="text-lg font-bold"
+                      style={{
+                        color:
+                          item.fundingRate > 0
+                            ? "var(--tg-positive)"
+                            : item.fundingRate < 0
+                              ? "var(--tg-negative)"
+                              : "var(--tg-text-tertiary)",
+                      }}
                     >
-                      {formatRate(item.fundingRate * 100)}%
+                      {formatFundingPct(item.fundingRate * 100)}%
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--tg-text-tertiary)" }}
+                    >
                       {item.numberOfPaymentsPerDay} выплат/день
                     </p>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-center border-l border-gray-800/50">
-                  <p className="text-white font-semibold text-base">
+                <td
+                  className="px-4 py-4 text-center border-l"
+                  style={{ borderColor: "var(--tg-border)" }}
+                >
+                  <p
+                    className="font-semibold text-base"
+                    style={{ color: "var(--tg-text)" }}
+                  >
                     {item.nextFundingTime
                       ? new Date(item.nextFundingTime).toLocaleTimeString(
                           "ru-RU",
@@ -262,15 +328,20 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                       : "—"}
                   </p>
                 </td>
-                <td className="px-4 py-4 text-center border-l border-gray-800/50">
+                <td
+                  className="px-4 py-4 text-center border-l"
+                  style={{ borderColor: "var(--tg-border)" }}
+                >
                   <p
-                    className={`text-lg font-bold ${
-                      item.apr > 0
-                        ? "text-green-400"
-                        : item.apr < 0
-                          ? "text-red-400"
-                          : "text-gray-400"
-                    }`}
+                    className="text-lg font-bold"
+                    style={{
+                      color:
+                        item.apr > 0
+                          ? "var(--tg-positive)"
+                          : item.apr < 0
+                            ? "var(--tg-negative)"
+                            : "var(--tg-text-tertiary)",
+                    }}
                   >
                     {item.apr.toFixed(2)}%
                   </p>
@@ -279,23 +350,6 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Пояснение */}
-      <div className="mt-4 pt-4 border-t border-gray-700">
-        <p className="text-xs text-gray-500">
-          <span className="text-green-400 font-medium">Funding Rate</span> —
-          текущая ставка финансирования.
-          <span className="mx-2">|</span>
-          <span className="text-green-400 font-medium">APR</span> — годовой
-          процент.
-          <span className="mx-2">|</span>
-          <span className="text-white font-medium">Mark Price</span> — расчётная
-          цена.
-          <span className="mx-2">|</span>
-          <span className="text-gray-600">выплат/день</span> — количество выплат
-          в сутки.
-        </p>
       </div>
     </div>
   );

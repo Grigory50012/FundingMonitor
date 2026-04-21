@@ -80,6 +80,22 @@ export const fundingRatesApi = {
     return Array.isArray(response.data) ? response.data : [];
   },
 
+  getArbitrageOpportunities: async (params?: {
+    symbol?: string;
+    exchanges?: ExchangeType[];
+  }): Promise<FundingArbitrageDto[]> => {
+    const queryParams = new URLSearchParams();
+
+    if (params?.symbol) queryParams.append("symbol", params.symbol);
+    if (params?.exchanges?.length)
+      queryParams.append("exchanges", params.exchanges.join(","));
+
+    const response = await apiClient.get<FundingArbitrageDto[]>(
+      `/Arbitrage?${queryParams.toString()}`,
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
   getArbitrageSortedByApr: async (params?: {
     symbol?: string;
   }): Promise<FundingArbitrageDto[]> => {
