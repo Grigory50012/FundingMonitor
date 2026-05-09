@@ -217,8 +217,9 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
   }
 
   return (
-    <div className="h-full overflow-auto">
-      <table className="w-full text-sm border-separate border-spacing-0 min-w-[900px] [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-auto">
+        <table className="w-full text-sm border-separate border-spacing-0 min-w-[900px] [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
           <thead style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
             <tr>
               <th className="px-4 py-3 text-left font-medium sticky top-0 left-0 z-30 min-w-[120px] border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
@@ -309,7 +310,8 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
               </tr>
             ))}
           </tbody>
-      </table>
+        </table>
+      </div>
 
       {/* Пояснение */}
       <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--tg-border)' }}>
