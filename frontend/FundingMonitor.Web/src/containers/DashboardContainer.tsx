@@ -219,7 +219,15 @@ const DashboardContainer: React.FC = () => {
             {isLoadingArbitrage ? (
               <div className="flex items-center justify-center h-full"><div className="text-center"><div className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4" style={{ borderColor: "var(--tg-border)", borderTopColor: "var(--tg-button)" }} /><p style={{ color: "var(--tg-text-secondary)" }}>Загрузка арбитражных данных...</p></div></div>
             ) : (
-              <ArbitrageTable data={arbitrageData} onArbitrageClick={(symbol, exchanges) => setArbitrageFilters({ symbol, exchanges: exchanges as ExchangeType[] })} />
+              <ArbitrageTable
+                data={arbitrageData}
+                onArbitrageClick={(symbol, exchanges) =>
+                  setMainFilters({
+                    symbol,
+                    exchanges: exchanges as ExchangeType[],
+                  })
+                }
+              />
             )}
           </div>
         </div>

@@ -20,7 +20,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
 }) => {
   const [isSymbolOpen, setIsSymbolOpen] = useState(false);
   const [isExchangeOpen, setIsExchangeOpen] = useState(false);
-  // Inline search input for symbol (appears when opening the symbol filter)
+  // Search input for symbol (autocomplete)
   const [symbolInput, setSymbolInput] = useState("");
 
   const symbolRef = useRef<HTMLDivElement>(null);
@@ -41,18 +41,52 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isSymbolOpen) {
-      setSymbolInput(selectedSymbol ?? "");
-    }
+    // Keep input in sync with externally selected symbol
+    setSymbolInput(selectedSymbol ?? "");
   }, [isSymbolOpen, selectedSymbol]);
 
   // Suggestions depend on inline input
   const filteredSymbols = useMemo(() => {
-    if (!symbolInput) return [];
-    return availableSymbols
-      .filter((s) => s.toLowerCase().includes(symbolInput.toLowerCase()))
+    const q = symbolInput.trim().toLowerCase();
+    if (!q) return [];
+    const base = q
+      ? availableSymbols.filter((s) => s.toLowerCase().includes(q))
+      : availableSymbols;
+
+    // Smart ranking:
+    // 1) exact match
+    // 2) prefix match
+    // 3) contains match
+    // then prefer shorter symbols, then alphabetical
+    const rank = (s: string) => {
+      const t = s.toLowerCase();
+      if (q && t === q) return 0;
+      if (q && t.startsWith(q)) return 1;
+      return 2;
+    };
+
+    return [...base]
+      .sort((a, b) => {
+        const ra = rank(a);
+        const rb = rank(b);
+        if (ra !== rb) return ra - rb;
+        if (a.length !== b.length) return a.length - b.length;
+        return a.localeCompare(b);
+      })
       .slice(0, 50);
   }, [availableSymbols, symbolInput]);
+
+  const commitSymbol = (value: string) => {
+    const next = value.trim();
+    onSymbolChange(next);
+    setIsSymbolOpen(false);
+  };
+
+  const clearSymbol = () => {
+    setSymbolInput("");
+    onSymbolChange("");
+    setIsSymbolOpen(false);
+  };
 
   const toggleExchange = (exchange: ExchangeType) => {
     if (selectedExchanges.includes(exchange)) {
@@ -74,50 +108,62 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
 
   return (
     <div className="flex items-center gap-3">
-      {/* Монеты: inline input that appears when open */}
+      {/* Монеты: search input with suggestions */}
       <div className="relative" ref={symbolRef}>
-        {isSymbolOpen ? (
+        <div
+          className="h-9 px-3 rounded-xl flex items-center gap-2 transition-all min-w-[220px]"
+          style={{
+            backgroundColor: "var(--tg-bg-tertiary)",
+            border: isSymbolOpen ? "1px solid var(--tg-button)" : "1px solid var(--tg-border)",
+            color: "var(--tg-text)",
+          }}
+        >
           <input
-            autoFocus
             type="text"
             value={symbolInput}
-            onChange={(e) => setSymbolInput(e.target.value)}
+            onFocus={() => setIsSymbolOpen(true)}
+            onChange={(e) => {
+              setSymbolInput(e.target.value);
+              setIsSymbolOpen(true);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                onSymbolChange(symbolInput);
-                setIsSymbolOpen(false);
+                commitSymbol(symbolInput);
               } else if (e.key === "Escape") {
                 setIsSymbolOpen(false);
               }
             }}
-            placeholder="Поиск монеты..."
-            className="h-9 px-3 rounded-xl w-full"
-            style={{ backgroundColor: "var(--tg-bg-tertiary)", border: "1px solid var(--tg-border)", color: "var(--tg-text)" }}
+            placeholder="Поиск монеты…"
+            className="h-full bg-transparent outline-none text-sm font-medium w-[170px]"
+            style={{ color: "var(--tg-text)" }}
           />
-        ) : (
-          <button
-            onClick={() => setIsSymbolOpen(true)}
-            className="h-9 px-3 rounded-xl flex items-center gap-2 transition-all min-w-[140px]"
-            style={{ backgroundColor: "var(--tg-bg-tertiary)", border: isSymbolOpen ? "1px solid var(--tg-button)" : "1px solid var(--tg-border)", color: "var(--tg-text)" }}
-          >
-            <span className="text-sm font-medium truncate">{selectedSymbol ? selectedSymbol : "Все монеты"}</span>
-            <svg className="w-3.5 h-3.5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--tg-hint)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        )}
+
+          {(symbolInput?.trim()?.length ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={clearSymbol}
+              className="ml-auto p-1 rounded-lg transition-colors"
+              title="Сбросить"
+              style={{ color: "var(--tg-hint)" }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
         {isSymbolOpen && filteredSymbols.length > 0 && (
           <div className="absolute z-20 mt-2 w-64 rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
-            <div className="p-2" style={{ borderBottom: '1px solid var(--tg-border)' }}>
+            <div className="p-2">
               {filteredSymbols.map((symbol) => (
                 <button key={symbol}
                         onClick={() => {
                           setSymbolInput(symbol);
-                          onSymbolChange(symbol);
-                          setIsSymbolOpen(false);
+                          commitSymbol(symbol);
                         }}
                         className="w-full px-3 py-2 text-left transition-all flex items-center justify-between"
-                        style={{ backgroundColor: symbolInput === symbol ? 'rgba(0, 136, 204, 0.15)' : 'transparent' }}>
+                        style={{ backgroundColor: symbolInput.trim().toLowerCase() === symbol.toLowerCase() ? 'rgba(0, 136, 204, 0.15)' : 'transparent' }}>
                   <span className="text-sm font-medium" style={{ color: 'var(--tg-text)' }}>{symbol}</span>
                 </button>
               ))}
