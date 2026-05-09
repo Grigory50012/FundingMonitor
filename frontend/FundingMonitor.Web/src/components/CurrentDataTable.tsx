@@ -31,7 +31,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
     });
   };
   const formatFundingPct = (value: number): string => {
-    return formatFixed(value, 4);
+    return formatFixed(value, 3);
   };
 
   const filteredData = data.filter(
@@ -99,7 +99,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
     if (sortConfig.column !== column || !sortConfig.direction) {
       return (
         <svg
-          className="w-4 h-4 text-gray-600"
+          className="w-3 h-3 text-gray-600 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -116,7 +116,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
     if (sortConfig.direction === "asc") {
       return (
         <svg
-          className="w-4 h-4 text-blue-400"
+          className="w-3 h-3 text-blue-400 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -132,7 +132,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
     }
     return (
       <svg
-        className="w-4 h-4 text-blue-400"
+        className="w-3 h-3 text-blue-400 flex-shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -159,12 +159,19 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
   }
 
   return (
-    <div className="h-full overflow-auto">
-      <table className="w-full text-sm border-separate border-spacing-0 min-w-[700px] [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+    <div className="h-full overflow-y-auto overflow-x-hidden min-w-0">
+      <table className="w-full table-fixed text-xs border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+        <colgroup>
+          <col className="w-[20%]" />
+          <col className="w-[22%]" />
+          <col className="w-[26%]" />
+          <col className="w-[14%]" />
+          <col className="w-[18%]" />
+        </colgroup>
         <thead style={{ backgroundColor: "var(--tg-bg-secondary)" }}>
           <tr>
             <th
-              className="px-4 py-1 text-left font-medium sticky top-0 left-0 z-30 min-w-[120px] border-b"
+              className="px-1.5 py-1.5 text-center font-medium sticky top-0 left-0 z-30 border-b"
               style={{
                 position: "sticky",
                 top: 0,
@@ -176,7 +183,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
               Биржа
             </th>
             <th
-              className="px-4 py-3 text-center font-medium min-w-[140px] border-b cursor-pointer transition-colors sticky top-0 z-20"
+              className="px-1.5 py-1.5 text-center font-medium border-b cursor-pointer transition-colors sticky top-0 z-20"
               onClick={() => handleSort("markPrice")}
               style={{
                 position: "sticky",
@@ -186,13 +193,13 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                 borderColor: "var(--tg-border)",
               }}
             >
-              <div className="flex items-center justify-center gap-2">
-                <span>Цена маркировки</span>
+              <div className="flex items-center justify-center gap-0.5 flex-wrap">
+                <span className="leading-tight">Марк.</span>
                 <SortIcon column="markPrice" />
               </div>
             </th>
             <th
-              className="px-4 py-3 text-center font-medium min-w-[120px] border-b cursor-pointer transition-colors sticky top-0 z-20"
+              className="px-1.5 py-1.5 text-center font-medium border-b cursor-pointer transition-colors sticky top-0 z-20"
               onClick={() => handleSort("fundingRate")}
               style={{
                 position: "sticky",
@@ -202,13 +209,13 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                 borderColor: "var(--tg-border)",
               }}
             >
-              <div className="flex items-center justify-center gap-2">
-                <span>Ставка финансирования</span>
+              <div className="flex items-center justify-center gap-0.5 flex-wrap">
+                <span className="leading-tight">Ставка</span>
                 <SortIcon column="fundingRate" />
               </div>
             </th>
             <th
-              className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors sticky top-0 z-20"
+              className="px-1.5 py-1.5 text-center font-medium border-b cursor-pointer transition-colors sticky top-0 z-20"
               onClick={() => handleSort("nextFundingTime")}
               style={{
                 position: "sticky",
@@ -218,13 +225,13 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                 borderColor: "var(--tg-border)",
               }}
             >
-              <div className="flex items-center justify-center gap-2">
-                <span>Время выплаты</span>
+              <div className="flex items-center justify-center gap-0.5 flex-wrap">
+                <span className="leading-tight">Время</span>
                 <SortIcon column="nextFundingTime" />
               </div>
             </th>
             <th
-              className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors sticky top-0 z-20"
+              className="px-1.5 py-1.5 text-center font-medium border-b cursor-pointer transition-colors sticky top-0 z-20"
               onClick={() => handleSort("apr")}
               style={{
                 position: "sticky",
@@ -234,7 +241,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                 borderColor: "var(--tg-border)",
               }}
             >
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-0.5 flex-wrap">
                 <span>APR</span>
                 <SortIcon column="apr" />
               </div>
@@ -249,16 +256,16 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
               style={{ borderColor: "var(--tg-border)" }}
             >
               <td
-                className="px-4 py-4 font-medium sticky left-0 z-10 border-r"
+                className="px-1.5 py-2 font-medium sticky left-0 z-10 border-r align-middle text-center"
                 style={{
                   backgroundColor: "var(--tg-bg)",
                   color: "var(--tg-text)",
                   borderColor: "var(--tg-border)",
                 }}
               >
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col items-center justify-center gap-0.5 min-w-0">
                   <span
-                    className="px-3 py-1.5 rounded-xl text-sm font-semibold w-fit"
+                    className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold mx-auto max-w-full truncate inline-block text-center"
                     style={{
                       backgroundColor:
                         item.exchange === "Binance"
@@ -279,27 +286,28 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                 </div>
               </td>
               <td
-                className="px-4 py-4 text-center border-l"
+                className="px-1.5 py-2 text-center border-l align-middle"
                 style={{ borderColor: "var(--tg-border)" }}
               >
                 <p
-                  className="font-semibold text-base"
+                  className="font-semibold text-[11px] tabular-nums leading-tight break-all text-center"
                   style={{ color: "var(--tg-text)" }}
+                  title={`$${item.markPrice}`}
                 >
                   $
                   {item.markPrice.toLocaleString(undefined, {
-                    minimumFractionDigits: 4,
-                    maximumFractionDigits: 4,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </p>
               </td>
               <td
-                className="px-4 py-4 text-center border-l"
+                className="px-1 py-2 text-center border-l align-middle"
                 style={{ borderColor: "var(--tg-border)" }}
               >
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center justify-center gap-0.5 leading-tight">
                   <p
-                    className="text-lg font-bold"
+                    className="text-xs font-bold tabular-nums"
                     style={{
                       color:
                         item.fundingRate > 0
@@ -312,19 +320,19 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                     {formatFundingPct(item.fundingRate * 100)}%
                   </p>
                   <p
-                    className="text-xs"
+                    className="text-[10px] leading-none"
                     style={{ color: "var(--tg-text-tertiary)" }}
                   >
-                    {item.numberOfPaymentsPerDay} выплат/день
+                    {item.numberOfPaymentsPerDay} вып./день
                   </p>
                 </div>
               </td>
               <td
-                className="px-4 py-4 text-center border-l"
+                className="px-1 py-2 text-center border-l align-middle"
                 style={{ borderColor: "var(--tg-border)" }}
               >
                 <p
-                  className="font-semibold text-base"
+                  className="font-medium text-[11px] tabular-nums text-center"
                   style={{ color: "var(--tg-text)" }}
                 >
                   {item.nextFundingTime
@@ -339,11 +347,11 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                 </p>
               </td>
               <td
-                className="px-4 py-4 text-center border-l"
+                className="px-1 py-2 text-center border-l align-middle"
                 style={{ borderColor: "var(--tg-border)" }}
               >
                 <p
-                  className="text-lg font-bold"
+                  className="text-xs font-bold tabular-nums text-center mx-auto"
                   style={{
                     color:
                       item.apr > 0

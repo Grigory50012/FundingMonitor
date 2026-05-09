@@ -152,19 +152,21 @@ const DashboardContainer: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)] min-h-[600px]">
-          {/* Левая панель - Текущие данные */}
+        <div
+          className="grid grid-cols-1 gap-6 h-[calc(100vh-180px)] min-h-[600px] lg:[grid-template-columns:minmax(0,40%)_minmax(0,1fr)]"
+        >
+          {/* Левая панель (~40%) - Текущие данные */}
           <div
-            className="rounded-2xl p-6 overflow-hidden flex flex-col"
+            className="rounded-2xl p-4 overflow-hidden flex flex-col min-w-0"
             style={{ backgroundColor: "var(--tg-bg-secondary)", border: "1px solid var(--tg-border)" }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold">Текущие ставки</h2>
+                <h2 className="text-base font-semibold">Текущие ставки</h2>
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-hidden mt-4">
+            <div className="flex-1 min-h-0 overflow-hidden mt-2">
               {isLoadingCurrent ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
@@ -178,9 +180,9 @@ const DashboardContainer: React.FC = () => {
             </div>
           </div>
 
-          {/* Правая панель - История */}
+          {/* Правая панель (~60%) - История */}
           <div
-            className="rounded-2xl p-6 overflow-hidden flex flex-col"
+            className="rounded-2xl p-6 overflow-hidden flex flex-col min-w-0"
             style={{ backgroundColor: "var(--tg-bg-secondary)", border: "1px solid var(--tg-border)" }}
           >
             <div className="flex items-center justify-between mb-4">

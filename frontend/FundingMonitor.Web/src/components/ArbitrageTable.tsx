@@ -59,9 +59,12 @@ const renderRow = (
     <td
       className="px-4 py-3 text-center border-l align-middle"
       rowSpan={2}
-      style={{ borderColor: 'var(--tg-border)' }}
+      style={{ borderColor: "var(--tg-border)" }}
     >
-      <span className="font-semibold text-base" style={{ color: 'var(--tg-text)' }}>
+      <span
+        className="font-semibold text-base"
+        style={{ color: "var(--tg-text)" }}
+      >
         {item.symbol.replace("-USDT", "")}
       </span>
     </td>
@@ -69,7 +72,7 @@ const renderRow = (
     <td
       className="px-4 py-3 text-center border-l align-middle"
       rowSpan={2}
-      style={{ borderColor: 'var(--tg-border)' }}
+      style={{ borderColor: "var(--tg-border)" }}
     />
   );
 
@@ -78,23 +81,39 @@ const renderRow = (
       <tr
         className={`border-t transition-colors cursor-pointer`}
         onClick={handleClick}
-        style={{ borderColor: 'var(--tg-border)' }}
+        style={{ borderColor: "var(--tg-border)" }}
       >
         {symbolCell}
         {/* Биржа A */}
-        <td className="px-4 py-2 border-l" style={{ borderColor: 'var(--tg-border)' }}>
+        <td
+          className="px-4 py-2 border-l"
+          style={{ borderColor: "var(--tg-border)" }}
+        >
           <div className="flex items-center gap-2">
             <span
               className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(item.exchangeA)}`}
             >
               {item.exchangeA}
             </span>
-            <span className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>{isLongA ? "L" : "S"}</span>
+            <span
+              className="text-xs"
+              style={{
+                color: isLongA ? "var(--tg-positive)" : "var(--tg-negative)",
+              }}
+            >
+              {isLongA ? "L" : "S"}
+            </span>
           </div>
         </td>
         {/* Цена A */}
-        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
-          <p className="font-semibold text-sm" style={{ color: 'var(--tg-text)' }}>
+        <td
+          className="px-4 py-2 text-center border-l"
+          style={{ borderColor: "var(--tg-border)" }}
+        >
+          <p
+            className="font-semibold text-sm"
+            style={{ color: "var(--tg-text)" }}
+          >
             $
             {item.priceA.toLocaleString(undefined, {
               minimumFractionDigits: 4,
@@ -106,12 +125,15 @@ const renderRow = (
         <td
           className="px-4 py-3 text-center border-l align-middle"
           rowSpan={2}
-          style={{ borderColor: 'var(--tg-border)' }}
+          style={{ borderColor: "var(--tg-border)" }}
         >
-          <p className="font-semibold text-sm" style={{ color: 'var(--tg-text)' }}>
+          <p
+            className="font-semibold text-sm"
+            style={{ color: "var(--tg-text)" }}
+          >
             {item.priceSpreadPercent.toFixed(4)}%
           </p>
-          <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
+          <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
             $
             {item.priceSpread.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -120,11 +142,19 @@ const renderRow = (
           </p>
         </td>
         {/* Funding Rate A */}
-        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
+        <td
+          className="px-4 py-2 text-center border-l"
+          style={{ borderColor: "var(--tg-border)" }}
+        >
           <p
             className="text-sm font-bold"
             style={{
-              color: fundingRateA > 0 ? 'var(--tg-positive)' : fundingRateA < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
+              color:
+                fundingRateA > 0
+                  ? "var(--tg-positive)"
+                  : fundingRateA < 0
+                    ? "var(--tg-negative)"
+                    : "var(--tg-text-tertiary)",
             }}
           >
             {fundingRateA.toLocaleString(undefined, {
@@ -133,18 +163,25 @@ const renderRow = (
             })}
             %
           </p>
-          <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>{item.paymentsA} вып./день</p>
+          <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
+            {item.paymentsA} вып./день
+          </p>
         </td>
         {/* Спред фандинга — на две строки */}
         <td
           className="px-4 py-3 text-center border-l align-middle"
           rowSpan={2}
-          style={{ borderColor: 'var(--tg-border)' }}
+          style={{ borderColor: "var(--tg-border)" }}
         >
           <p
             className="text-sm font-bold"
             style={{
-              color: fundingRateSpread > 0 ? 'var(--tg-positive)' : fundingRateSpread < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
+              color:
+                fundingRateSpread > 0
+                  ? "var(--tg-positive)"
+                  : fundingRateSpread < 0
+                    ? "var(--tg-negative)"
+                    : "var(--tg-text-tertiary)",
             }}
           >
             {fundingRateSpread.toLocaleString(undefined, {
@@ -158,24 +195,38 @@ const renderRow = (
       <tr
         className={`border-t transition-colors cursor-pointer`}
         onClick={handleClick}
-        style={{ borderColor: 'var(--tg-border)' }}
+        style={{ borderColor: "var(--tg-border)" }}
       >
         {/* Биржа B */}
-        <td className="px-4 py-2 border-l" style={{ borderColor: 'var(--tg-border)' }}>
+        <td
+          className="px-4 py-2 border-l"
+          style={{ borderColor: "var(--tg-border)" }}
+        >
           <div className="flex items-center gap-2">
             <span
               className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(item.exchangeB)}`}
             >
               {item.exchangeB}
             </span>
-            <span className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
+            <span
+              className="text-xs"
+              style={{
+                color: !isLongA ? "var(--tg-positive)" : "var(--tg-negative)",
+              }}
+            >
               {!isLongA ? "L" : "S"}
             </span>
           </div>
         </td>
         {/* Цена B */}
-        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
-          <p className="font-semibold text-sm" style={{ color: 'var(--tg-text)' }}>
+        <td
+          className="px-4 py-2 text-center border-l"
+          style={{ borderColor: "var(--tg-border)" }}
+        >
+          <p
+            className="font-semibold text-sm"
+            style={{ color: "var(--tg-text)" }}
+          >
             $
             {item.priceB.toLocaleString(undefined, {
               minimumFractionDigits: 4,
@@ -184,11 +235,19 @@ const renderRow = (
           </p>
         </td>
         {/* Funding Rate B */}
-        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
+        <td
+          className="px-4 py-2 text-center border-l"
+          style={{ borderColor: "var(--tg-border)" }}
+        >
           <p
             className="text-sm font-bold"
             style={{
-              color: fundingRateB > 0 ? 'var(--tg-positive)' : fundingRateB < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
+              color:
+                fundingRateB > 0
+                  ? "var(--tg-positive)"
+                  : fundingRateB < 0
+                    ? "var(--tg-negative)"
+                    : "var(--tg-text-tertiary)",
             }}
           >
             {fundingRateB.toLocaleString(undefined, {
@@ -197,7 +256,9 @@ const renderRow = (
             })}
             %
           </p>
-          <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>{item.paymentsB} вып./день</p>
+          <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
+            {item.paymentsB} вып./день
+          </p>
         </td>
       </tr>
     </React.Fragment>
@@ -348,7 +409,10 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
 
   if (groupedData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-text-tertiary)' }}>
+      <div
+        className="flex items-center justify-center h-full"
+        style={{ color: "var(--tg-text-tertiary)" }}
+      >
         <p>Нет арбитражных возможностей</p>
       </div>
     );
@@ -358,298 +422,422 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
     <div className="h-full flex flex-col">
       <div className="flex-1 min-h-0 overflow-auto">
         <table className="w-full text-sm border-separate border-spacing-0 min-w-[860px] [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
-            <thead style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
-              <tr>
-                <th
-                  className="px-4 py-3 text-left font-medium min-w-[100px] border-b sticky top-0 z-20"
-                  style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span>Символ</span>
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-center font-medium min-w-[200px] border-b sticky top-0 z-20" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
-                  Биржи
-                </th>
-                <th className="px-4 py-3 text-center font-medium min-w-[140px] border-b sticky top-0 z-20" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
-                  Цена
-                </th>
-                <th
-                  className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors sticky top-0 z-20"
-                  onClick={() => handleSort("priceSpreadPercent")}
-                  style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <span>Спред цены</span>
-                    <SortIcon column="priceSpreadPercent" />
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-center font-medium min-w-[120px] border-b sticky top-0 z-20" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
-                  Funding Rate
-                </th>
-                <th
-                  className="px-4 py-3 text-center font-medium min-w-[140px] border-b cursor-pointer transition-colors sticky top-0 z-20"
-                  onClick={() => handleSort("fundingRateSpread")}
-                  style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <span>Спред фандинга</span>
-                    <SortIcon column="fundingRateSpread" />
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupedData.map((group) => {
-                const isExpanded = expandedSymbols.has(group.symbol);
-                return (
-                  <React.Fragment key={group.symbol}>
-                    {/* Лучшая связка */}
-                    <React.Fragment>
-                      <tr
-                        className="border-t transition-colors cursor-pointer"
-                        onClick={() => {
-                          if (onArbitrageClick) {
-                            const symbol = group.best.symbol.replace("-USDT", "");
-                            onArbitrageClick(symbol, [
-                              group.best.exchangeA,
-                              group.best.exchangeB,
-                            ]);
-                          }
-                        }}
-                        style={{ borderColor: 'var(--tg-border)' }}
+          <thead style={{ backgroundColor: "var(--tg-bg-secondary)" }}>
+            <tr>
+              <th
+                className="px-4 py-3 text-center font-medium min-w-[100px] border-b sticky top-0 z-20"
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
+                Символ
+              </th>
+              <th
+                className="px-4 py-3 text-center font-medium min-w-[200px] border-b sticky top-0 z-20"
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
+                Биржи
+              </th>
+              <th
+                className="px-4 py-3 text-center font-medium min-w-[140px] border-b sticky top-0 z-20"
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
+                Цена
+              </th>
+              <th
+                className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors sticky top-0 z-20"
+                onClick={() => handleSort("priceSpreadPercent")}
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>Спред цены</span>
+                  <SortIcon column="priceSpreadPercent" />
+                </div>
+              </th>
+              <th
+                className="px-4 py-3 text-center font-medium min-w-[120px] border-b sticky top-0 z-20"
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
+                Funding Rate
+              </th>
+              <th
+                className="px-4 py-3 text-center font-medium min-w-[140px] border-b cursor-pointer transition-colors sticky top-0 z-20"
+                onClick={() => handleSort("fundingRateSpread")}
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>Спред фандинга</span>
+                  <SortIcon column="fundingRateSpread" />
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupedData.map((group) => {
+              const isExpanded = expandedSymbols.has(group.symbol);
+              return (
+                <React.Fragment key={group.symbol}>
+                  {/* Лучшая связка */}
+                  <React.Fragment>
+                    <tr
+                      className="border-t transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (onArbitrageClick) {
+                          const symbol = group.best.symbol.replace("-USDT", "");
+                          onArbitrageClick(symbol, [
+                            group.best.exchangeA,
+                            group.best.exchangeB,
+                          ]);
+                        }
+                      }}
+                      style={{ borderColor: "var(--tg-border)" }}
+                    >
+                      {/* Пара + кнопка разворота */}
+                      <td
+                        className="px-4 py-3 text-center border-l align-middle"
+                        rowSpan={2}
+                        style={{ borderColor: "var(--tg-border)" }}
                       >
-                        {/* Пара + кнопка разворота */}
-                        <td
-                          className="px-4 py-3 text-center border-l align-middle"
-                          rowSpan={2}
-                          style={{ borderColor: 'var(--tg-border)' }}
-                        >
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="font-semibold text-base" style={{ color: 'var(--tg-text)' }}>
-                              {group.best.symbol.replace("-USDT", "")}
-                            </span>
-                            {group.others.length > 0 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleExpand(group.symbol);
-                                }}
-                                className="p-0.5 rounded transition-colors"
-                                style={{ backgroundColor: 'transparent' }}
-                              >
-                                {isExpanded ? (
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    style={{ color: 'var(--tg-text-secondary)' }}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M5 15l7-7 7 7"
-                                    />
-                                  </svg>
-                                ) : (
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    style={{ color: 'var(--tg-text-secondary)' }}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 9l-7 7-7-7"
-                                    />
-                                  </svg>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        {/* Биржа A */}
-                        <td className="px-4 py-2 border-l" style={{ borderColor: 'var(--tg-border)' }}>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(group.best.exchangeA)}`}
+                        <div className="flex items-center justify-center gap-1">
+                          <span
+                            className="font-semibold text-base"
+                            style={{ color: "var(--tg-text)" }}
+                          >
+                            {group.best.symbol.replace("-USDT", "")}
+                          </span>
+                          {group.others.length > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(group.symbol);
+                              }}
+                              className="p-0.5 rounded transition-colors"
+                              style={{ backgroundColor: "transparent" }}
                             >
-                              {group.best.exchangeA}
-                            </span>
-                            <span className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
-                              {group.best.longExchange === group.best.exchangeA
-                                ? "L"
-                                : "S"}
-                            </span>
-                          </div>
-                        </td>
-                        {/* Цена A */}
-                        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
-                          <p className="font-semibold text-sm" style={{ color: 'var(--tg-text)' }}>
-                            $
-                            {group.best.priceA.toLocaleString(undefined, {
-                              minimumFractionDigits: 4,
-                              maximumFractionDigits: 8,
-                            })}
-                          </p>
-                        </td>
-                        {/* Спред цены */}
-                        <td
-                          className="px-4 py-3 text-center border-l align-middle"
-                          rowSpan={2}
-                          style={{ borderColor: 'var(--tg-border)' }}
-                        >
-                          <p className="font-semibold text-sm" style={{ color: 'var(--tg-text)' }}>
-                            {group.best.priceSpreadPercent.toFixed(4)}%
-                          </p>
-                          <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
-                            $
-                            {group.best.priceSpread.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 4,
-                            })}
-                          </p>
-                        </td>
-                        {/* Funding Rate A */}
-                        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
-                          <p
-                            className="text-sm font-bold"
+                              {isExpanded ? (
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  style={{ color: "var(--tg-text-secondary)" }}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 15l7-7 7 7"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  style={{ color: "var(--tg-text-secondary)" }}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      {/* Биржа A */}
+                      <td
+                        className="px-4 py-2 border-l"
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(group.best.exchangeA)}`}
+                          >
+                            {group.best.exchangeA}
+                          </span>
+                          <span
+                            className="text-xs font-semibold"
                             style={{
-                              color: calcFundingRate(group.best.fundingRateA) > 0 ? 'var(--tg-positive)' : calcFundingRate(group.best.fundingRateA) < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
+                              color:
+                                group.best.longExchange === group.best.exchangeA
+                                  ? "var(--tg-positive)"
+                                  : "var(--tg-negative)",
                             }}
                           >
-                            {calcFundingRate(
-                              group.best.fundingRateA,
-                            ).toLocaleString(undefined, {
+                            {group.best.longExchange === group.best.exchangeA
+                              ? "L"
+                              : "S"}
+                          </span>
+                        </div>
+                      </td>
+                      {/* Цена A */}
+                      <td
+                        className="px-4 py-2 text-center border-l"
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        <p
+                          className="font-semibold text-sm"
+                          style={{ color: "var(--tg-text)" }}
+                        >
+                          $
+                          {group.best.priceA.toLocaleString(undefined, {
+                            minimumFractionDigits: 4,
+                            maximumFractionDigits: 8,
+                          })}
+                        </p>
+                      </td>
+                      {/* Спред цены */}
+                      <td
+                        className="px-4 py-3 text-center border-l align-middle"
+                        rowSpan={2}
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        <p
+                          className="font-semibold text-sm"
+                          style={{ color: "var(--tg-text)" }}
+                        >
+                          {group.best.priceSpreadPercent.toFixed(4)}%
+                        </p>
+                        <p
+                          className="text-xs"
+                          style={{ color: "var(--tg-text-tertiary)" }}
+                        >
+                          $
+                          {group.best.priceSpread.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 4,
+                          })}
+                        </p>
+                      </td>
+                      {/* Funding Rate A */}
+                      <td
+                        className="px-4 py-2 text-center border-l"
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        <p
+                          className="text-sm font-bold"
+                          style={{
+                            color:
+                              calcFundingRate(group.best.fundingRateA) > 0
+                                ? "var(--tg-positive)"
+                                : calcFundingRate(group.best.fundingRateA) < 0
+                                  ? "var(--tg-negative)"
+                                  : "var(--tg-text-tertiary)",
+                          }}
+                        >
+                          {calcFundingRate(
+                            group.best.fundingRateA,
+                          ).toLocaleString(undefined, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 4,
+                          })}
+                          %
+                        </p>
+                        <p
+                          className="text-xs"
+                          style={{ color: "var(--tg-text-tertiary)" }}
+                        >
+                          {group.best.paymentsA} вып./день
+                        </p>
+                      </td>
+                      {/* Спред фандинга */}
+                      <td
+                        className="px-4 py-3 text-center border-l align-middle"
+                        rowSpan={2}
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        <p
+                          className="text-sm font-bold"
+                          style={{
+                            color:
+                              calcFundingSpread(group.best) > 0
+                                ? "var(--tg-positive)"
+                                : calcFundingSpread(group.best) < 0
+                                  ? "var(--tg-negative)"
+                                  : "var(--tg-text-tertiary)",
+                          }}
+                        >
+                          {calcFundingSpread(group.best).toLocaleString(
+                            undefined,
+                            {
                               minimumFractionDigits: 0,
                               maximumFractionDigits: 4,
-                            })}
-                            %
-                          </p>
-                          <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
-                            {group.best.paymentsA} вып./день
-                          </p>
-                        </td>
-                        {/* Спред фандинга */}
-                        <td
-                          className="px-4 py-3 text-center border-l align-middle"
-                          rowSpan={2}
-                          style={{ borderColor: 'var(--tg-border)' }}
-                        >
-                          <p
-                            className="text-sm font-bold"
-                            style={{
-                              color: calcFundingSpread(group.best) > 0 ? 'var(--tg-positive)' : calcFundingSpread(group.best) < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
-                            }}
-                          >
-                            {calcFundingSpread(group.best).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 4,
-                              },
-                            )}
-                            %
-                          </p>
-                        </td>
-                      </tr>
-                      <tr
-                        className="border-t transition-colors cursor-pointer"
-                        onClick={() => {
-                          if (onArbitrageClick) {
-                            const symbol = group.best.symbol.replace("-USDT", "");
-                            onArbitrageClick(symbol, [
-                              group.best.exchangeA,
-                              group.best.exchangeB,
-                            ]);
-                          }
-                        }}
-                        style={{ borderColor: 'var(--tg-border)' }}
+                            },
+                          )}
+                          %
+                        </p>
+                      </td>
+                    </tr>
+                    <tr
+                      className="border-t transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (onArbitrageClick) {
+                          const symbol = group.best.symbol.replace("-USDT", "");
+                          onArbitrageClick(symbol, [
+                            group.best.exchangeA,
+                            group.best.exchangeB,
+                          ]);
+                        }
+                      }}
+                      style={{ borderColor: "var(--tg-border)" }}
+                    >
+                      {/* Биржа B */}
+                      <td
+                        className="px-4 py-2 border-l"
+                        style={{ borderColor: "var(--tg-border)" }}
                       >
-                        {/* Биржа B */}
-                        <td className="px-4 py-2 border-l" style={{ borderColor: 'var(--tg-border)' }}>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(group.best.exchangeB)}`}
-                            >
-                              {group.best.exchangeB}
-                            </span>
-                            <span className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
-                              {group.best.longExchange === group.best.exchangeA
-                                ? "S"
-                                : "L"}
-                            </span>
-                          </div>
-                        </td>
-                        {/* Цена B */}
-                        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
-                          <p className="font-semibold text-sm" style={{ color: 'var(--tg-text)' }}>
-                            $
-                            {group.best.priceB.toLocaleString(undefined, {
-                              minimumFractionDigits: 4,
-                              maximumFractionDigits: 8,
-                            })}
-                          </p>
-                        </td>
-                        {/* Funding Rate B */}
-                        <td className="px-4 py-2 text-center border-l" style={{ borderColor: 'var(--tg-border)' }}>
-                          <p
-                            className="text-sm font-bold"
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(group.best.exchangeB)}`}
+                          >
+                            {group.best.exchangeB}
+                          </span>
+                          <span
+                            className="text-xs font-semibold"
                             style={{
-                              color: calcFundingRate(group.best.fundingRateB) > 0 ? 'var(--tg-positive)' : calcFundingRate(group.best.fundingRateB) < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
+                              color:
+                                group.best.longExchange === group.best.exchangeA
+                                  ? "var(--tg-negative)"
+                                  : "var(--tg-positive)",
                             }}
                           >
-                            {calcFundingRate(
-                              group.best.fundingRateB,
-                            ).toLocaleString(undefined, {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 4,
-                            })}
-                            %
-                          </p>
-                          <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
-                            {group.best.paymentsB} вып./день
-                          </p>
-                        </td>
-                      </tr>
-                    </React.Fragment>
-
-                    {/* Дополнительные связки (при развороте) */}
-                    {isExpanded &&
-                      group.others.map((item, idx) =>
-                        renderRow(
-                          item,
-                          `${item.symbol}-${item.exchangeA}-${item.exchangeB}-extra-${idx}`,
-                          false,
-                          onArbitrageClick,
-                        ),
-                      )}
+                            {group.best.longExchange === group.best.exchangeA
+                              ? "S"
+                              : "L"}
+                          </span>
+                        </div>
+                      </td>
+                      {/* Цена B */}
+                      <td
+                        className="px-4 py-2 text-center border-l"
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        <p
+                          className="font-semibold text-sm"
+                          style={{ color: "var(--tg-text)" }}
+                        >
+                          $
+                          {group.best.priceB.toLocaleString(undefined, {
+                            minimumFractionDigits: 4,
+                            maximumFractionDigits: 8,
+                          })}
+                        </p>
+                      </td>
+                      {/* Funding Rate B */}
+                      <td
+                        className="px-4 py-2 text-center border-l"
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        <p
+                          className="text-sm font-bold"
+                          style={{
+                            color:
+                              calcFundingRate(group.best.fundingRateB) > 0
+                                ? "var(--tg-positive)"
+                                : calcFundingRate(group.best.fundingRateB) < 0
+                                  ? "var(--tg-negative)"
+                                  : "var(--tg-text-tertiary)",
+                          }}
+                        >
+                          {calcFundingRate(
+                            group.best.fundingRateB,
+                          ).toLocaleString(undefined, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 4,
+                          })}
+                          %
+                        </p>
+                        <p
+                          className="text-xs"
+                          style={{ color: "var(--tg-text-tertiary)" }}
+                        >
+                          {group.best.paymentsB} вып./день
+                        </p>
+                      </td>
+                    </tr>
                   </React.Fragment>
-                );
-              })}
-            </tbody>
+
+                  {/* Дополнительные связки (при развороте) */}
+                  {isExpanded &&
+                    group.others.map((item, idx) =>
+                      renderRow(
+                        item,
+                        `${item.symbol}-${item.exchangeA}-${item.exchangeB}-extra-${idx}`,
+                        false,
+                        onArbitrageClick,
+                      ),
+                    )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
         </table>
       </div>
 
       {/* Пояснение */}
-      <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--tg-border)' }}>
-        <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
-          <span className="font-medium" style={{ color: 'var(--tg-positive)' }}>L</span> — биржа для
-          лонга (ниже APR).
+      <div
+        className="mt-4 pt-4 border-t"
+        style={{ borderColor: "var(--tg-border)" }}
+      >
+        <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
+          <span className="font-medium" style={{ color: "var(--tg-positive)" }}>
+            L
+          </span>{" "}
+          — биржа для лонга.
           <span className="mx-2">|</span>
-          <span className="font-medium" style={{ color: 'var(--tg-positive)' }}>S</span> — биржа для
-          шорта (выше APR).
+          <span className="font-medium" style={{ color: "var(--tg-negative)" }}>
+            S
+          </span>{" "}
+          — биржа для шорта.
           <span className="mx-2">|</span>
-          <span className="font-medium" style={{ color: 'var(--tg-positive)' }}>Спред фандинга</span> —
-          разница funding rate за период.
+          <span className="font-medium" style={{ color: "var(--tg-positive)" }}>
+            Спред фандинга
+          </span>{" "}
+          — разница funding rate за период.
           <span className="mx-2">|</span>
-          <span className="font-medium" style={{ color: 'var(--tg-text)' }}>Спред цены</span> — разница
-          цен между биржами (% и $).
+          <span className="font-medium" style={{ color: "var(--tg-text)" }}>
+            Спред цены
+          </span>{" "}
+          — разница цен между биржами (% и $).
         </p>
       </div>
     </div>
