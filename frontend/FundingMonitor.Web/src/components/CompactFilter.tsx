@@ -109,7 +109,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
   return (
     <div className="flex items-center gap-3">
       {/* Монеты: search input with suggestions */}
-      <div className="relative" ref={symbolRef}>
+      <div className="relative z-50" ref={symbolRef}>
         <div
           className="h-9 px-3 rounded-xl flex items-center gap-2 transition-all min-w-[220px]"
           style={{
@@ -154,7 +154,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
         </div>
 
         {isSymbolOpen && filteredSymbols.length > 0 && (
-          <div className="absolute z-20 mt-2 w-64 rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
+          <div className="absolute z-50 mt-2 w-64 rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
             <div className="p-2">
               {filteredSymbols.map((symbol) => (
                 <button key={symbol}
@@ -173,7 +173,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
       </div>
 
       {/* Биржи */}
-      <div className="relative" ref={exchangeRef}>
+      <div className="relative z-50" ref={exchangeRef}>
         <button
           onClick={() => setIsExchangeOpen(!isExchangeOpen)}
           className="h-9 px-3 rounded-xl flex items-center gap-2 transition-all min-w-[140px]"
@@ -190,8 +190,8 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
 
         {isExchangeOpen && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setIsExchangeOpen(false)} />
-            <div className="absolute z-20 mt-2 w-56 rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
+            <div className="fixed inset-0 z-40" onClick={() => setIsExchangeOpen(false)} />
+            <div className="absolute z-50 mt-2 w-56 rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
               <div className="p-2" style={{ borderBottom: '1px solid var(--tg-border)' }}>
                 <div className="flex gap-2">
                   <button onClick={selectAllExchanges} className="flex-1 text-xs px-2 py-1.5 rounded-lg transition-colors" style={{ color: 'var(--tg-link)' }}>Все</button>

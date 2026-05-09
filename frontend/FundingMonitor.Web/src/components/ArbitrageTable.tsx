@@ -356,43 +356,42 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
 
   return (
     <div className="h-full overflow-auto">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
+      <table className="w-full text-sm border-separate border-spacing-0 min-w-[860px]">
+          <thead style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
             <tr>
               <th
-                className="px-4 py-3 text-left font-medium min-w-[100px] border-b cursor-pointer transition-colors"
+                className="px-4 py-3 text-left font-medium min-w-[100px] border-b cursor-pointer transition-colors sticky top-0 z-20"
                 onClick={() => handleSort("symbol")}
-                style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
+                style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
               >
                 <div className="flex items-center gap-2">
                   <span>Пара</span>
                   <SortIcon column="symbol" />
                 </div>
               </th>
-              <th className="px-4 py-3 text-center font-medium min-w-[200px] border-b" style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
+              <th className="px-4 py-3 text-center font-medium min-w-[200px] border-b sticky top-0 z-20" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
                 Биржи
               </th>
-              <th className="px-4 py-3 text-center font-medium min-w-[140px] border-b" style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
+              <th className="px-4 py-3 text-center font-medium min-w-[140px] border-b sticky top-0 z-20" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
                 Цена
               </th>
               <th
-                className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors"
+                className="px-4 py-3 text-center font-medium min-w-[110px] border-b cursor-pointer transition-colors sticky top-0 z-20"
                 onClick={() => handleSort("priceSpreadPercent")}
-                style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
+                style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>Спред цены</span>
                   <SortIcon column="priceSpreadPercent" />
                 </div>
               </th>
-              <th className="px-4 py-3 text-center font-medium min-w-[120px] border-b" style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
+              <th className="px-4 py-3 text-center font-medium min-w-[120px] border-b sticky top-0 z-20" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
                 Funding Rate
               </th>
               <th
-                className="px-4 py-3 text-center font-medium min-w-[140px] border-b cursor-pointer transition-colors"
+                className="px-4 py-3 text-center font-medium min-w-[140px] border-b cursor-pointer transition-colors sticky top-0 z-20"
                 onClick={() => handleSort("fundingRateSpread")}
-                style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
+                style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>Спред фандинга</span>
@@ -635,8 +634,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
               );
             })}
           </tbody>
-        </table>
-      </div>
+      </table>
 
       {/* Пояснение */}
       <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--tg-border)' }}>

@@ -218,20 +218,19 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
 
   return (
     <div className="h-full overflow-auto">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
+      <table className="w-full text-sm border-separate border-spacing-0 min-w-[900px]">
+          <thead style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
             <tr>
-              <th className="px-4 py-3 text-left font-medium sticky left-0 z-20 min-w-[120px] border-b" style={{ backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
+              <th className="px-4 py-3 text-left font-medium sticky top-0 left-0 z-30 min-w-[120px] border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
                 Биржа
               </th>
               {PERIODS.map(({ label }) => (
                 <th
                   key={label}
-                  className="px-4 py-3 text-center font-medium min-w-[160px] border-b cursor-pointer transition-colors"
+                  className="px-4 py-3 text-center font-medium min-w-[160px] border-b cursor-pointer transition-colors sticky top-0 z-20"
                   onClick={() => handleSort(label, "apr")}
                   title="Кликните для сортировки бирж по APR"
-                  style={{ color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
+                  style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span>{label}</span>
@@ -310,8 +309,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </table>
 
       {/* Пояснение */}
       <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--tg-border)' }}>
