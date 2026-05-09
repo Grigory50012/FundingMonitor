@@ -109,6 +109,49 @@ const DashboardContainer: React.FC = () => {
           </div>
         )}
 
+        {/* Общие фильтры для Текущих ставок + Истории */}
+        <div
+          className="mb-4 rounded-2xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          style={{ backgroundColor: "var(--tg-bg-secondary)", border: "1px solid var(--tg-border)" }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 className="text-sm font-semibold whitespace-nowrap" style={{ color: "var(--tg-text-secondary)" }}>
+              Фильтры
+            </h2>
+            <CompactFilter
+              selectedExchanges={mainFilters.exchanges}
+              onExchangesChange={(exchanges) =>
+                setMainFilters({ ...mainFilters, exchanges })
+              }
+              selectedSymbol={mainFilters.symbol}
+              onSymbolChange={(symbol) =>
+                setMainFilters({ ...mainFilters, symbol: (symbol?.trim() || "BTC") })
+              }
+              availableSymbols={availableCoins}
+            />
+          </div>
+
+          <button
+            onClick={() => {
+              refreshCurrent?.();
+              refreshHistory?.();
+            }}
+            disabled={isLoadingCurrent || isLoadingHistory}
+            className="px-3 py-1.5 text-sm rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:cursor-not-allowed self-start sm:self-auto"
+            style={{
+              backgroundColor: isLoadingCurrent || isLoadingHistory ? "var(--tg-hint)" : "var(--tg-button)",
+              color: "var(--tg-button-text)",
+              opacity: isLoadingCurrent || isLoadingHistory ? 0.6 : 1,
+            }}
+            title="Обновить текущие ставки и историю"
+          >
+            <svg className={`w-3.5 h-3.5 ${isLoadingCurrent || isLoadingHistory ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Обновить</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)] min-h-[600px]">
           {/* Левая панель - Текущие данные */}
           <div
@@ -118,35 +161,7 @@ const DashboardContainer: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold">Текущие ставки</h2>
-                <CompactFilter
-                  selectedExchanges={mainFilters.exchanges}
-                  onExchangesChange={(exchanges) =>
-                    setMainFilters({ ...mainFilters, exchanges })
-                  }
-                  selectedSymbol={mainFilters.symbol}
-                  onSymbolChange={(symbol) =>
-                    setMainFilters({ ...mainFilters, symbol: (symbol?.trim() || "BTC") })
-                  }
-                  availableSymbols={availableCoins}
-                />
               </div>
-              <button
-                onClick={() => {
-                  refreshCurrent?.();
-                  refreshHistory?.();
-                }}
-                disabled={isLoadingCurrent || isLoadingHistory}
-                className="px-3 py-1.5 text-sm rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: isLoadingCurrent || isLoadingHistory ? "var(--tg-hint)" : "var(--tg-button)",
-                  color: "var(--tg-button-text)",
-                  opacity: isLoadingCurrent || isLoadingHistory ? 0.6 : 1,
-                }}
-              >
-                <svg className={`w-3.5 h-3.5 ${isLoadingCurrent || isLoadingHistory ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
             </div>
 
             <div className="flex-1 min-h-0 overflow-hidden mt-4">
