@@ -644,7 +644,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                           $
                           {group.best.priceSpread.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
-                            maximumFractionDigits: 4,
+                            maximumFractionDigits: 8,
                           })}
                         </p>
                       </td>

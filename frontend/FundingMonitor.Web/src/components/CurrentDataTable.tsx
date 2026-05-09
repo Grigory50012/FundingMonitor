@@ -292,12 +292,11 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
                 <p
                   className="font-semibold text-[11px] tabular-nums leading-tight break-all text-center"
                   style={{ color: "var(--tg-text)" }}
-                  title={`$${item.markPrice}`}
                 >
                   $
                   {item.markPrice.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
+                    maximumFractionDigits: 8,
                   })}
                 </p>
               </td>
