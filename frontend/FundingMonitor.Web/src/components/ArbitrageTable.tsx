@@ -356,17 +356,15 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
 
   return (
     <div className="h-full overflow-auto">
-      <table className="w-full text-sm border-separate border-spacing-0 min-w-[860px]">
+      <table className="w-full text-sm border-separate border-spacing-0 min-w-[860px] [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
           <thead style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
             <tr>
               <th
-                className="px-4 py-3 text-left font-medium min-w-[100px] border-b cursor-pointer transition-colors sticky top-0 z-20"
-                onClick={() => handleSort("symbol")}
+                className="px-4 py-3 text-left font-medium min-w-[100px] border-b sticky top-0 z-20"
                 style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
               >
                 <div className="flex items-center gap-2">
-                  <span>Пара</span>
-                  <SortIcon column="symbol" />
+                  <span>Символ</span>
                 </div>
               </th>
               <th className="px-4 py-3 text-center font-medium min-w-[200px] border-b sticky top-0 z-20" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>

@@ -160,7 +160,7 @@ export const CurrentDataTable: React.FC<CurrentDataTableProps> = ({
 
   return (
     <div className="h-full overflow-auto">
-      <table className="w-full text-sm border-separate border-spacing-0 min-w-[700px]">
+      <table className="w-full text-sm border-separate border-spacing-0 min-w-[700px] [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
         <thead style={{ backgroundColor: "var(--tg-bg-secondary)" }}>
           <tr>
             <th
