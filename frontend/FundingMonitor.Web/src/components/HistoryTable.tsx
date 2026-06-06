@@ -53,7 +53,8 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
         });
         setData(stats);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Ошибка загрузки данных";
+        const message =
+          err instanceof Error ? err.message : "Ошибка загрузки данных";
         console.error("Failed to load APR stats:", err);
         setError(message);
       } finally {
@@ -144,7 +145,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
     ) {
       return (
         <svg
-          className="w-4 h-4 text-gray-600"
+          className="w-3 h-3 text-gray-600 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -161,7 +162,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
     if (sortConfig.direction === "asc") {
       return (
         <svg
-          className="w-4 h-4 text-blue-400"
+          className="w-3 h-3 text-blue-400 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -177,7 +178,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
     }
     return (
       <svg
-        className="w-4 h-4 text-blue-400"
+        className="w-3 h-3 text-blue-400 flex-shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -194,24 +195,33 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-text-secondary)' }}>
-        <p>Загрузка данных...</p>
+      <div
+        className="flex items-center justify-center h-full"
+        style={{ color: "var(--tg-text-secondary)" }}
+      >
+        <p className="text-xs">Загрузка данных...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-negative)' }}>
-        <p>Ошибка: {error}</p>
+      <div
+        className="flex items-center justify-center h-full"
+        style={{ color: "var(--tg-negative)" }}
+      >
+        <p className="text-xs">Ошибка: {error}</p>
       </div>
     );
   }
 
   if (filteredData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-text-tertiary)' }}>
-        <p>Нет исторических данных для отображения</p>
+      <div
+        className="flex items-center justify-center h-full"
+        style={{ color: "var(--tg-text-tertiary)" }}
+      >
+        <p className="text-xs">Нет исторических данных для отображения</p>
       </div>
     );
   }
@@ -219,22 +229,43 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 min-h-0 overflow-auto">
-        <table className="w-full text-sm border-separate border-spacing-0 min-w-[900px] [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
-          <thead style={{ backgroundColor: 'var(--tg-bg-secondary)' }}>
+        <table className="w-full table-fixed text-xs border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+          <colgroup>
+            <col className="w-[100px]" />
+            {PERIODS.map((p) => (
+              <col key={p.label} />
+            ))}
+          </colgroup>
+          <thead style={{ backgroundColor: "var(--tg-bg-secondary)" }}>
             <tr>
-              <th className="px-4 py-3 text-left font-medium sticky top-0 left-0 z-30 min-w-[120px] border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}>
+              <th
+                className="px-1.5 py-1.5 text-center font-medium sticky top-0 left-0 z-30 border-b"
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  color: "var(--tg-text-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
                 Биржа
               </th>
               {PERIODS.map(({ label }) => (
                 <th
                   key={label}
-                  className="px-4 py-3 text-center font-medium min-w-[160px] border-b cursor-pointer transition-colors sticky top-0 z-20"
+                  className="px-1.5 py-1.5 text-center font-medium border-b cursor-pointer transition-colors sticky top-0 z-20"
                   onClick={() => handleSort(label, "apr")}
                   title="Кликните для сортировки бирж по APR"
-                  style={{ position: 'sticky', top: 0, backgroundColor: 'var(--tg-bg-secondary)', color: 'var(--tg-text-secondary)', borderColor: 'var(--tg-border)' }}
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    backgroundColor: "var(--tg-bg-secondary)",
+                    color: "var(--tg-text-secondary)",
+                    borderColor: "var(--tg-border)",
+                  }}
                 >
-                  <div className="flex items-center justify-center gap-2">
-                    <span>{label}</span>
+                  <div className="flex items-center justify-center gap-0.5 flex-wrap">
+                    <span className="leading-tight">{label}</span>
                     <SortIcon period={label} column="apr" />
                   </div>
                 </th>
@@ -246,18 +277,37 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
               <tr
                 key={exchange}
                 className="border-t transition-colors"
-                style={{ borderColor: 'var(--tg-border)' }}
+                style={{ borderColor: "var(--tg-border)" }}
               >
-                <td className="px-4 py-4 font-medium sticky left-0 z-10 border-r" style={{ backgroundColor: 'var(--tg-bg)', color: 'var(--tg-text)', borderColor: 'var(--tg-border)' }}>
-                  <span
-                    className="px-3 py-1.5 rounded-xl text-sm font-semibold"
-                    style={{
-                      backgroundColor: exchange === "Binance" ? 'rgba(241, 196, 15, 0.15)' : exchange === "Bybit" ? 'rgba(230, 126, 34, 0.15)' : 'var(--tg-bg-tertiary)',
-                      color: exchange === "Binance" ? '#F1C40F' : exchange === "Bybit" ? '#E67E22' : 'var(--tg-text-secondary)',
-                    }}
-                  >
-                    {exchange}
-                  </span>
+                <td
+                  className="px-1.5 py-2 font-medium sticky left-0 z-10 border-r align-middle text-center"
+                  style={{
+                    backgroundColor: "var(--tg-bg)",
+                    color: "var(--tg-text)",
+                    borderColor: "var(--tg-border)",
+                  }}
+                >
+                  <div className="flex flex-col items-center justify-center gap-0.5 min-w-0">
+                    <span
+                      className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold mx-auto max-w-full truncate inline-block text-center"
+                      style={{
+                        backgroundColor:
+                          exchange === "Binance"
+                            ? "rgba(241, 196, 15, 0.15)"
+                            : exchange === "Bybit"
+                              ? "rgba(230, 126, 34, 0.15)"
+                              : "var(--tg-bg-tertiary)",
+                        color:
+                          exchange === "Binance"
+                            ? "#F1C40F"
+                            : exchange === "Bybit"
+                              ? "#E67E22"
+                              : "var(--tg-text-secondary)",
+                      }}
+                    >
+                      {exchange}
+                    </span>
+                  </div>
                 </td>
                 {PERIODS.map(({ label }) => {
                   const stat = filteredData.find(
@@ -268,8 +318,11 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                     return (
                       <td
                         key={label}
-                        className="px-4 py-4 text-center border-l"
-                        style={{ borderColor: 'var(--tg-border)', color: 'var(--tg-text-tertiary)' }}
+                        className="px-1 py-2 text-center border-l align-middle"
+                        style={{
+                          borderColor: "var(--tg-border)",
+                          color: "var(--tg-text-tertiary)",
+                        }}
                       >
                         —
                       </td>
@@ -279,27 +332,41 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                   return (
                     <td
                       key={label}
-                      className="px-4 py-4 text-center border-l"
-                      style={{ borderColor: 'var(--tg-border)' }}
+                      className="px-1 py-2 text-center border-l align-middle"
+                      style={{ borderColor: "var(--tg-border)" }}
                     >
-                      <div className="flex flex-col items-center gap-1">
+                      <div className="flex flex-col items-center justify-center gap-0.5 leading-tight">
                         <p
-                          className="text-lg font-bold"
+                          className="text-xs font-bold tabular-nums"
                           style={{
-                            color: stat.apr > 0 ? 'var(--tg-positive)' : stat.apr < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
+                            color:
+                              stat.apr > 0
+                                ? "var(--tg-positive)"
+                                : stat.apr < 0
+                                  ? "var(--tg-negative)"
+                                  : "var(--tg-text-tertiary)",
                           }}
                         >
                           {stat.apr.toFixed(2)}%
                         </p>
-                        <p className="text-xs" style={{ color: 'var(--tg-text-secondary)' }}>
+                        <p
+                          className="text-[10px] leading-none tabular-nums"
+                          style={{ color: "var(--tg-text-secondary)" }}
+                        >
                           ∑ {stat.totalFundingRatePercent.toFixed(3)}%
                         </p>
-                        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
+                        <div
+                          className="flex items-center gap-1 text-[10px] leading-none tabular-nums"
+                          style={{ color: "var(--tg-text-tertiary)" }}
+                        >
                           <span>{stat.paymentsCount}</span>
                           <span>•</span>
                           <span>{stat.avgFundingRatePercent.toFixed(3)}%</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs" style={{ color: '#BB86FC' }}>
+                        <div
+                          className="flex items-center gap-0.5 text-[10px] leading-none tabular-nums"
+                          style={{ color: "#BB86FC" }}
+                        >
                           <span>σ</span>
                           <span>{(stat.stdDev ?? 0).toFixed(4)}%</span>
                         </div>
@@ -314,18 +381,26 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
       </div>
 
       {/* Пояснение */}
-      <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--tg-border)' }}>
-        <p className="text-xs" style={{ color: 'var(--tg-text-tertiary)' }}>
-          <span className="font-medium" style={{ color: 'var(--tg-positive)' }}>APR</span> — годовой
-          процент на основе суммарной ставки за период.
-          <span className="mx-2">|</span>
-          <span style={{ color: 'var(--tg-text-secondary)' }}>∑</span> — суммарная ставка за период.
-          <span className="mx-2">|</span>
-          <span>число</span> — количество выплат.
-          <span className="mx-2">|</span>
-          <span>%</span> — средняя ставка за выплату.
-          <span className="mx-2">|</span>
-          <span style={{ color: '#BB86FC' }}>σ</span> — среднеквадратическое
+      <div
+        className="mt-2 pt-2 border-t"
+        style={{ borderColor: "var(--tg-border)" }}
+      >
+        <p
+          className="text-[10px] leading-snug"
+          style={{ color: "var(--tg-text-tertiary)" }}
+        >
+          <span className="font-medium" style={{ color: "var(--tg-positive)" }}>
+            APR
+          </span>{" "}
+          — годовой процент на основе суммарной ставки за период.
+          <span className="mx-1.5">|</span>
+          <span style={{ color: "var(--tg-text-secondary)" }}>∑</span> —
+          суммарная ставка за период.
+          <span className="mx-1.5">|</span>
+          число — количество выплат.
+          <span className="mx-1.5">|</span>% — средняя ставка за выплату.
+          <span className="mx-1.5">|</span>
+          <span style={{ color: "#BB86FC" }}>σ</span> — среднеквадратическое
           отклонение (волатильность).
         </p>
       </div>
