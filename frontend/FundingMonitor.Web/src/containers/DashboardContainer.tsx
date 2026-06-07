@@ -182,28 +182,28 @@ const DashboardContainer: React.FC = () => {
 
           {/* Правая панель (~60%) - История */}
           <div
-            className="rounded-2xl p-6 overflow-hidden flex flex-col min-w-0"
+            className="rounded-2xl p-4 overflow-hidden flex flex-col min-w-0"
             style={{ backgroundColor: "var(--tg-bg-secondary)", border: "1px solid var(--tg-border)" }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold">История</h2>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <h2 className="text-base font-semibold whitespace-nowrap">История</h2>
                 {historyViewMode === "table" && (
-                  <span className="text-sm" style={{ color: "var(--tg-text-secondary)" }}>
+                  <span className="text-xs truncate" style={{ color: "var(--tg-text-secondary)" }}>
                     / APR по периодам
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 rounded-xl p-1" style={{ backgroundColor: "var(--tg-bg-tertiary)" }}>
-                <button onClick={() => setHistoryViewMode("chart")} className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" style={{ backgroundColor: historyViewMode === "chart" ? "var(--tg-button)" : "transparent", color: historyViewMode === "chart" ? "var(--tg-button-text)" : "var(--tg-text-secondary)" }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+              <div className="flex items-center gap-1 rounded-lg p-0.5 flex-shrink-0" style={{ backgroundColor: "var(--tg-bg-tertiary)" }}>
+                <button onClick={() => setHistoryViewMode("chart")} className="px-2 py-1 rounded-md text-xs font-medium transition-all" style={{ backgroundColor: historyViewMode === "chart" ? "var(--tg-button)" : "transparent", color: historyViewMode === "chart" ? "var(--tg-button-text)" : "var(--tg-text-secondary)" }}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
                 </button>
-                <button onClick={() => setHistoryViewMode("table")} className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" style={{ backgroundColor: historyViewMode === "table" ? "var(--tg-button)" : "transparent", color: historyViewMode === "table" ? "var(--tg-button-text)" : "var(--tg-text-secondary)" }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                <button onClick={() => setHistoryViewMode("table")} className="px-2 py-1 rounded-md text-xs font-medium transition-all" style={{ backgroundColor: historyViewMode === "table" ? "var(--tg-button)" : "transparent", color: historyViewMode === "table" ? "var(--tg-button-text)" : "var(--tg-text-secondary)" }}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                 </button>
               </div>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 mt-2 overflow-hidden">
               {isLoadingHistory ? (
                 <div className="flex items-center justify-center h-full"><div className="text-center"><div className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4" style={{ borderColor: "var(--tg-border)", borderTopColor: "var(--tg-button)" }} /><p style={{ color: "var(--tg-text-secondary)" }}>Загрузка истории...</p></div></div>
               ) : historyViewMode === "chart" ? (
