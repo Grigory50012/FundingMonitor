@@ -92,11 +92,13 @@ docker exec -it funding_monitor_db psql -U postgres -d funding_monitor
 \dt
 ```
 
-### **Проверить миграции:**
+### **Проверить миграции** (после первого запуска API):
 
 ```sql
 SELECT * FROM "__EFMigrationsHistory" ORDER BY "MigrationId" DESC;
 ```
+
+> Если таблицы не созданы — сгенерируйте начальную миграцию (см. [database-schema.md](../database-schema.md#migrations)).
 
 ---
 
