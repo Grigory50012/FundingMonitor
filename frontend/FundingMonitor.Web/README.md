@@ -82,9 +82,7 @@ src/
 - `getCurrentRates(params)` → `FundingRateDto[]`
 - `getHistory(params)` → `HistoricalFundingRateDto[]`
 - `getAprStats(params)` → `AprPeriodStatsDto[]`
-- `getArbitrageOpportunities(params)` → `FundingArbitrageDto[]`
-
-> `getArbitrageSortedByApr` вызывает несуществующий endpoint `/Arbitrage/sorted-by-apr` — используйте `getArbitrageOpportunities` (результат уже отсортирован по APR на бэкенде).
+- `getArbitrageOpportunities(params)` → `FundingArbitrageDto[]` (отсортировано по APR на бэкенде)
 
 Типы DTO в `src/types/index.ts` (ручная синхронизация с бэкендом, планируется codegen из OpenAPI).
 

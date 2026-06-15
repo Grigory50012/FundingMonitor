@@ -94,17 +94,4 @@ export const fundingRatesApi = {
     );
     return Array.isArray(response.data) ? response.data : [];
   },
-
-  getArbitrageSortedByApr: async (params?: {
-    symbol?: string;
-  }): Promise<FundingArbitrageDto[]> => {
-    const queryParams = new URLSearchParams();
-
-    if (params?.symbol) queryParams.append("symbol", params.symbol);
-
-    const response = await apiClient.get<FundingArbitrageDto[]>(
-      `/Arbitrage/sorted-by-apr?${queryParams.toString()}`,
-    );
-    return Array.isArray(response.data) ? response.data : [];
-  },
 };
