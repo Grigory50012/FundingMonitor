@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  CompactFilter,
   CurrentDataTable,
   HistoryPanel,
   HistoryTable,
   ArbitrageTable,
 } from "../components";
 import type { TimeRangeType } from "../components";
+import { CompactFilter } from "../features/filters/CompactFilter";
 import { useCurrentRates, useHistoryRates, useArbitrageRates } from "../hooks/useFundingRates";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { STORAGE_KEYS } from "../config/storageKeys";
