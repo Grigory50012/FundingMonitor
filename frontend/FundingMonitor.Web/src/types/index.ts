@@ -66,9 +66,3 @@ export const PERIODS = [
   { label: "21 \u0434\u0435\u043d\u044c", days: 21 },
   { label: "30 \u0434\u043d\u0435\u0439", days: 30 },
 ] as const;
-
-export const EXCHANGE_COLORS: Record<ExchangeType, string> = {
-  Binance: "#f0760b",
-  Bybit: "#ffcc00",
-  OKX: "#FFFFFF",
-};

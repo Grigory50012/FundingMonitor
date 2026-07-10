@@ -1,6 +1,5 @@
-import DashboardContainer from "./containers/DashboardContainer";
-import React from "react";
+import { DashboardPage } from "./widgets/dashboard/DashboardPage";
 
-const App: React.FC = () => <DashboardContainer />;
+const App = () => <DashboardPage />;
 
 export default App;
