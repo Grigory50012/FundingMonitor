@@ -134,7 +134,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
                 setIsSymbolOpen(false);
               }
             }}
-            placeholder="\u041f\u043e\u0438\u0441\u043a \u043c\u043e\u043d\u0435\u0442\u044b..."
+            placeholder={"\u041f\u043e\u0438\u0441\u043a \u043c\u043e\u043d\u0435\u0442\u044b..."}
             className="h-full bg-transparent outline-none text-sm font-medium w-[170px]"
             style={{ color: "var(--tg-text)" }}
           />
@@ -144,7 +144,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
               type="button"
               onClick={clearSymbol}
               className="ml-auto p-1 rounded-lg transition-colors"
-              title="\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c"
+              title={"\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c"}
               style={{ color: "var(--tg-hint)" }}
             >
               <svg

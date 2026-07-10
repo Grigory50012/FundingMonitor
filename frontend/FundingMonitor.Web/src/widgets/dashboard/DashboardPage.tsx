@@ -90,7 +90,7 @@ export function DashboardPage() {
               color: "var(--tg-button-text)",
               opacity: isMainLoading ? 0.6 : 1,
             }}
-            title="\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0438\u0435 \u0441\u0442\u0430\u0432\u043a\u0438 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u044e"
+            title={"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0438\u0435 \u0441\u0442\u0430\u0432\u043a\u0438 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u044e"}
           >
             <svg
               className={`w-3.5 h-3.5 ${isMainLoading ? "animate-spin" : ""}`}

@@ -110,19 +110,19 @@ export function CurrentRatesTable({
             </th>
             <HeaderCell
               column="markPrice"
-              label="\u041c\u0430\u0440\u043a."
+              label={"\u041c\u0430\u0440\u043a."}
               sortConfig={sortConfig}
               onSort={handleSort}
             />
             <HeaderCell
               column="fundingRate"
-              label="\u0421\u0442\u0430\u0432\u043a\u0430"
+              label={"\u0421\u0442\u0430\u0432\u043a\u0430"}
               sortConfig={sortConfig}
               onSort={handleSort}
             />
             <HeaderCell
               column="nextFundingTime"
-              label="\u0412\u0440\u0435\u043c\u044f"
+              label={"\u0412\u0440\u0435\u043c\u044f"}
               sortConfig={sortConfig}
               onSort={handleSort}
             />
