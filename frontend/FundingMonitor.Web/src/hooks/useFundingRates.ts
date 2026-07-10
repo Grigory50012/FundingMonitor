@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fundingRatesApi } from "../api/fundingRates";
+import { getApiErrorMessage } from "../shared/api/errors";
 import type {
   FundingRateDto,
   HistoricalFundingRateDto,
@@ -34,10 +35,10 @@ export function useCurrentRates(params?: CurrentParams) {
       });
       setData(res);
     } catch (err: unknown) {
-      const isObj = typeof err === "object" && err !== null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const detail = isObj ? (err as any).response?.data?.details : undefined;
-      const msg = detail ?? (isObj ? (err as any).message : undefined) ?? "Не удалось загрузить текущие данные";
+      const msg = getApiErrorMessage(
+        err,
+        "Не удалось загрузить текущие данные",
+      );
       console.error("Failed to load current data:", err);
       setError(msg);
     } finally {
@@ -83,9 +84,10 @@ export function useHistoryRates(params?: HistoryParams) {
       });
       setData(res);
     } catch (err: unknown) {
-      const isObj = typeof err === "object" && err !== null;
-      const detail = isObj ? (err as any).response?.data?.details : undefined;
-      const msg = detail ?? (isObj ? (err as any).message : undefined) ?? "Не удалось загрузить исторические данные";
+      const msg = getApiErrorMessage(
+        err,
+        "Не удалось загрузить исторические данные",
+      );
       console.error("Failed to load history data:", err);
       setError(msg);
     } finally {
@@ -120,9 +122,10 @@ export function useArbitrageRates(params?: ArbitrageParams) {
       });
       setData(res);
     } catch (err: unknown) {
-      const isObj = typeof err === "object" && err !== null;
-      const detail = isObj ? (err as any).response?.data?.details : undefined;
-      const msg = detail ?? (isObj ? (err as any).message : undefined) ?? "Не удалось загрузить арбитражные данные";
+      const msg = getApiErrorMessage(
+        err,
+        "Не удалось загрузить арбитражные данные",
+      );
       console.error("Failed to load arbitrage data:", err);
       setError(msg);
     } finally {

@@ -58,13 +58,13 @@ export interface FundingArbitrageDto {
 }
 
 export const PERIODS = [
-  { label: "1 день", days: 1 },
-  { label: "2 дня", days: 2 },
-  { label: "3 дня", days: 3 },
-  { label: "7 дней", days: 7 },
-  { label: "14 дней", days: 14 },
-  { label: "21 день", days: 21 },
-  { label: "30 дней", days: 30 },
+  { label: "1 \u0434\u0435\u043d\u044c", days: 1 },
+  { label: "2 \u0434\u043d\u044f", days: 2 },
+  { label: "3 \u0434\u043d\u044f", days: 3 },
+  { label: "7 \u0434\u043d\u0435\u0439", days: 7 },
+  { label: "14 \u0434\u043d\u0435\u0439", days: 14 },
+  { label: "21 \u0434\u0435\u043d\u044c", days: 21 },
+  { label: "30 \u0434\u043d\u0435\u0439", days: 30 },
 ] as const;
 
 export const EXCHANGE_COLORS: Record<ExchangeType, string> = {
