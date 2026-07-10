@@ -1,3 +1,12 @@
+## Current Refactor Structure
+
+- `src/shared/lib` contains formatting, sorting, and symbol helpers.
+- `src/shared/ui` contains small reusable UI primitives.
+- `src/entities/exchange` contains exchange constants and badges.
+- `src/features/*` contains feature-owned dashboard components.
+- `src/widgets/dashboard` contains the dashboard page and orchestration hook.
+- No runtime state or data-fetching library is used; data still flows through the existing custom hooks.
+- Legacy `CoinSelector` and `ExchangeSelector` components were removed; `CompactFilter` is the active selector.
 # FundingMonitor.Web — Frontend
 
 React 19 + TypeScript + Vite 7 + Tailwind CSS 4 дашборд для мониторинга funding rates.
