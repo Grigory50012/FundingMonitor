@@ -79,7 +79,7 @@ export function CurrentRatesTable({
   if (sortedData.length === 0) {
     return (
       <EmptyState>
-        {"\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445 \u0434\u043b\u044f \u043e\u0442\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u044f"}
+        {"Нет данных для отображения"}
       </EmptyState>
     );
   }
@@ -106,23 +106,23 @@ export function CurrentRatesTable({
                 borderColor: "var(--tg-border)",
               }}
             >
-              {"\u0411\u0438\u0440\u0436\u0430"}
+              {"Биржа"}
             </th>
             <HeaderCell
               column="markPrice"
-              label={"\u041c\u0430\u0440\u043a."}
+              label={"Марк."}
               sortConfig={sortConfig}
               onSort={handleSort}
             />
             <HeaderCell
               column="fundingRate"
-              label={"\u0421\u0442\u0430\u0432\u043a\u0430"}
+              label={"Ставка"}
               sortConfig={sortConfig}
               onSort={handleSort}
             />
             <HeaderCell
               column="nextFundingTime"
-              label={"\u0412\u0440\u0435\u043c\u044f"}
+              label={"Время"}
               sortConfig={sortConfig}
               onSort={handleSort}
             />
@@ -157,7 +157,7 @@ export function CurrentRatesTable({
                     rel="noopener noreferrer"
                     onClick={(event) => event.stopPropagation()}
                     className="flex-shrink-0 inline-flex items-center"
-                    title={`\u041e\u0442\u043a\u0440\u044b\u0442\u044c ${item.exchange}`}
+                    title={`Открыть ${item.exchange}`}
                   >
                     <svg
                       className="w-3 h-3"
@@ -209,7 +209,7 @@ export function CurrentRatesTable({
                     style={{ color: "var(--tg-text-tertiary)" }}
                   >
                     {item.numberOfPaymentsPerDay}{" "}
-                    {"\u0432\u044b\u043f./\u0434\u0435\u043d\u044c"}
+                    {"вып./день"}
                   </p>
                 </div>
               </td>

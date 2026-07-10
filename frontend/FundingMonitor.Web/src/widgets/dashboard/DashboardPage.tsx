@@ -58,7 +58,7 @@ export function DashboardPage() {
               className="text-sm font-semibold whitespace-nowrap"
               style={{ color: "var(--tg-text-secondary)" }}
             >
-              {"\u0424\u0438\u043b\u044c\u0442\u0440\u044b"}
+              {"Фильтры"}
             </h2>
             <CompactFilter
               selectedExchanges={mainFilters.exchanges}
@@ -90,7 +90,7 @@ export function DashboardPage() {
               color: "var(--tg-button-text)",
               opacity: isMainLoading ? 0.6 : 1,
             }}
-            title={"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0438\u0435 \u0441\u0442\u0430\u0432\u043a\u0438 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u044e"}
+            title={"Обновить текущие ставки и историю"}
           >
             <svg
               className={`w-3.5 h-3.5 ${isMainLoading ? "animate-spin" : ""}`}
@@ -105,7 +105,7 @@ export function DashboardPage() {
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-            <span>{"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c"}</span>
+            <span>{"Обновить"}</span>
           </button>
         </div>
 
@@ -114,7 +114,7 @@ export function DashboardPage() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <h2 className="text-base font-semibold">
-                  {"\u0422\u0435\u043a\u0443\u0449\u0438\u0435 \u0441\u0442\u0430\u0432\u043a\u0438"}
+                  {"Текущие ставки"}
                 </h2>
               </div>
             </div>
@@ -125,7 +125,7 @@ export function DashboardPage() {
                   <div className="text-center">
                     <Spinner className="w-12 h-12 mx-auto mb-4" />
                     <p style={{ color: "var(--tg-text-secondary)" }}>
-                      {"\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0442\u0435\u043a\u0443\u0449\u0438\u0445 \u0434\u0430\u043d\u043d\u044b\u0445..."}
+                      {"Загрузка текущих данных..."}
                     </p>
                   </div>
                 </div>
@@ -142,14 +142,14 @@ export function DashboardPage() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3 min-w-0">
                 <h2 className="text-base font-semibold whitespace-nowrap">
-                  {"\u0418\u0441\u0442\u043e\u0440\u0438\u044f"}
+                  {"История"}
                 </h2>
                 {historyViewMode === "table" && (
                   <span
                     className="text-xs truncate"
                     style={{ color: "var(--tg-text-secondary)" }}
                   >
-                    {" / APR \u043f\u043e \u043f\u0435\u0440\u0438\u043e\u0434\u0430\u043c"}
+                    {" / APR по периодам"}
                   </span>
                 )}
               </div>
@@ -221,7 +221,7 @@ export function DashboardPage() {
                   <div className="text-center">
                     <Spinner className="w-12 h-12 mx-auto mb-4" />
                     <p style={{ color: "var(--tg-text-secondary)" }}>
-                      {"\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0438\u0441\u0442\u043e\u0440\u0438\u0438..."}
+                      {"Загрузка истории..."}
                     </p>
                   </div>
                 </div>
@@ -246,7 +246,7 @@ export function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                {"\u0410\u0440\u0431\u0438\u0442\u0440\u0430\u0436\u043d\u044b\u0435 \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u0438"}
+                {"Арбитражные возможности"}
               </h2>
               <CompactFilter
                 selectedExchanges={arbitrageFilters.exchanges}
@@ -295,7 +295,7 @@ export function DashboardPage() {
                 <div className="text-center">
                   <Spinner className="w-12 h-12 mx-auto mb-4" />
                   <p style={{ color: "var(--tg-text-secondary)" }}>
-                    {"\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0430\u0440\u0431\u0438\u0442\u0440\u0430\u0436\u043d\u044b\u0445 \u0434\u0430\u043d\u043d\u044b\u0445..."}
+                    {"Загрузка арбитражных данных..."}
                   </p>
                 </div>
               </div>

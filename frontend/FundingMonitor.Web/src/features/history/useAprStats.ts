@@ -40,7 +40,7 @@ export function useAprStats({
           setError(
             getApiErrorMessage(
               err,
-              "\u041e\u0448\u0438\u0431\u043a\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u0434\u0430\u043d\u043d\u044b\u0445",
+              "Ошибка загрузки данных",
             ),
           );
         }

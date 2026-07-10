@@ -98,8 +98,8 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
   const deselectAllExchanges = () => onExchangesChange([]);
 
   const getExchangeLabel = () => {
-    if (selectedExchanges.length === 0) return "\u0412\u0441\u0435 \u0431\u0438\u0440\u0436\u0438";
-    if (selectedExchanges.length === EXCHANGES.length) return "\u0412\u0441\u0435 \u0431\u0438\u0440\u0436\u0438";
+    if (selectedExchanges.length === 0) return "Все биржи";
+    if (selectedExchanges.length === EXCHANGES.length) return "Все биржи";
     if (selectedExchanges.length <= 2) return selectedExchanges.join(", ");
     return `${selectedExchanges.slice(0, 2).join(", ")} +${
       selectedExchanges.length - 2
@@ -134,7 +134,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
                 setIsSymbolOpen(false);
               }
             }}
-            placeholder={"\u041f\u043e\u0438\u0441\u043a \u043c\u043e\u043d\u0435\u0442\u044b..."}
+            placeholder={"Поиск монеты..."}
             className="h-full bg-transparent outline-none text-sm font-medium w-[170px]"
             style={{ color: "var(--tg-text)" }}
           />
@@ -144,7 +144,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
               type="button"
               onClick={clearSymbol}
               className="ml-auto p-1 rounded-lg transition-colors"
-              title={"\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c"}
+              title={"Сбросить"}
               style={{ color: "var(--tg-hint)" }}
             >
               <svg
@@ -272,14 +272,14 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
                     className="flex-1 text-xs px-2 py-1.5 rounded-lg transition-colors"
                     style={{ color: "var(--tg-link)" }}
                   >
-                    {"\u0412\u0441\u0435"}
+                    {"Все"}
                   </button>
                   <button
                     onClick={deselectAllExchanges}
                     className="flex-1 text-xs px-2 py-1.5 rounded-lg transition-colors"
                     style={{ color: "var(--tg-text-tertiary)" }}
                   >
-                    {"\u0421\u0431\u0440\u043e\u0441"}
+                    {"Сброс"}
                   </button>
                 </div>
               </div>
