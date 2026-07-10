@@ -16,7 +16,8 @@ namespace FundingMonitor.Api.Models.Dtos;
 ///         "fundingRate": 0.0001,
 ///         "apr": 10.95,
 ///         "numberOfPaymentsPerDay": 3,
-///         "nextFundingTime": "2026-06-14T16:00:00Z"
+///         "nextFundingTime": "2026-06-14T16:00:00Z",
+///         "exchangeUrl": "https://www.binance.com/en/futures/BTCUSDT"
 ///       }
 ///     ]
 /// </remarks>
@@ -27,6 +28,7 @@ namespace FundingMonitor.Api.Models.Dtos;
 /// <param name="APR">Годовая процентная ставка (APR) в процентах. Расчёт: FundingRate * 365 * (24 / FundingIntervalHours) * 100</param>
 /// <param name="NumberOfPaymentsPerDay">Количество выплат в день (обычно 3 для 8-часовых интервалов)</param>
 /// <param name="NextFundingTime">Время следующей выплаты финансирования в UTC (ISO 8601)</param>
+/// <param name="ExchangeUrl">External exchange trading page URL</param>
 public record FundingRateDto(
     string Exchange,
     string Symbol,
@@ -34,5 +36,6 @@ public record FundingRateDto(
     decimal FundingRate,
     decimal APR,
     int NumberOfPaymentsPerDay,
-    DateTime? NextFundingTime
+    DateTime? NextFundingTime,
+    string ExchangeUrl
 );

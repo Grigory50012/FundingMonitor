@@ -28,7 +28,9 @@ namespace FundingMonitor.Api.Models.Dtos;
 ///         "paymentsA": 3,
 ///         "paymentsB": 3,
 ///         "shortExchange": "Binance",
-///         "longExchange": "Bybit"
+///         "longExchange": "Bybit",
+///         "exchangeAUrl": "https://www.binance.com/en/futures/BTCUSDT",
+///         "exchangeBUrl": "https://www.bybit.com/trade/usdt/BTCUSDT"
 ///       }
 ///     ]
 /// </remarks>
@@ -46,6 +48,8 @@ namespace FundingMonitor.Api.Models.Dtos;
 /// <param name="PaymentsB">Количество выплат в день на бирже B</param>
 /// <param name="ShortExchange">Биржа для открытия Short (где APR выше)</param>
 /// <param name="LongExchange">Биржа для открытия Long (где APR ниже)</param>
+/// <param name="ExchangeAUrl">External trading page URL for exchange A</param>
+/// <param name="ExchangeBUrl">External trading page URL for exchange B</param>
 public record FundingArbitrageDto(
     string Symbol,
     string ExchangeA,
@@ -60,5 +64,7 @@ public record FundingArbitrageDto(
     int PaymentsA,
     int PaymentsB,
     string ShortExchange,
-    string LongExchange
+    string LongExchange,
+    string ExchangeAUrl,
+    string ExchangeBUrl
 );

@@ -5,6 +5,8 @@
 ## Путь
 `frontend/FundingMonitor.Web/src/components/ArbitrageTable.tsx`
 
+Exchange links are received from the backend as `exchangeAUrl` and `exchangeBUrl`, matching the `exchangeUrl` contract used by `CurrentDataTable`.
+
 ## Props
 
 ```typescript
@@ -32,6 +34,8 @@ interface ArbitrageTableProps {
   paymentsB: number;        // Выплат/день на B
   shortExchange: string;    // Биржа для Short (выше APR)
   longExchange: string;     // Биржа для Long (ниже APR)
+  exchangeAUrl: string;     // Link to exchange A futures page
+  exchangeBUrl: string;     // Link to exchange B futures page
   aprSpread?: number;       // Разница APR (может отсутствовать)
 }
 ```

@@ -1,3 +1,4 @@
+using FundingMonitor.Api.Extensions;
 using FundingMonitor.Api.Models.Dtos;
 using FundingMonitor.Core.Entities;
 
@@ -29,7 +30,9 @@ public static class ArbitrageMapper
             entity.PaymentsA,
             entity.PaymentsB,
             entity.ShortExchange.ToString(),
-            entity.LongExchange.ToString()
+            entity.LongExchange.ToString(),
+            entity.ExchangeA.ToTradeUrl(entity.Symbol),
+            entity.ExchangeB.ToTradeUrl(entity.Symbol)
         );
     }
 

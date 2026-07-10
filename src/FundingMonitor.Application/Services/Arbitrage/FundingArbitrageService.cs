@@ -22,7 +22,7 @@ public class FundingArbitrageService : IFundingArbitrageService
 
         if (exchanges is { Count: > 0 })
         {
-            if (exchanges.Count < 2) 
+            if (exchanges.Count < 2)
                 return new List<FundingArbitrageOpportunity>().AsReadOnly();
 
             query = query.Where(o => exchanges.Contains(o.ExchangeA) && exchanges.Contains(o.ExchangeB));
@@ -34,11 +34,10 @@ public class FundingArbitrageService : IFundingArbitrageService
             .AsReadOnly();
     }
 
-    public IReadOnlyList<FundingArbitrageOpportunity> GetBySymbol(string symbol)
+    private static string NormalizeSymbol(string symbol)
     {
-        return _opportunities
-            .Where(o => o.Symbol.Equals(symbol, StringComparison.OrdinalIgnoreCase))
-            .ToList()
-            .AsReadOnly();
+        return symbol.Contains('-')
+            ? symbol
+            : $"{symbol}-USDT";
     }
 }

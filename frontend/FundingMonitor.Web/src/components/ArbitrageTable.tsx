@@ -95,6 +95,29 @@ const renderRow = (
             >
               {item.exchangeA}
             </span>
+            <a
+              href={item.exchangeAUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex-shrink-0 inline-flex items-center"
+              title={`Открыть ${item.exchangeA}`}
+            >
+              <svg
+                className="w-3 h-3"
+                style={{ color: "var(--tg-text-tertiary)" }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </a>
             <span
               className="text-xs"
               style={{
@@ -208,6 +231,29 @@ const renderRow = (
             >
               {item.exchangeB}
             </span>
+            <a
+              href={item.exchangeBUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex-shrink-0 inline-flex items-center"
+              title={`Открыть ${item.exchangeB}`}
+            >
+              <svg
+                className="w-3 h-3"
+                style={{ color: "var(--tg-text-tertiary)" }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </a>
             <span
               className="text-xs"
               style={{
@@ -594,6 +640,29 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                           >
                             {group.best.exchangeA}
                           </span>
+                          <a
+                            href={group.best.exchangeAUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-shrink-0 inline-flex items-center"
+                            title={`Открыть ${group.best.exchangeA}`}
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              style={{ color: "var(--tg-text-tertiary)" }}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                              />
+                            </svg>
+                          </a>
                           <span
                             className="text-xs font-semibold"
                             style={{
@@ -731,6 +800,29 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                           >
                             {group.best.exchangeB}
                           </span>
+                          <a
+                            href={group.best.exchangeBUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-shrink-0 inline-flex items-center"
+                            title={`Открыть ${group.best.exchangeB}`}
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              style={{ color: "var(--tg-text-tertiary)" }}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                              />
+                            </svg>
+                          </a>
                           <span
                             className="text-xs font-semibold"
                             style={{

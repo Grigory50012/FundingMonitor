@@ -1,3 +1,4 @@
+using FundingMonitor.Api.Extensions;
 using FundingMonitor.Api.Models.Dtos;
 using FundingMonitor.Core.Entities;
 
@@ -22,7 +23,8 @@ public static class DomainToDtoMapper
             entity.FundingRate,
             entity.APR,
             entity.NumberOfPaymentsPerDay,
-            entity.NextFundingTime
+            entity.NextFundingTime,
+            entity.Exchange.ToTradeUrl(entity.NormalizedSymbol)
         );
     }
 

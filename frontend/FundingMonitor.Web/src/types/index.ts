@@ -8,6 +8,7 @@ export interface FundingRateDto {
   apr: number;
   numberOfPaymentsPerDay: number;
   nextFundingTime: string | null;
+  exchangeUrl: string;
 }
 
 export interface HistoricalFundingRateDto {
@@ -52,6 +53,8 @@ export interface FundingArbitrageDto {
   paymentsB: number;
   shortExchange: string;
   longExchange: string;
+  exchangeAUrl: string;
+  exchangeBUrl: string;
 }
 
 export const PERIODS = [

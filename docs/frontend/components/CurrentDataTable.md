@@ -5,6 +5,21 @@
 ## Путь
 `frontend/FundingMonitor.Web/src/components/CurrentDataTable.tsx`
 
+## Data structure (FundingRateDto)
+
+```typescript
+{
+  exchange: ExchangeType;      // "Binance" | "Bybit" | "OKX"
+  symbol: string;              // "BTC-USDT"
+  markPrice: number;
+  fundingRate: number;
+  apr: number;
+  numberOfPaymentsPerDay: number;
+  nextFundingTime: string | null;
+  exchangeUrl: string;         // Link to the exchange futures page
+}
+```
+
 ## Props
 
 ```typescript

@@ -36,7 +36,7 @@ public class FundingArbitrageDetector : IFundingArbitrageDetector
         if (ratesList.Count == 0)
         {
             _logger.LogDebug("No funding rate data available");
-            return Array.Empty<FundingArbitrageOpportunity>();
+            return [];
         }
 
         var opportunities = new List<FundingArbitrageOpportunity>();
@@ -63,7 +63,7 @@ public class FundingArbitrageDetector : IFundingArbitrageDetector
 
                 opportunities.Add(new FundingArbitrageOpportunity
                 {
-                    Symbol = symbolGroup.Key,
+                    Symbol = rateA.BaseAsset,
                     ExchangeA = rateA.Exchange,
                     ExchangeB = rateB.Exchange,
                     PriceA = rateA.MarkPrice,
