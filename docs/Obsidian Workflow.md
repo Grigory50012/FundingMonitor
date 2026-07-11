@@ -111,9 +111,12 @@ priority:
 - принятия архитектурного решения;
 - завершения заметного этапа разработки.
 
+Для практической проверки используй [[project/documentation-checklist|Чеклист обновления документации]].
+
 ## Связанные заметки
 
 - [[Vault Index]]
 - [[dashboard]]
 - [[project/status]]
+- [[project/documentation-checklist]]
 - [[plans/index]]
