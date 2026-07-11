@@ -1,27 +1,43 @@
 # Индекс документации FundingMonitor
 
-Этот файл — GitHub-friendly индекс документации. Для работы в Obsidian начинай с [[Vault Index]] или [[dashboard]].
+Это главный вход в документацию проекта. Используй его и в Obsidian, и при чтении файлов в GitHub.
 
-## Основные страницы
+## Рабочие страницы
 
-| Раздел | Назначение |
+| Страница | Для чего |
 | --- | --- |
-| [Vault Index](Vault%20Index.md) | Главный Obsidian index |
-| [Dashboard](dashboard.md) | Общее состояние проекта |
-| [Project Overview](project/overview.md) | Цели и область проекта |
-| [Project Status](project/status.md) | Текущее состояние областей |
+| [Dashboard](dashboard.md) | Общее состояние проекта, задачи, планы, ADR и быстрые ссылки |
+| [Project Status](project/status.md) | Текущее состояние проекта по областям |
+| [Roadmap](project/roadmap.md) | Что делаем сейчас, далее и позже |
+| [Obsidian Workflow](Obsidian%20Workflow.md) | Правила ведения документации |
+
+## Проект
+
+| Страница | Для чего |
+| --- | --- |
+| [Overview](project/overview.md) | Цели, scope и границы проекта |
+| [Status](project/status.md) | Текущий статус backend, frontend, БД, инфраструктуры и docs |
 | [Roadmap](project/roadmap.md) | Направления работ |
-| [Obsidian Workflow](Obsidian%20Workflow.md) | Правила ведения vault |
+| [Glossary](project/glossary.md) | Термины проекта |
 
 ## Техническая документация
 
-| Раздел | Назначение |
+| Раздел | Для чего |
 | --- | --- |
-| [Architecture](architecture/index.md) | Backend architecture, потоки данных, deployment view |
+| [Architecture](architecture/index.md) | Архитектура backend/frontend, data flow, deployment view |
 | [ADR](adr/index.md) | Architecture Decision Records |
 | [Database Schema](database-schema.md) | Таблицы, индексы, миграции, performance notes |
 | [Docker Deployment](deployment/docker.md) | PostgreSQL и Redis через Docker Compose |
-| [Frontend Components](frontend/components/index.md) | Актуальная frontend-структура и component map |
+| [Frontend Components](frontend/components/index.md) | Frontend-структура и component map |
+
+## Планы
+
+| Путь | Для чего |
+| --- | --- |
+| [Plans Index](plans/index.md) | Правила и индекс планов |
+| [Accepted Plans](plans/accepted/README.md) | Планы, которые сохраняются в Git |
+
+Локальные черновики `docs/plans/drafts/`, личные планы `docs/plans/private/`, задачи `docs/tasks/` и dev-log `docs/dev-log/` не коммитятся.
 
 ## README входные точки
 
@@ -40,22 +56,7 @@
 | GET | `/api/v1/Arbitrage` | `symbol?`, `exchanges?` |
 | GET | `/api/v1/exchanges/health` | none |
 
-## Frontend
-
-Актуальная структура:
-
-- `src/widgets/dashboard` — страница dashboard и orchestration hook.
-- `src/features/current-rates` — таблица текущих ставок.
-- `src/features/history` — график истории и APR table.
-- `src/features/arbitrage` — таблица arbitrage opportunities.
-- `src/features/filters` — активный `CompactFilter`.
-- `src/shared` — UI primitives, format/sort/symbol helpers, shared API errors.
-- `src/entities/exchange` — exchange constants и badges.
-- `src/components` — compatibility barrel для старых импортов.
-
-Удалённые legacy-компоненты `CoinSelector` и `ExchangeSelector` больше не документируются как активные элементы UI.
-
-## Правило обновления
+## Когда обновлять документацию
 
 Обновляй документацию вместе с кодом, если меняются:
 
@@ -64,4 +65,5 @@
 - схема базы данных;
 - deployment workflow;
 - архитектурное решение;
-- активный план или статус проекта.
+- active/accepted plan;
+- статус проекта.

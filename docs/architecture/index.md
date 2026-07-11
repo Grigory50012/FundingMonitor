@@ -133,7 +133,7 @@ Vite proxy отправляет `/api` на backend. Подробности: [Do
 
 ## Связанная документация
 
-- [Vault Index](../Vault%20Index.md)
+- [Documentation Index](../index.md)
 - [ADR Index](../adr/index.md)
 - [Database Schema](../database-schema.md)
 - [Frontend Components](../frontend/components/index.md)

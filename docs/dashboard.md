@@ -1,7 +1,7 @@
 ---
 type: dashboard
 status: active
-updated: 2026-07-11
+updated: 2026-07-12
 ---
 
 # Дашборд FundingMonitor
@@ -19,9 +19,9 @@ updated: 2026-07-11
 
 ## Текущий фокус
 
-- Поддерживать [[project/status]] в актуальном состоянии.
-- Планировать работу в [[tasks/active]] и [[plans/index]].
-- Фиксировать заметки по разработке в [[dev-log/index]].
+- Держать [[project/status]] актуальным.
+- Работать из `docs/tasks/active.md`.
+- Для крупных задач создавать accepted plan в [[plans/index]].
 
 ## Активные задачи
 
@@ -32,7 +32,7 @@ sort by priority
 sort by due
 ```
 
-## Страницы проекта
+## Проектные страницы
 
 ```dataview
 TABLE status, updated
@@ -40,16 +40,15 @@ FROM "docs/project"
 SORT file.name ASC
 ```
 
-## Планы
+## Accepted plans
 
 ```dataview
 TABLE status, area, priority, updated
-FROM "docs/plans"
-WHERE file.name != "index"
+FROM "docs/plans/accepted"
 SORT priority ASC, updated DESC
 ```
 
-## Архитектурные решения
+## ADR
 
 ```dataview
 TABLE status, date
@@ -58,25 +57,14 @@ WHERE file.name != "index"
 SORT file.name DESC
 ```
 
-## Последние записи dev-log
-
-```dataview
-LIST
-FROM "docs/dev-log"
-WHERE file.name != "index"
-SORT file.name DESC
-LIMIT 5
-```
-
 ## Быстрые ссылки
 
 - [[index|Индекс документации]]
-- [[project/overview|Описание проекта]]
+- [[project/status|Статус проекта]]
 - [[project/roadmap|Roadmap]]
-- [[project/glossary|Глоссарий]]
-- [[tasks/backlog|Backlog]]
 - [[tasks/active|Активные задачи]]
-- [[tasks/done|Завершённые задачи]]
+- [[tasks/backlog|Backlog]]
+- [[plans/index|Планы]]
 - [[architecture/index|Архитектура]]
 - [[adr/index|ADR]]
 - [[deployment/docker|Docker deployment]]

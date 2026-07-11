@@ -73,7 +73,7 @@ http://localhost:5173
 
 Основная документация ведётся в `docs/` и открывается как Obsidian vault из корня репозитория.
 
-- [Vault Index](docs/Vault%20Index.md)
+- [Documentation Index](docs/index.md)
 - [Project Dashboard](docs/dashboard.md)
 - [Project Status](docs/project/status.md)
 - [Architecture](docs/architecture/index.md)

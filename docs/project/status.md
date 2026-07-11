@@ -24,7 +24,7 @@ FundingMonitor имеет рабочую backend/frontend-структуру, Po
 
 ## Текущее состояние документации
 
-- Главный Obsidian вход: [[../Vault Index]].
+- Главный вход в документацию: [[../index]].
 - Рабочий dashboard: [[../dashboard]].
 - GitHub-friendly index: [[../index]].
 - Чеклист обновления документации: [[documentation-checklist]].

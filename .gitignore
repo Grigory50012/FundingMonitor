@@ -60,6 +60,7 @@ USE_CASE_DIAGRAM.md
 .obsidian/.obsidian/
 .obsidian/appearance.json
 .obsidian/core-plugins.json
+.obsidian/graph.json
 .obsidian/types.json
 
 # Personal Obsidian/project working notes

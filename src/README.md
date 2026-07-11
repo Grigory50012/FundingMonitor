@@ -34,7 +34,7 @@ http://localhost:5000/
 ## Документация
 
 - [Project Dashboard](../docs/dashboard.md)
-- [Vault Index](../docs/Vault%20Index.md)
+- [Documentation Index](../docs/index.md)
 - [Architecture](../docs/architecture/index.md)
 - [ADR](../docs/adr/index.md)
 - [Database Schema](../docs/database-schema.md)
