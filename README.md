@@ -1,98 +1,99 @@
 # FundingMonitor
 
-**Система мониторинга ставок финансирования криптовалютных фьючерсов**
+FundingMonitor — приложение для мониторинга funding rates на криптовалютных perpetual futures. Оно собирает текущие и исторические ставки с Binance, Bybit и OKX, хранит данные в PostgreSQL и показывает funding arbitrage opportunities через API и frontend dashboard.
 
-Приложение собирает данные о ставках финансирования с бирж **Binance, Bybit, OKX**, сохраняет историю в PostgreSQL и предоставляет API для получения текущих ставок, исторических данных и арбитражных возможностей.
-
----
-
-## 🚀 Быстрый старт
+## Быстрый старт
 
 ### Требования
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js 18+](https://nodejs.org/) (для фронтенда)
-- [Docker](https://www.docker.com/get-started) (опционально)
 
-### 1. Инфраструктура (Docker)
+- .NET SDK 10, см. `global.json`
+- Node.js 18+
+- Docker
+
+### Инфраструктура
+
 ```bash
 docker-compose up -d
-# PostgreSQL: localhost:5432, Redis: localhost:6379
 ```
 
-### 2. Backend
+Поднимаются только PostgreSQL и Redis:
+
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+
+### Backend
+
 ```bash
 dotnet restore
+dotnet build FundingMonitor.sln
 dotnet run --project src/FundingMonitor.Api
-# Swagger UI: http://localhost:5000/ (только в Development)
 ```
 
-### 3. Frontend
+Development API / Swagger:
+
+```text
+http://localhost:5000/
+```
+
+### Frontend
+
 ```bash
 cd frontend/FundingMonitor.Web
 npm install
 npm run dev
-# Frontend: http://localhost:5173
 ```
 
----
+Frontend dev server:
 
-## 📚 Документация
+```text
+http://localhost:5173
+```
 
-Полная документация перемещена в папку [`docs/`](docs/):
+## Основные возможности
 
-| Раздел | Описание |
-|--------|----------|
-| [**Architecture**](docs/architecture/) | Диаграммы (Use Case, Sequence, Component, Deployment) |
-| [**ADR**](docs/adr/) | Architecture Decision Records (8 решений) |
-| [**Database**](docs/database-schema.md) | Схема БД, индексы, миграции, производительность |
-| [**Deployment**](docs/deployment/) | Docker, production настройка, мониторинг |
-| [**Frontend Components**](docs/frontend/components/) | Документация 7 React компонентов |
-| [**Contributing**](CONTRIBUTING.md) | Workflow, code style, architecture guidelines |
+- Сбор текущих funding rates каждые 10 секунд.
+- Исторический сбор через Redis-backed очередь.
+- REST API для текущих ставок, истории, APR statistics, arbitrage и health бирж.
+- React/Vite dashboard с фильтрами по символу и биржам.
+- APR analytics по периодам 1, 2, 3, 7, 14, 21 и 30 дней.
+- Clean Architecture: `Core`, `Application`, `Infrastructure`, `Api`.
 
----
+## Технологии
 
-## ✨ Ключевые возможности
+| Область | Стек |
+| --- | --- |
+| Backend | .NET 10, ASP.NET Core, EF Core 10, NLog |
+| Database | PostgreSQL 17 |
+| Queue | Redis 7 |
+| Exchange APIs | Binance.Net, Bybit.Net, JK.OKX.Net |
+| Frontend | React 19, TypeScript 5.8, Vite 7, Tailwind CSS 4, Recharts 3, Axios |
+| Docs | Markdown, Obsidian, Dataview, Tasks, Templater |
 
-- **Real-time сбор** — ставки каждые 10 секунд с 3 бирж
-- **Арбитраж** — автоматический поиск разниц funding rate между биржами
-- **APR аналитика** — статистика за 1д/2д/3д/7д/14д/21д/30д с кэшированием
-- **История** — персистентная очередь Redis, bulk insert в PostgreSQL
-- **Clean Architecture** — Core / Application / Infrastructure / Api
-- **ProblemDetails (RFC 7807)** — единый формат ошибок API
+## Документация
 
----
+Основная документация ведётся в `docs/` и открывается как Obsidian vault из корня репозитория.
 
-## 🛠️ Технологический стек
+- [Vault Index](docs/Vault%20Index.md)
+- [Project Dashboard](docs/dashboard.md)
+- [Project Status](docs/project/status.md)
+- [Architecture](docs/architecture/index.md)
+- [ADR](docs/adr/index.md)
+- [Database Schema](docs/database-schema.md)
+- [Docker Deployment](docs/deployment/docker.md)
+- [Frontend Components](docs/frontend/components/index.md)
+- [Backend README](src/README.md)
+- [Frontend README](frontend/FundingMonitor.Web/README.md)
 
-| Слой | Технологии |
-|------|------------|
-| **Backend** | .NET 10, ASP.NET Core, EF Core 10, PostgreSQL 17, Redis 7, NLog |
-| **Exchange APIs** | Binance.Net, Bybit.Net, JK.OKX.Net |
-| **Frontend** | React 19, TypeScript 5.8, Vite 7, Tailwind CSS 4, Recharts 3, Axios |
-| **Infra** | Docker Compose 3.8, Swagger/OpenAPI |
+## API
 
----
+| Method | Path | Назначение |
+| --- | --- | --- |
+| GET | `/api/v1/FundingRates` | Текущие funding rates |
+| GET | `/api/v1/History` | История funding rates |
+| GET | `/api/v1/History/apr-stats` | APR statistics |
+| GET | `/api/v1/Arbitrage` | Funding arbitrage opportunities |
+| GET | `/api/v1/exchanges/health` | Health status бирж |
 
-## 📊 Статус проекта
+## README политика
 
-| Компонент | Статус |
-|-----------|--------|
-| Сбор данных (Binance, Bybit, OKX) | ✅ |
-| Хранение (PostgreSQL + EF Core Bulk) | ✅ |
-| API (REST + Swagger + ProblemDetails) | ✅ |
-| Очередь (Redis List) | ✅ |
-| Логирование (NLog, 4 файла) | ✅ |
-| Frontend (React + TS + Vite) | ✅ |
-| Тесты | ⏳ В планах |
-
----
-
-## 📝 Лицензия
-
-MIT
-
----
-
-## 🤝 Вклад
-
-См. [CONTRIBUTING.md](CONTRIBUTING.md) — workflow, code style, architecture guidelines.
+README в корне и модулях остаются короткими входными точками: команды, быстрый старт, ссылки. Подробные объяснения архитектуры, решений, планов и процесса живут в `docs/`.

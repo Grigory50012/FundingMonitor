@@ -1,79 +1,39 @@
 # HistoryTable
 
-Таблица APR статистики по периодам (1д, 2д, 3д, 7д, 14д, 21д, 30д) для выбранных бирж и символа.
+Compatibility name для APR table по историческим funding rates.
 
-## Путь
-`frontend/FundingMonitor.Web/src/components/HistoryTable.tsx`
+## Реальная реализация
+
+```text
+frontend/FundingMonitor.Web/src/features/history/HistoryAprTable.tsx
+```
+
+Compatibility export:
+
+```text
+frontend/FundingMonitor.Web/src/components/HistoryTable.tsx
+frontend/FundingMonitor.Web/src/components/index.ts
+```
 
 ## Props
 
-```typescript
+```ts
 interface HistoryTableProps {
-  selectedExchanges: ExchangeType[]; // Фильтр по биржам
-  symbol: string;                    // Символ (например, "BTC-USDT")
+  selectedExchanges: ExchangeType[];
+  symbol: string;
 }
 ```
 
-## Функциональность
+## Поведение
 
-### Загрузка данных
-- Самостоятельно загружает данные через `fundingRatesApi.getAprStats()`
-- `useEffect` с зависимостями `[symbol, selectedExchanges]`
-- Состояния: `isLoading`, `error`, `data`
+- Загружает APR statistics через `useAprStats`.
+- Показывает периоды из `PERIODS`: 1, 2, 3, 7, 14, 21, 30 дней.
+- Фильтрует данные по выбранным биржам.
+- Сортирует строки бирж по APR выбранного периода.
+- Показывает APR, суммарную funding rate, число выплат, среднюю ставку и standard deviation.
 
-### Сортировка
-- Сортировка **бирж** (строк) внутри выбранного периода
-- Клик по заголовку периода устанавливает `sortConfig.period` и колонку
-- Колонки для сортировки: **APR**, **∑ (суммарная ставка)**, **Выплат**, **Средняя ставка**
-- Цикл: `asc` → `desc` → `none`
+## Связанные заметки
 
-### Отображаемые метрики (на ячейку периода)
-| Метрика | Формат | Описание |
-|---------|--------|----------|
-| **APR** | `XX.XX%` | Годовая процентная ставка, цвет по знаку |
-| **∑** | `∑ X.XXX%` | Суммарная ставка за период |
-| **Count** | `N` | Количество выплат |
-| **Avg** | `X.XXX%` | Средняя ставка за выплату |
-| **σ** | `σ X.XXXX%` | Стандартное отклонение (фиолетовый) |
-
-### UI детали
-- Sticky заголовок + sticky первый столбец (Биржа)
-- Колонки периодов генерируются из `PERIODS` константы
-- Цветные бейджи бирж (как в CurrentDataTable)
-- Под таблицей — легенда с расшифровкой метрик
-- Пустые состояния: загрузка, ошибка, нет данных
-
-## Константы
-
-```typescript
-// Из ../types
-const PERIODS = [
-  { label: "1 день", days: 1 },
-  { label: "2 дня", days: 2 },
-  { label: "3 дня", days: 3 },
-  { label: "7 дней", days: 7 },
-  { label: "14 дней", days: 14 },
-  { label: "21 день", days: 21 },
-  { label: "30 дней", days: 30 },
-] as const;
-```
-
-> Периоды на бэкенде задаются в `appsettings.json` → `AprStats:Periods` (по умолчанию `[1, 2, 3, 7, 14, 21, 30]`). Query-параметр `periods` в API пока не поддерживается.
-
-## Зависимости
-- `AprPeriodStatsDto`, `ExchangeType`, `PERIODS` из `../types`
-- `fundingRatesApi` из `../api/fundingRates`
-
-## Пример использования
-
-```tsx
-<HistoryTable
-  symbol="BTC-USDT"
-  selectedExchanges={['Binance', 'Bybit']}
-/>
-```
-
-## Особенности
-- Компонент **сам загружает данные** (smart component), а не получает готовые пропсы
-- Двойная фильтрация: на бэкенде (через API params) + на фронте (fallback)
-- Сортировка работает только по видимым биржам
+- [[HistoryPanel]]
+- [[index|Frontend Components]]
+- [[../../architecture/index|Архитектура]]

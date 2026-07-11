@@ -1,65 +1,56 @@
-## Current Refactor Structure
+# Frontend Components
 
-- `src/shared/lib` contains formatting, sorting, and symbol helpers.
-- `src/shared/ui` contains small reusable UI primitives.
-- `src/entities/exchange` contains exchange constants and badges.
-- `src/features/*` contains feature-owned dashboard components.
-- `src/widgets/dashboard` contains the dashboard page and orchestration hook.
-- No runtime state or data-fetching library is used; data still flows through the existing custom hooks.
-- Legacy `CoinSelector` and `ExchangeSelector` components were removed; `CompactFilter` is the active selector.
-# Frontend Components Documentation
+Документация по текущей frontend-структуре `frontend/FundingMonitor.Web`.
 
-Каталог с документацией React компонентов проекта FundingMonitor.Web.
+## Текущая структура
 
-## Архитектура UI
+| Слой | Путь | Назначение |
+| --- | --- | --- |
+| Widgets | `src/widgets/dashboard` | Dashboard page и orchestration hook |
+| Features | `src/features/current-rates` | Таблица текущих funding rates |
+| Features | `src/features/history` | График истории и APR table |
+| Features | `src/features/arbitrage` | Funding arbitrage table |
+| Features | `src/features/filters` | Активный фильтр символа и бирж |
+| Entities | `src/entities/exchange` | Exchange constants и badge |
+| Shared UI | `src/shared/ui` | `Panel`, `Spinner`, `EmptyState`, `SortIcon` |
+| Shared lib | `src/shared/lib` | Formatting, sorting, symbol helpers |
+| Compatibility | `src/components` | Barrel exports для старых импортов |
 
-| Слой | Файл | Назначение |
-|------|------|------------|
-| **Container** | `containers/DashboardContainer.tsx` | Оркестрация данных, фильтров и панелей |
-| **Hooks** | `hooks/useFundingRates.ts` | `useCurrentRates`, `useHistoryRates`, `useArbitrageRates` |
-| **Hooks** | `hooks/useLocalStorage.ts` | Персистентность фильтров в localStorage |
+## Активные UI части
 
-## Компоненты
+| Документ | Реальная реализация | Назначение |
+| --- | --- | --- |
+| [CurrentDataTable](CurrentDataTable.md) | `src/features/current-rates/CurrentRatesTable.tsx` | Текущие rates, сортировка, exchange links |
+| [HistoryTable](HistoryTable.md) | `src/features/history/HistoryAprTable.tsx` | APR statistics по периодам |
+| [HistoryPanel](HistoryPanel.md) | `src/features/history/HistoryChartPanel.tsx` | График исторических rates |
+| [ArbitrageTable](ArbitrageTable.md) | `src/features/arbitrage/ArbitrageTable.tsx` | Funding arbitrage opportunities |
+| [CompactFilter](CompactFilter.md) | `src/features/filters/CompactFilter.tsx` | Поиск символа и мультивыбор бирж |
 
-| Компонент | Файл | Назначение |
-|-----------|------|------------|
-| [CurrentDataTable](CurrentDataTable.md) | `CurrentDataTable.tsx` | Таблица текущих ставок финансирования с сортировкой |
-| [HistoryTable](HistoryTable.md) | `HistoryTable.tsx` | Таблица APR статистики по периодам |
-| [HistoryPanel](HistoryPanel.md) | `HistoryPanel.tsx` | График истории ставок (Recharts) + переключатель временных диапазонов |
-| [ArbitrageTable](ArbitrageTable.md) | `ArbitrageTable.tsx` | Таблица арбитражных возможностей с группировкой по символам |
-| [CompactFilter](CompactFilter.md) | `CompactFilter.tsx` | Компактный фильтр: поиск монеты + мультивыбор бирж (**используется в UI**) |
-| [CoinSelector](CoinSelector.md) | `CoinSelector.tsx` | Выпадающий селектор монеты с поиском *(legacy, не используется)* |
-| [ExchangeSelector](ExchangeSelector.md) | `ExchangeSelector.tsx` | Чекбокс-стиль селектор бирж *(legacy, заменён CompactFilter)* |
+## Удалённые legacy-компоненты
 
-## Общие принципы
+`CoinSelector` и `ExchangeSelector` удалены из `src/components`. Их функции объединены в `CompactFilter`.
 
-- **Стилизация**: Tailwind CSS 4 + CSS переменные (`var(--tg-*)`) для темизации
-- **Типизация**: TypeScript strict mode, интерфейсы в `src/types/`
-- **Состояние**: React hooks (`useState`, `useMemo`, `useCallback`, `useEffect`)
-- **Доступность**: семантический HTML, фокус-стили, клавиатурная навигация
-- **Адаптивность**: mobile-first, flex/grid, sticky headers для таблиц
+## Data Flow
 
-## Цветовые константы (CSS переменные)
-
-```css
-:root {
-  --tg-bg: #111827;           /* Основной фон */
-  --tg-bg-secondary: #1F2937; /* Фон карточек/панелей */
-  --tg-bg-tertiary: #374151;  /* Фон инпутов/селектов */
-  --tg-border: #374151;       /* Границы */
-  --tg-text: #F9FAFB;         /* Основной текст */
-  --tg-text-secondary: #9CA3AF;
-  --tg-text-tertiary: #6B7280;
-  --tg-positive: #10B981;     /* Зеленый (профит, лонг) */
-  --tg-negative: #EF4444;     /* Красный (убыток, шорт) */
-  --tg-button: #0D9488;       /* Акцент (teal) */
-  --tg-button-text: #FFFFFF;
-  --tg-hint: #6B7280;
-  --tg-link: #06B6D4;         /* Ссылки (cyan) */
-}
+```text
+DashboardPage
+-> useDashboardData
+-> useCurrentRates / useHistoryRates / useArbitrageRates
+-> fundingRatesApi
+-> /api/v1/*
 ```
 
-Биржевые цвета (из `src/types/index.ts` → `EXCHANGE_COLORS`):
-- **Binance**: `#f0760b` (оранжевый)
-- **Bybit**: `#ffcc00` (жёлтый)
-- **OKX**: `#FFFFFF` (белый)
+APR table дополнительно использует `useAprStats`.
+
+## State
+
+- Фильтры сохраняются через `useLocalStorage`.
+- Основной фильтр и arbitrage-фильтр хранятся отдельно.
+- История имеет режимы `chart` и `table`.
+- TanStack Query, Redux и Zustand сейчас не используются.
+
+## Связанные заметки
+
+- [[../../dashboard|Дашборд]]
+- [[../../architecture/index|Архитектура]]
+- [[../../project/status|Статус проекта]]

@@ -1,100 +1,140 @@
 # Architecture Documentation
 
-## 📐 Диаграммы
+## Backend Layers
 
-| Диаграмма | Формат | Описание |
-|-----------|--------|----------|
-| [Use Case & Sequence](USE_CASE_DIAGRAM.md) | PlantUML / Mermaid | Варианты использования, последовательности сбора данных, API запросы, компоненты, развёртывание |
-
-## 🏗️ Слои Clean Architecture
-
-```
+```text
 src/
-├── FundingMonitor.Core          # Domain Layer (нет внешних зависимостей)
-│   ├── Entities                 # CurrentFundingRate, HistoricalFundingRate, ...
-│   ├── Interfaces               # IRepository, IService, IClient
-│   └── Events                   # FundingRateChangedEvent
-├── FundingMonitor.Application   # Use Cases / Business Logic
-│   ├── Services                 # 9 сервисов (Collector, Detector, AprStats, Arbitrage, ...)
-│   └── BackgroundServices       # 2 Hosted Services
-├── FundingMonitor.Infrastructure # External Concerns
-│   ├── Data                     # EF Core, Repositories, Migrations
-│   ├── ExchangeClients          # Binance, Bybit, OKX реализации
-│   └── Queues                   # RedisHistoryTaskQueue
-└── FundingMonitor.Api           # Presentation
-    ├── Controllers              # FundingRates, History, Exchanges, Arbitrage
-    ├── DTOs                     # Request/Response модели
-    └── Middleware               # ExceptionHandling (ProblemDetails)
+├── FundingMonitor.Core
+│   ├── Entities
+│   ├── Interfaces
+│   ├── Configuration
+│   ├── Events
+│   └── Results
+├── FundingMonitor.Application
+│   ├── Services
+│   └── BackgroundServices
+├── FundingMonitor.Infrastructure
+│   ├── Data
+│   ├── ExchangeClients
+│   └── Queues
+└── FundingMonitor.Api
+    ├── Controllers
+    ├── Models
+    ├── Mappers
+    ├── Middleware
+    └── Extensions
 ```
 
-**Dependency Rule**: `Api` → `Application` → `Core` ← `Infrastructure`
+Dependency rule:
 
-## 🔄 Основные потоки данных
-
-### 1. Сбор текущих ставок (каждые 10 сек)
-```
-BackgroundService → CurrentFundingRateCollector
-    ├─→ BinanceClient
-    ├─→ BybitClient
-    └─→ OkxClient
-         ↓ (parallel Task.WhenAll)
-    → FundingRateChangeDetector (DetectChangesAsync)
-         ↓ (если есть изменения)
-    → HistoricalCollectionProducer (ProduceTasksAsync → Redis LPUSH)
-    → CurrentFundingRateRepository (BulkInsertOrUpdate → PostgreSQL)
-    → FundingArbitrageDetector (DetectOpportunities → FundingArbitrageService)
+```text
+Api -> Application -> Core
+Api -> Infrastructure -> Core
+Application -> Core
+Infrastructure -> Core
 ```
 
-### 2. Сбор исторических данных (event-driven)
-```
-HistoricalBackgroundService → RedisQueue (BRPOP)
-    → HistoricalFundingRateCollector → ExchangeClient
-         ↓ (SemaphoreSlim MaxConcurrentTasks)
-    → HistoricalFundingRateRepository (BulkInsert → PostgreSQL)
-```
+`Core` не зависит от внешних слоёв. `Infrastructure` реализует интерфейсы из `Core`. `Api` собирает зависимости и публикует HTTP surface.
 
-### 3. API запрос (Frontend → Backend)
-```
-GET /api/v1/FundingRates?symbol=BTC&exchanges=Binance,Bybit
-    → ExceptionHandlingMiddleware
-    → FundingRatesController.GetFundingRates()
-    → ICurrentFundingRateRepository.GetRatesAsync()
-    → PostgreSQL (Index Seek на NormalizedSymbol+Exchange)
-    → Map to DTO → JSON Response
-```
+## Data Flows
 
-## 📦 Деплой
+### Current rates
 
-**Docker Compose** поднимает только инфраструктуру (PostgreSQL + Redis). API и фронтенд запускаются локально:
-
-```
-┌─────────────────────────────────────┐
-│         Docker Network              │
-│  ┌──────────┐  ┌────────┐           │
-│  │Postgres  │  │ Redis  │           │
-│  │  :5432   │  │ :6379  │           │
-│  └──────────┘  └────────┘           │
-└─────────────────────────────────────┘
-         ▲              ▲
-         │              │
-┌────────┴──────────────┴─────────────┐
-│  FundingMonitor.Api (dotnet run)    │
-│  localhost:5000                     │
-│  + 2 Background Services            │
-└─────────────────────────────────────┘
-         │
-    ┌────┴────┐    ┌────┴────┐
-    │ Binance │    │  Bybit  │  (+ OKX)
-    │   API   │    │   API   │
-    └─────────┘    └─────────┘
+```text
+CurrentCollectionBackgroundService
+-> CurrentFundingRateCollector
+-> Binance/Bybit/OKX exchange clients
+-> FundingRateChangeDetector
+-> HistoricalCollectionProducer
+-> RedisHistoryTaskQueue
+-> CurrentFundingRateRepository
+-> PostgreSQL
 ```
 
-Фронтенд (`npm run dev`, :5173) проксирует `/api` на `localhost:5000` через Vite.
+Интервал обновления задаётся в `CurrentDataCollectionOptions.UpdateIntervalSeconds`, сейчас `10` секунд.
 
-См. [deployment/docker.md](../deployment/docker.md) для деталей.
+### Historical rates
 
-## 🔗 Связанная документация
+```text
+HistoricalCollectionBackgroundService
+-> RedisHistoryTaskQueue
+-> HistoricalFundingRateCollector
+-> exchange client
+-> HistoricalFundingRateRepository
+-> PostgreSQL
+```
 
-- [ADR Index](../adr/index.md) — 8 архитектурных решений
-- [Database Schema](../database-schema.md) — таблицы, индексы, performance
-- [Frontend Components](../frontend/components/index.md) — 7 React компонентов
+Ограничения сбора задаются в `HistoricalDataCollectionOptions`: `MaxConcurrentTasks`, `ApiPageSize`, `MaxHistoryMonths`, `MaxRetries`.
+
+### API request
+
+```text
+Frontend
+-> /api/v1/*
+-> ExceptionHandlingMiddleware
+-> Controller
+-> repository/service
+-> DTO mapper
+-> JSON response
+```
+
+## API Surface
+
+| Controller | Route | Назначение |
+| --- | --- | --- |
+| `FundingRatesController` | `GET /api/v1/FundingRates` | Текущие funding rates |
+| `HistoryController` | `GET /api/v1/History` | Исторические funding rates |
+| `HistoryController` | `GET /api/v1/History/apr-stats` | APR statistics |
+| `ArbitrageController` | `GET /api/v1/Arbitrage` | Funding arbitrage opportunities |
+| `ExchangesController` | `GET /api/v1/exchanges/health` | Health status бирж |
+
+## Frontend Architecture
+
+```text
+frontend/FundingMonitor.Web/src/
+├── api
+├── config
+├── entities
+├── features
+│   ├── arbitrage
+│   ├── current-rates
+│   ├── filters
+│   └── history
+├── hooks
+├── shared
+│   ├── api
+│   ├── lib
+│   └── ui
+├── types
+└── widgets
+    └── dashboard
+```
+
+`DashboardPage` находится в `widgets/dashboard` и собирает feature-компоненты. Данные загружаются через existing custom hooks: `useCurrentRates`, `useHistoryRates`, `useArbitrageRates`, `useAprStats`. Runtime state/data-fetching library вроде Redux, Zustand или TanStack Query пока не используется.
+
+## Deployment View
+
+Docker Compose поднимает только инфраструктуру:
+
+```text
+PostgreSQL :5432
+Redis      :6379
+```
+
+API и frontend запускаются локально:
+
+```bash
+dotnet run --project src/FundingMonitor.Api
+cd frontend/FundingMonitor.Web
+npm run dev
+```
+
+Vite proxy отправляет `/api` на backend. Подробности: [Docker Deployment](../deployment/docker.md).
+
+## Связанная документация
+
+- [Vault Index](../Vault%20Index.md)
+- [ADR Index](../adr/index.md)
+- [Database Schema](../database-schema.md)
+- [Frontend Components](../frontend/components/index.md)
+- [Docker Deployment](../deployment/docker.md)

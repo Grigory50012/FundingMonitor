@@ -1,74 +1,45 @@
 # CurrentDataTable
 
-Таблица отображения текущих ставок финансирования с сортировкой по колонкам.
+Compatibility name для текущей таблицы funding rates.
 
-## Путь
-`frontend/FundingMonitor.Web/src/components/CurrentDataTable.tsx`
+## Реальная реализация
 
-## Data structure (FundingRateDto)
+```text
+frontend/FundingMonitor.Web/src/features/current-rates/CurrentRatesTable.tsx
+```
 
-```typescript
-{
-  exchange: ExchangeType;      // "Binance" | "Bybit" | "OKX"
-  symbol: string;              // "BTC-USDT"
-  markPrice: number;
-  fundingRate: number;
-  apr: number;
-  numberOfPaymentsPerDay: number;
-  nextFundingTime: string | null;
-  exchangeUrl: string;         // Link to the exchange futures page
-}
+Compatibility export:
+
+```text
+frontend/FundingMonitor.Web/src/components/CurrentDataTable.tsx
+frontend/FundingMonitor.Web/src/components/index.ts
 ```
 
 ## Props
 
-```typescript
-interface CurrentDataTableProps {
-  data: FundingRateDto[];           // Массив DTO с текущими ставками
-  selectedExchanges: ExchangeType[]; // Фильтр по биржам (пустой = все)
+```ts
+interface CurrentRatesTableProps {
+  data: FundingRateDto[];
+  selectedExchanges: ExchangeType[];
 }
 ```
 
-## Функциональность
+## Поведение
 
-### Сортировка
-- Клик по заголовку колонки циклически переключает: `asc` → `desc` → `none` (оригинальный порядок)
-- Сортируемые колонки: **Mark Price**, **Ставка**, **Время**, **APR**
-- Иконка сортировки меняется в зависимости от направления
+- Фильтрует данные по выбранным биржам.
+- Сортирует по `markPrice`, `fundingRate`, `nextFundingTime`, `apr`.
+- Показывает exchange badge и ссылку на торговую страницу биржи.
+- Использует `EmptyState`, если данных нет.
 
-### Фильтрация
-- Фильтрация по биржам происходит на уровне родителя (передается `selectedExchanges`)
-- Внутри компонента только применяется фильтр
+## Модель
 
-### Форматирование
-| Поле | Формат |
-|------|--------|
-| Mark Price | `$` + locale string, 2-8 знаков после запятой |
-| Funding Rate | `%` с 3 знаками, цвет: зелёный (+), красный (-), серый (0) |
-| Payments/Day | `{N} вып./день` |
-| Next Funding Time | `HH:MM` (локальное время) или `—` |
-| APR | `XX.XX%`, цвет по знаку |
+Логика фильтрации и сортировки вынесена в:
 
-### UI детали
-- Sticky заголовок (`position: sticky; top: 0`)
-- Sticky первый столбец (Биржа) при горизонтальном скролле
-- Цветные бейджи бирж: Binance (жёлтый), Bybit (оранжевый), OKX (серый)
-- Пустое состояние: "Нет данных для отображения"
-
-## Зависимости
-- `FundingRateDto` из `../types`
-- `ExchangeType` из `../types`
-
-## Пример использования
-
-```tsx
-<CurrentDataTable
-  data={currentRates}
-  selectedExchanges={['Binance', 'Bybit']}
-/>
+```text
+src/features/current-rates/currentRatesTableModel.ts
 ```
 
-## Производительность
-- `useMemo` для отсортированных данных
-- Ключи строк: `${exchange}-${symbol}`
-- Минимальные ре-рендеры за счёт стабильных ссылок на функции
+## Связанные заметки
+
+- [[index|Frontend Components]]
+- [[../../architecture/index|Архитектура]]
