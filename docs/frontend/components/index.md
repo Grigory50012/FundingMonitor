@@ -53,4 +53,3 @@ APR table дополнительно использует `useAprStats`.
 
 - [[../../dashboard|Дашборд]]
 - [[../../architecture/index|Архитектура]]
-- [[../../project/status|Статус проекта]]

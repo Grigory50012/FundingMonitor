@@ -51,8 +51,6 @@ logs/*.log
 !logs/.gitkeep
 .qwen/settings.json
 .qwen/settings.json.orig
-USE_CASE_DIAGRAM.md
-
 # Obsidian local state and downloaded community plugins
 .obsidian/workspace*
 .obsidian/plugins/
@@ -63,9 +61,5 @@ USE_CASE_DIAGRAM.md
 .obsidian/graph.json
 .obsidian/types.json
 
-# Personal Obsidian/project working notes
-docs/tasks/
-docs/dev-log/
-docs/plans/drafts/
-docs/plans/private/
-docs/superpowers/
+# Local developer documentation and working notes
+.private/
