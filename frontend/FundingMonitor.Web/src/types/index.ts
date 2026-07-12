@@ -1,33 +1,19 @@
+import type { components } from "./generated/api";
+
 export type ExchangeType = "Binance" | "Bybit" | "OKX";
 
-export interface FundingRateDto {
+type ApiSchemas = components["schemas"];
+type WithExchangeType<T extends { exchange: string }> = Omit<T, "exchange"> & {
   exchange: ExchangeType;
-  symbol: string;
-  markPrice: number;
-  fundingRate: number;
-  apr: number;
-  numberOfPaymentsPerDay: number;
-  nextFundingTime: string | null;
-  exchangeUrl: string;
-}
+};
 
-export interface HistoricalFundingRateDto {
-  exchange: ExchangeType;
-  symbol: string;
-  fundingRate: number;
-  fundingTime: string;
-}
-
-export interface AprPeriodStatsDto {
-  exchange: ExchangeType;
-  period: string;
-  days: number;
-  apr: number;
-  totalFundingRatePercent: number;
-  paymentsCount: number;
-  avgFundingRatePercent: number;
-  stdDev: number;
-}
+export type FundingRateDto = WithExchangeType<ApiSchemas["FundingRateDto"]>;
+export type HistoricalFundingRateDto = WithExchangeType<
+  ApiSchemas["HistoricalFundingRateDto"]
+>;
+export type AprPeriodStatsDto = WithExchangeType<
+  ApiSchemas["AprPeriodStatsDto"]
+>;
 
 export interface ApiErrorResponse {
   error: string;
@@ -35,27 +21,7 @@ export interface ApiErrorResponse {
   requestId?: string;
 }
 
-export interface FundingArbitrageDto {
-  symbol: string;
-  exchangeA: string;
-  exchangeB: string;
-  priceA: number;
-  priceB: number;
-  priceSpread: number;
-  priceSpreadPercent: number;
-  fundingRateA: number;
-  fundingRateB: number;
-  aprFundingRateA: number;
-  aprFundingRateB: number;
-  aprSpread: number;
-  fundingRateSpread: number;
-  paymentsA: number;
-  paymentsB: number;
-  shortExchange: string;
-  longExchange: string;
-  exchangeAUrl: string;
-  exchangeBUrl: string;
-}
+export type FundingArbitrageDto = ApiSchemas["FundingArbitrageDto"];
 
 export const PERIODS = [
   { label: "1 день", days: 1 },

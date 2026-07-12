@@ -29,7 +29,7 @@ public class FundingArbitrageService : IFundingArbitrageService
         }
 
         return query
-            .OrderByDescending(o => o.ProfitabilityPercent)
+            .OrderByDescending(o => o.AprSpread)
             .ToList()
             .AsReadOnly();
     }

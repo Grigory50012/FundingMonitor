@@ -1,5 +1,10 @@
 import React, { useState, useMemo, useCallback } from "react";
 import type { FundingArbitrageDto } from "../../types";
+import {
+  calcFundingRate,
+  calcFundingSpread,
+  getProfitability,
+} from "./arbitrageTableModel";
 
 interface ArbitrageTableProps {
   data: FundingArbitrageDto[];
@@ -23,19 +28,6 @@ interface SymbolGroup {
   best: FundingArbitrageDto;
   others: FundingArbitrageDto[];
 }
-
-// Хелпер для расчёта спрэда фандинга
-const calcFundingSpread = (item: FundingArbitrageDto): number => {
-  const spread =
-    item.fundingRateSpread ??
-    (item.fundingRateA ?? 0) - (item.fundingRateB ?? 0);
-  return spread * 100;
-};
-
-const calcFundingRate = (rate: number): number => rate * 100;
-
-const getProfitability = (item: FundingArbitrageDto): number =>
-  Math.abs(item.aprSpread);
 
 const renderRow = (
   item: FundingArbitrageDto,

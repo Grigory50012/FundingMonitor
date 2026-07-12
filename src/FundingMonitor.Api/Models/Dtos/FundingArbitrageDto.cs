@@ -44,6 +44,9 @@ namespace FundingMonitor.Api.Models.Dtos;
 /// <param name="FundingRateA">Ставка финансирования на бирже A</param>
 /// <param name="FundingRateB">Ставка финансирования на бирже B</param>
 /// <param name="FundingRateSpread">Разница ставок финансирования (FundingRateA - FundingRateB)</param>
+/// <param name="AprA">APR ставки биржи A в процентах</param>
+/// <param name="AprB">APR ставки биржи B в процентах</param>
+/// <param name="AprSpread">Абсолютная разница APR между биржами в процентных пунктах</param>
 /// <param name="PaymentsA">Количество выплат в день на бирже A</param>
 /// <param name="PaymentsB">Количество выплат в день на бирже B</param>
 /// <param name="ShortExchange">Биржа для открытия Short (где APR выше)</param>
@@ -61,6 +64,9 @@ public record FundingArbitrageDto(
     decimal FundingRateA,
     decimal FundingRateB,
     decimal FundingRateSpread,
+    decimal AprA,
+    decimal AprB,
+    decimal AprSpread,
     int PaymentsA,
     int PaymentsB,
     string ShortExchange,

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace FundingMonitor.Api.Models.Dtos;
 
 /// <summary>
@@ -36,6 +38,6 @@ public record FundingRateDto(
     decimal FundingRate,
     decimal APR,
     int NumberOfPaymentsPerDay,
-    DateTime? NextFundingTime,
+    [property: JsonRequired] DateTime? NextFundingTime,
     string ExchangeUrl
 );

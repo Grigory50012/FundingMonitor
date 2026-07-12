@@ -19,7 +19,9 @@ public record FundingArbitrageOpportunity
     public required decimal FundingRateB { get; init; }
     public decimal FundingRateSpread => FundingRateA - FundingRateB;
 
-    public decimal ProfitabilityPercent => Math.Abs(FundingRateSpread);
+    public required decimal AprA { get; init; }
+    public required decimal AprB { get; init; }
+    public decimal AprSpread => Math.Abs(AprA - AprB);
 
     public required int PaymentsA { get; init; }
     public required int PaymentsB { get; init; }

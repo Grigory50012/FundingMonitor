@@ -1,0 +1,683 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Funding Monitor API",
+    "description": "API для мониторинга ставок финансирования на криптовалютных биржах",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/Arbitrage": {
+      "get": {
+        "tags": [
+          "Arbitrage"
+        ],
+        "summary": "Получить арбитражные возможности с фильтрацией по символу и биржам",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exchanges",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingArbitrageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exchanges/health": {
+      "get": {
+        "tags": [
+          "Exchanges"
+        ],
+        "summary": "Проверить доступность бирж",
+        "description": "Возвращает статус каждой биржи (true = доступна, false = недоступна)",
+        "responses": {
+          "200": {
+            "description": "Успешная проверка",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Binance": {
+                      "type": "boolean"
+                    },
+                    "Bybit": {
+                      "type": "boolean"
+                    },
+                    "OKX": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Binance": {
+                      "type": "boolean"
+                    },
+                    "Bybit": {
+                      "type": "boolean"
+                    },
+                    "OKX": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Binance": {
+                      "type": "boolean"
+                    },
+                    "Bybit": {
+                      "type": "boolean"
+                    },
+                    "OKX": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка при проверке",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/FundingRates": {
+      "get": {
+        "tags": [
+          "FundingRates"
+        ],
+        "summary": "Получить текущие ставки финансирования",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "description": "Символ (опционально, например: BTC)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exchanges",
+            "in": "query",
+            "description": "Список бирж (опционально, через запятую: Binance,Bybit)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "description": "Включать неактивные символы",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешное получение данных",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingRateDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные параметры запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка сервера"
+          }
+        }
+      }
+    },
+    "/api/v1/History": {
+      "get": {
+        "tags": [
+          "History"
+        ],
+        "summary": "Получить исторические ставки финансирования",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "description": "Символ (обязательно, например: BTC-USDT)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exchanges",
+            "in": "query",
+            "description": "Список бирж (опционально, через запятую)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Начальная дата (опционально, ISO формат)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Конечная дата (опционально, ISO формат)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Максимальное количество записей (по умолчанию 1000, макс 1000)",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoricalFundingRateDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoricalFundingRateDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoricalFundingRateDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/History/apr-stats": {
+      "get": {
+        "tags": [
+          "History"
+        ],
+        "summary": "Получить APR статистику по периодам",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "description": "Символ (обязательно, например: BTC-USDT)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exchanges",
+            "in": "query",
+            "description": "Список бирж (опционально, через запятую)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AprPeriodStatsDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AprPeriodStatsDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AprPeriodStatsDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AprPeriodStatsDto": {
+        "required": [
+          "apr",
+          "avgFundingRatePercent",
+          "days",
+          "exchange",
+          "paymentsCount",
+          "period",
+          "stdDev",
+          "totalFundingRatePercent"
+        ],
+        "type": "object",
+        "properties": {
+          "exchange": {
+            "type": "string",
+            "description": "Название биржи (Binance, Bybit, OKX)"
+          },
+          "period": {
+            "type": "string",
+            "description": "Человекочитаемое название периода (например, \"7 дней\", \"30 дней\")"
+          },
+          "days": {
+            "type": "integer",
+            "description": "Количество календарных дней в периоде",
+            "format": "int32"
+          },
+          "apr": {
+            "type": "number",
+            "description": "Годовая процентная ставка (APR) в процентах. Экстраполированная годовая доходность на основе средней ставки за период",
+            "format": "double"
+          },
+          "totalFundingRatePercent": {
+            "type": "number",
+            "description": "Суммарная ставка финансирования за весь период в процентах (сумма всех выплат)",
+            "format": "double"
+          },
+          "paymentsCount": {
+            "type": "integer",
+            "description": "Общее количество выплат финансирования за период",
+            "format": "int32"
+          },
+          "avgFundingRatePercent": {
+            "type": "number",
+            "description": "Средняя ставка за одну выплату в процентах",
+            "format": "double"
+          },
+          "stdDev": {
+            "type": "number",
+            "description": "Стандартное отклонение ставки финансирования за период (мера волатильности)",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO для статистики APR по периодам"
+      },
+      "FundingArbitrageDto": {
+        "required": [
+          "aprA",
+          "aprB",
+          "aprSpread",
+          "exchangeA",
+          "exchangeAUrl",
+          "exchangeB",
+          "exchangeBUrl",
+          "fundingRateA",
+          "fundingRateB",
+          "fundingRateSpread",
+          "longExchange",
+          "paymentsA",
+          "paymentsB",
+          "priceA",
+          "priceB",
+          "priceSpread",
+          "priceSpreadPercent",
+          "shortExchange",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Торговая пара (например, BTC-USDT)"
+          },
+          "exchangeA": {
+            "type": "string",
+            "description": "Первая биржа в паре"
+          },
+          "exchangeB": {
+            "type": "string",
+            "description": "Вторая биржа в паре"
+          },
+          "priceA": {
+            "type": "number",
+            "description": "Mark Price на бирже A",
+            "format": "double"
+          },
+          "priceB": {
+            "type": "number",
+            "description": "Mark Price на бирже B",
+            "format": "double"
+          },
+          "priceSpread": {
+            "type": "number",
+            "description": "Абсолютный спред цен между биржами (PriceA - PriceB)",
+            "format": "double"
+          },
+          "priceSpreadPercent": {
+            "type": "number",
+            "description": "Спред цен в процентах от цены биржа B",
+            "format": "double"
+          },
+          "fundingRateA": {
+            "type": "number",
+            "description": "Ставка финансирования на бирже A",
+            "format": "double"
+          },
+          "fundingRateB": {
+            "type": "number",
+            "description": "Ставка финансирования на бирже B",
+            "format": "double"
+          },
+          "fundingRateSpread": {
+            "type": "number",
+            "description": "Разница ставок финансирования (FundingRateA - FundingRateB)",
+            "format": "double"
+          },
+          "aprA": {
+            "type": "number",
+            "description": "APR ставки биржи A в процентах",
+            "format": "double"
+          },
+          "aprB": {
+            "type": "number",
+            "description": "APR ставки биржи B в процентах",
+            "format": "double"
+          },
+          "aprSpread": {
+            "type": "number",
+            "description": "Абсолютная разница APR между биржами в процентных пунктах",
+            "format": "double"
+          },
+          "paymentsA": {
+            "type": "integer",
+            "description": "Количество выплат в день на бирже A",
+            "format": "int32"
+          },
+          "paymentsB": {
+            "type": "integer",
+            "description": "Количество выплат в день на бирже B",
+            "format": "int32"
+          },
+          "shortExchange": {
+            "type": "string",
+            "description": "Биржа для открытия Short (где APR выше)"
+          },
+          "longExchange": {
+            "type": "string",
+            "description": "Биржа для открытия Long (где APR ниже)"
+          },
+          "exchangeAUrl": {
+            "type": "string",
+            "description": "External trading page URL for exchange A"
+          },
+          "exchangeBUrl": {
+            "type": "string",
+            "description": "External trading page URL for exchange B"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO для арбитражной возможности по ставке финансирования (Funding Rate Arbitrage)"
+      },
+      "FundingRateDto": {
+        "required": [
+          "apr",
+          "exchange",
+          "exchangeUrl",
+          "fundingRate",
+          "markPrice",
+          "nextFundingTime",
+          "numberOfPaymentsPerDay",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "exchange": {
+            "type": "string",
+            "description": "Название биржи (Binance, Bybit, OKX)"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "Торговая пара в формате BASE-QUOTE (например, BTC-USDT, ETH-USDT)"
+          },
+          "markPrice": {
+            "type": "number",
+            "description": "Mark Price (индексная цена) — справочная цена для расчёта PnL и ликвидаций",
+            "format": "double"
+          },
+          "fundingRate": {
+            "type": "number",
+            "description": "Ставка финансирования за период (например, 0.0001 = 0.01%)",
+            "format": "double"
+          },
+          "apr": {
+            "type": "number",
+            "description": "Годовая процентная ставка (APR) в процентах. Расчёт: FundingRate * 365 * (24 / FundingIntervalHours) * 100",
+            "format": "double"
+          },
+          "numberOfPaymentsPerDay": {
+            "type": "integer",
+            "description": "Количество выплат в день (обычно 3 для 8-часовых интервалов)",
+            "format": "int32"
+          },
+          "nextFundingTime": {
+            "type": "string",
+            "description": "Время следующей выплаты финансирования в UTC (ISO 8601)",
+            "format": "date-time",
+            "nullable": true
+          },
+          "exchangeUrl": {
+            "type": "string",
+            "description": "External exchange trading page URL"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO для текущей ставки финансирования (funding rate)"
+      },
+      "HistoricalFundingRateDto": {
+        "required": [
+          "exchange",
+          "fundingRate",
+          "fundingTime",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "exchange": {
+            "type": "string",
+            "description": "Название биржи (Binance, Bybit, OKX)"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "Торговая пара в формате BASE-QUOTE (например, BTC-USDT)"
+          },
+          "fundingRate": {
+            "type": "number",
+            "description": "Ставка финансирования за период (например, 0.000125 = 0.0125%)",
+            "format": "double"
+          },
+          "fundingTime": {
+            "type": "string",
+            "description": "Время начисления/выплаты финансирования в UTC (ISO 8601)",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO для исторической ставки финансирования"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Arbitrage"
+    },
+    {
+      "name": "Exchanges"
+    },
+    {
+      "name": "FundingRates"
+    },
+    {
+      "name": "History"
+    }
+  ]
+}

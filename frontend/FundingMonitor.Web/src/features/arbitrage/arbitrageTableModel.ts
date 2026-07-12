@@ -20,15 +20,13 @@ export type SymbolGroup = {
 };
 
 export const calcFundingSpread = (item: FundingArbitrageDto): number => {
-  const spread =
-    item.fundingRateSpread ?? (item.fundingRateA ?? 0) - (item.fundingRateB ?? 0);
-  return spread * 100;
+  return item.fundingRateSpread * 100;
 };
 
 export const calcFundingRate = (rate: number): number => rate * 100;
 
 export const getProfitability = (item: FundingArbitrageDto): number =>
-  Math.abs(item.aprSpread);
+  item.aprSpread;
 
 export function getArbitrageClickPayload(
   item: FundingArbitrageDto,

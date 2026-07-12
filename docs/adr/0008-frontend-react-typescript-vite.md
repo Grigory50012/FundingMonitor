@@ -32,7 +32,7 @@ frontend/FundingMonitor.Web/src/
 ├── components/       # Presentational components (таблицы, графики, фильтры)
 ├── containers/       # DashboardContainer — smart component, данные + состояние
 ├── hooks/            # useFundingRates.ts (useCurrentRates, useHistoryRates, useArbitrageRates), useLocalStorage
-├── types/            # TypeScript интерфейсы DTO (shared с API через codegen в будущем)
+├── types/            # Generated API DTO и ручные frontend-only типы
 ├── config/           # Константы (storage keys)
 └── main.tsx          # Entry point
 ```
@@ -43,13 +43,13 @@ frontend/FundingMonitor.Web/src/
 
 ✅ **Плюсы**:
 - Vite: мгновенный HMR, быстрая сборка
-- TypeScript: типы DTO совпадают с бэкендом (пока вручную)
+- TypeScript: DTO генерируются из OpenAPI через `openapi-typescript`; Axios-клиент остаётся ручным
 - Tailwind: быстрое UI, тёмная тема через CSS переменные
 - Recharts: декларативные графики, легкая кастомизация
 - Нет Redux/Zustand — простота, меньше зависимостей
 
 ❌ **Минусы**:
-- Ручная синхронизация типов с API (планируется `openapi-typescript-codegen`)
+- Generated DTO требуют актуальной OpenAPI-схемы; рассинхронизация проверяется `npm run check:api-types`
 - Нет серверного стейт-менеджмента (кэш, дедуп, рефетч) — при росте добавим TanStack Query
 - Нет Storybook — компоненты документируются только в коде
 
@@ -65,7 +65,7 @@ frontend/FundingMonitor.Web/src/
 
 ## Планы
 
-1. Добавить `openapi-typescript-codegen` для автогенерации типов из Swagger
+1. ✅ Добавлен types-only codegen через `openapi-typescript`; генерация API-клиента намеренно не используется
 2. Внедрить TanStack Query при усложнении данных
 3. Добавить Storybook для каталога компонентов
 4. E2E тесты (Playwright)
