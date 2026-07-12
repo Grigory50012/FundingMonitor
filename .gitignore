@@ -62,4 +62,4 @@ logs/*.log
 .obsidian/types.json
 
 # Local developer documentation and working notes
-.private/
+private-docs/
