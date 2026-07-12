@@ -78,6 +78,20 @@ Frontend
 -> JSON response
 ```
 
+### OpenAPI contract
+
+```text
+Controllers and DTO metadata
+-> Microsoft.AspNetCore.OpenApi
+-> GET /openapi/v1.json
+-> openapi-typescript
+-> frontend/FundingMonitor.Web/src/types/generated/api.ts
+```
+
+Scalar предоставляет интерактивную документацию по адресу `/scalar`. Axios API client остаётся ручным, генерируются только TypeScript types. Для генерации backend должен быть запущен локально, после чего во frontend выполняется `npm run generate:api-types`.
+
+Числовой JSON-контракт использует `JsonNumberHandling.Strict`, чтобы OpenAPI описывал `decimal` и целые значения как числа, а не как `number | string`.
+
 ## API Surface
 
 | Controller | Route | Назначение |

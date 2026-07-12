@@ -69,3 +69,7 @@ frontend/FundingMonitor.Web/src/
 2. Внедрить TanStack Query при усложнении данных
 3. Добавить Storybook для каталога компонентов
 4. E2E тесты (Playwright)
+
+## Связанные решения
+
+- [ADR 0009: встроенный OpenAPI и Scalar](0009-built-in-openapi-and-scalar.md)

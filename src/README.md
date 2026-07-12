@@ -21,8 +21,11 @@ docker-compose up -d
 Development API:
 
 ```text
-http://localhost:5000/
+Scalar:  http://localhost:5000/scalar
+OpenAPI: http://localhost:5000/openapi/v1.json
 ```
+
+API использует встроенный `Microsoft.AspNetCore.OpenApi`; интерактивная документация отображается через Scalar. Решение и trade-offs описаны в [ADR 0009](../docs/adr/0009-built-in-openapi-and-scalar.md).
 
 ## Проекты
 

@@ -29,10 +29,16 @@ dotnet build FundingMonitor.sln
 dotnet run --project src/FundingMonitor.Api
 ```
 
-Development API / Swagger:
+Development API documentation (Scalar):
 
 ```text
-http://localhost:5000/
+http://localhost:5000/scalar
+```
+
+OpenAPI document:
+
+```text
+http://localhost:5000/openapi/v1.json
 ```
 
 ### Frontend
@@ -49,6 +55,13 @@ Frontend dev server:
 http://localhost:5173
 ```
 
+После изменения backend DTO обновите generated frontend types при запущенном API:
+
+```bash
+cd frontend/FundingMonitor.Web
+npm run generate:api-types
+```
+
 ## Основные возможности
 
 - Сбор текущих funding rates каждые 10 секунд.
@@ -62,11 +75,12 @@ http://localhost:5173
 
 | Область | Стек |
 | --- | --- |
-| Backend | .NET 10, ASP.NET Core, EF Core 10, NLog |
+| Backend | .NET 10, ASP.NET Core / EF Core 10.0.9, NLog 6.1.4 |
 | Database | PostgreSQL 17 |
-| Queue | Redis 7 |
-| Exchange APIs | Binance.Net, Bybit.Net, JK.OKX.Net |
-| Frontend | React 19, TypeScript 5.8, Vite 7, Tailwind CSS 4, Recharts 3, Axios |
+| Queue | Redis 7, StackExchange.Redis 3.0.17 |
+| Exchange APIs | Binance.Net 13.1.0, Bybit.Net 7.1.0, JK.OKX.Net 5.1.0 |
+| API contract | Microsoft.AspNetCore.OpenApi 10.0.9, Microsoft.OpenApi 2.10.0, Scalar 2.16.11, openapi-typescript 7.10.1 |
+| Frontend | React 19.1, TypeScript 5.8, Vite 7, Tailwind CSS 4.2, Recharts 3.8, Axios 1.13 |
 | Docs | Markdown, Obsidian, Dataview, Tasks, Templater |
 
 ## Документация
