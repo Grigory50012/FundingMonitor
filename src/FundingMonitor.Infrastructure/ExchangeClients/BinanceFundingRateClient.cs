@@ -132,10 +132,12 @@ public class BinanceFundingRateClient : BaseExchangeFundingRateClient
     {
         try
         {
-            return await ExecuteApiCallAsync(
+            var result = await ExecuteApiCallAsync(
                 "Ping",
                 async ct => await _binanceClient.UsdFuturesApi.ExchangeData.PingAsync(ct),
                 cancellationToken);
+
+            return result.Success;
         }
         catch
         {

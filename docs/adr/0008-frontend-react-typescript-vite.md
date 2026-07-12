@@ -49,7 +49,7 @@ frontend/FundingMonitor.Web/src/
 - Нет Redux/Zustand — простота, меньше зависимостей
 
 ❌ **Минусы**:
-- Generated DTO требуют актуальной OpenAPI-схемы; рассинхронизация проверяется `npm run check:api-types`
+- Для обновления generated DTO backend должен быть запущен локально; `npm run generate:api-types` читает встроенную OpenAPI schema из `/openapi/v1.json`
 - Нет серверного стейт-менеджмента (кэш, дедуп, рефетч) — при росте добавим TanStack Query
 - Нет Storybook — компоненты документируются только в коде
 

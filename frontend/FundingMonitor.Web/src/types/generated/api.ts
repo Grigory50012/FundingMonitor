@@ -70,19 +70,13 @@ export interface paths {
                     };
                     content: {
                         "text/plain": {
-                            Binance?: boolean;
-                            Bybit?: boolean;
-                            OKX?: boolean;
+                            [key: string]: boolean;
                         };
                         "application/json": {
-                            Binance?: boolean;
-                            Bybit?: boolean;
-                            OKX?: boolean;
+                            [key: string]: boolean;
                         };
                         "text/json": {
-                            Binance?: boolean;
-                            Bybit?: boolean;
-                            OKX?: boolean;
+                            [key: string]: boolean;
                         };
                     };
                 };
@@ -154,7 +148,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -428,7 +424,7 @@ export interface components {
              * Format: date-time
              * @description Время следующей выплаты финансирования в UTC (ISO 8601)
              */
-            nextFundingTime: string | null;
+            nextFundingTime: null | string;
             /** @description External exchange trading page URL */
             exchangeUrl: string;
         };
@@ -450,14 +446,12 @@ export interface components {
             fundingTime: string;
         };
         ProblemDetails: {
-            type?: string | null;
-            title?: string | null;
+            type?: null | string;
+            title?: null | string;
             /** Format: int32 */
-            status?: number | null;
-            detail?: string | null;
-            instance?: string | null;
-        } & {
-            [key: string]: unknown;
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
         };
     };
     responses: never;
