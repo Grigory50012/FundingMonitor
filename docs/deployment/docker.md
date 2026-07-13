@@ -98,7 +98,7 @@ docker exec -it funding_monitor_db psql -U postgres -d funding_monitor
 SELECT * FROM "__EFMigrationsHistory" ORDER BY "MigrationId" DESC;
 ```
 
-> Если таблицы не созданы — сгенерируйте начальную миграцию (см. [database-schema.md](../database-schema.md#migrations)).
+> Если таблицы не созданы, проверьте запуск API и его логи: полная история migrations уже хранится в репозитории и применяется через `Database.MigrateAsync()`. Создавать повторную `InitialCreate` не нужно.
 
 ---
 

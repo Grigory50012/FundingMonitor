@@ -14,39 +14,46 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
     {
     }
 
-    public async Task UpdateAsync(IEnumerable<CurrentFundingRate> rates, CancellationToken cancellationToken)
+    public async Task UpdateExchangeAsync(
+        ExchangeType exchange,
+        IEnumerable<CurrentFundingRate> rates,
+        CancellationToken cancellationToken)
     {
-        var entities = rates.Select(r => r.ToDbEntity()).ToList();
-        if (entities.Count == 0) return;
+        var entities = rates
+            .Where(r => r.Exchange == exchange)
+            .Select(r => (r with { IsActive = true }).ToDbEntity())
+            .ToList();
 
         await using var context = await CreateContextAsync(cancellationToken);
 
-        var bulkConfig = new BulkConfig
+        if (entities.Count != 0)
         {
-            UpdateByProperties = ["Exchange", "NormalizedSymbol"],
-            TrackingEntities = false,
-            BatchSize = 1000
-        };
+            var bulkConfig = new BulkConfig
+            {
+                UpdateByProperties = ["Exchange", "NormalizedSymbol"],
+                TrackingEntities = false,
+                BatchSize = 1000
+            };
 
-        await context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
+            await context.BulkInsertOrUpdateAsync(entities, bulkConfig, cancellationToken: cancellationToken);
+        }
+    }
 
-        // Удаляем отсутствующие символы
-        var existingKeys = await context.CurrentFundingRate
-            .Select(r => new { r.Exchange, r.NormalizedSymbol })
-            .ToListAsync(cancellationToken);
+    public async Task DeactivateStaleAsync(
+        ExchangeType exchange,
+        TimeSpan deactivateMissingAfter,
+        CancellationToken cancellationToken)
+    {
+        await using var context = await CreateContextAsync(cancellationToken);
 
-        var incomingKeys = entities
-            .Select(e => new { e.Exchange, e.NormalizedSymbol })
-            .ToHashSet();
+        var cutoff = DateTime.UtcNow.Subtract(deactivateMissingAfter);
+        var exchangeName = exchange.ToString();
 
-        var keysToDelete = existingKeys
-            .Where(k => !incomingKeys.Contains(k))
-            .ToList();
-
-        foreach (var key in keysToDelete)
-            await context.CurrentFundingRate
-                .Where(r => r.Exchange == key.Exchange && r.NormalizedSymbol == key.NormalizedSymbol)
-                .ExecuteDeleteAsync(cancellationToken);
+        await context.CurrentFundingRate
+            .Where(r => r.Exchange == exchangeName && r.IsActive && r.LastSeenAt < cutoff)
+            .ExecuteUpdateAsync(
+                updates => updates.SetProperty(r => r.IsActive, false),
+                cancellationToken);
     }
 
     public async Task<IEnumerable<CurrentFundingRate>> GetRatesAsync(
@@ -56,7 +63,9 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
     {
         await using var context = await CreateContextAsync(cancellationToken);
 
-        var query = context.CurrentFundingRate.AsNoTracking().Where(r => r.IsActive);
+        var query = context.CurrentFundingRate
+            .AsNoTracking()
+            .Where(r => r.IsActive);
 
         if (exchanges?.Any() == true)
         {
@@ -70,6 +79,19 @@ public class CurrentFundingRateRepository : RepositoryBase, ICurrentFundingRateR
         }
 
         var entities = await query
+            .OrderBy(r => r.NormalizedSymbol)
+            .ThenBy(r => r.Exchange)
+            .ToListAsync(cancellationToken);
+
+        return entities.ToDomainModelList();
+    }
+
+    public async Task<IEnumerable<CurrentFundingRate>> GetAllRatesAsync(CancellationToken cancellationToken)
+    {
+        await using var context = await CreateContextAsync(cancellationToken);
+
+        var entities = await context.CurrentFundingRate
+            .AsNoTracking()
             .OrderBy(r => r.NormalizedSymbol)
             .ThenBy(r => r.Exchange)
             .ToListAsync(cancellationToken);

@@ -11,7 +11,6 @@ import type {
 type CurrentParams = {
   symbol?: string;
   exchanges?: ExchangeType[];
-  includeInactive?: boolean;
 };
 
 export function useCurrentRates(params?: CurrentParams) {
@@ -31,7 +30,6 @@ export function useCurrentRates(params?: CurrentParams) {
       const res = await fundingRatesApi.getCurrentRates({
         symbol,
         exchanges: params?.exchanges?.length ? params.exchanges : undefined,
-        includeInactive: params?.includeInactive,
       });
       setData(res);
     } catch (err: unknown) {
@@ -44,7 +42,7 @@ export function useCurrentRates(params?: CurrentParams) {
     } finally {
       setIsLoading(false);
     }
-  }, [params?.symbol, params?.exchanges, params?.includeInactive]);
+  }, [params?.symbol, params?.exchanges]);
 
   useEffect(() => {
     load();

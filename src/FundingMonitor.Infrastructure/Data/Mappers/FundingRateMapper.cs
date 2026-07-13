@@ -26,7 +26,7 @@ public static class DomainToDbMapper
             FundingRate = domain.FundingRate,
             FundingIntervalHours = domain.FundingIntervalHours ?? 8,
             NextFundingTime = domain.NextFundingTime,
-            LastCheck = domain.LastCheck,
+            LastSeenAt = domain.LastSeenAt,
             PredictedNextRate = domain.PredictedNextRate,
             IsActive = domain.IsActive
         };
@@ -50,7 +50,7 @@ public static class DomainToDbMapper
             FundingRate = db.FundingRate,
             FundingIntervalHours = db.FundingIntervalHours,
             NextFundingTime = db.NextFundingTime,
-            LastCheck = db.LastCheck,
+            LastSeenAt = db.LastSeenAt,
             PredictedNextRate = db.PredictedNextRate,
             IsActive = db.IsActive
         };

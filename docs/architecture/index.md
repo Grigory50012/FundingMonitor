@@ -51,7 +51,7 @@ CurrentCollectionBackgroundService
 -> PostgreSQL
 ```
 
-Интервал обновления задаётся в `CurrentDataCollectionOptions.UpdateIntervalSeconds`, сейчас `10` секунд.
+Интервал обновления задаётся в `CurrentDataCollectionOptions.UpdateIntervalSeconds`, сейчас `10` секунд. Отсутствующие current rates не удаляются: `LastSeenAt` фиксирует последний успешный сбор пары, а `CurrentDataCollectionOptions.DeactivateMissingAfterMinutes` задаёт порог деактивации, сейчас `5` минут.
 
 ### Historical rates
 

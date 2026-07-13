@@ -23,9 +23,11 @@ public class CurrentFundingRateDb
     public int FundingIntervalHours { get; set; }
     public DateTime? NextFundingTime { get; set; }
 
-    public DateTime LastCheck { get; set; }
+    // LastSeenAt обновляется только когда биржа реально вернула эту пару.
+    public DateTime LastSeenAt { get; set; }
 
     [Column(TypeName = "decimal(10,8)")] public decimal? PredictedNextRate { get; set; }
 
+    // IsActive=false означает, что пара давно не встречалась в успешных snapshot и скрыта из API/arbitrage.
     public bool IsActive { get; set; } = true;
 }

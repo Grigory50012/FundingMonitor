@@ -17,9 +17,9 @@
 **Entity Framework Core 10 + PostgreSQL 17** с провайдером `Npgsql.EntityFrameworkCore.PostgreSQL`.
 
 Особенности реализации:
-- `FundingMonitorDbContext` с двумя `DbSet`: `CurrentFundingRates`, `HistoricalFundingRates`
+- `FundingMonitorDbContext` с двумя `DbSet`: `CurrentFundingRate`, `HistoricalFundingRate`
 - **Bulk Extensions** (`EFCore.BulkExtensions`) для `BulkInsertOrUpdateAsync` и `BulkInsertAsync` — критично для производительности при 1000+ записей за цикл
-- Составные PK: `(Exchange, NormalizedSymbol)` для current, `(Exchange, NormalizedSymbol, FundingTime)` для history
+- Surrogate PK `Id` и unique business key `(NormalizedSymbol, Exchange)` для current; составной PK `(Exchange, NormalizedSymbol, FundingTime)` для history
 - Индексы: по `Symbol`, `FundingTime`, `Exchange` для быстрых выборок
 - Миграции в проекте `Infrastructure`, применяются автоматически при старте API (`dbContext.Database.MigrateAsync()`)
 

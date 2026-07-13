@@ -114,8 +114,13 @@ sequenceDiagram
         R->>R: Redis List Push
     end
 
-    C->>R: UpdateAsync(rates)
-    R->>DB: BulkInsertOrUpdate()
+    alt Exchange collection succeeded
+        C->>R: UpdateExchangeAsync(exchange, rates)
+        R->>DB: BulkInsertOrUpdate()
+    end
+
+    C->>R: DeactivateStaleAsync(exchange, threshold)
+    R->>DB: Set IsActive=false where LastSeenAt is stale
 ```
 
 ## Sequence Diagram - API запрос
@@ -130,7 +135,7 @@ sequenceDiagram
 
     U->>M: GET /api/v1/FundingRates
     M->>C: GetRatesAsync(exchanges, symbols)
-    C->>R: GetRatesAsync(exchanges, symbols)
+    C->>R: GetRatesAsync(exchanges, symbols, active only)
     R->>DB: SELECT * FROM "CurrentFundingRate"
     DB-->>R: List<CurrentFundingRateDb>
     R-->>C: List<CurrentFundingRate>

@@ -21,16 +21,12 @@ export const fundingRatesApi = {
   getCurrentRates: async (params?: {
     symbol?: string;
     exchanges?: ExchangeType[];
-    includeInactive?: boolean;
   }): Promise<FundingRateDto[]> => {
     const queryParams = new URLSearchParams();
 
     if (params?.symbol) queryParams.append("symbol", params.symbol);
     if (params?.exchanges?.length)
       queryParams.append("exchanges", params.exchanges.join(","));
-    if (params?.includeInactive !== undefined)
-      queryParams.append("includeInactive", params.includeInactive.toString());
-
     const response = await apiClient.get<FundingRateDto[]>(
       `/FundingRates?${queryParams.toString()}`,
     );

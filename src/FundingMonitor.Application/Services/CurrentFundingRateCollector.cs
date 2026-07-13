@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FundingMonitor.Core.Configuration;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Events;
 using FundingMonitor.Core.Interfaces.Clients;
@@ -6,6 +7,7 @@ using FundingMonitor.Core.Interfaces.Repositories;
 using FundingMonitor.Core.Interfaces.Services;
 using FundingMonitor.Core.Results;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.Application.Services;
 
@@ -17,6 +19,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
     private readonly IFundingRateChangeDetector _changeDetector;
     private readonly IEnumerable<IExchangeFundingRateClient> _exchangeClients;
     private readonly ILogger<CurrentFundingRateCollector> _logger;
+    private readonly TimeSpan _deactivateMissingAfter;
     private readonly IHistoricalCollectionProducer _producer;
     private readonly ICurrentFundingRateRepository _repository;
 
@@ -25,13 +28,15 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         ICurrentFundingRateRepository repository,
         IHistoricalCollectionProducer producer,
         ILogger<CurrentFundingRateCollector> logger,
-        IFundingRateChangeDetector changeDetector)
+        IFundingRateChangeDetector changeDetector,
+        IOptions<CurrentDataCollectionOptions> options)
     {
         _exchangeClients = exchangeClients;
         _repository = repository;
         _producer = producer;
         _logger = logger;
         _changeDetector = changeDetector;
+        _deactivateMissingAfter = TimeSpan.FromMinutes(options.Value.DeactivateMissingAfterMinutes);
     }
 
     public async Task<CurrentCollectionResult> CollectFundingRatesAsync(CancellationToken cancellationToken)
@@ -44,7 +49,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         try
         {
             // 1. Сначала получаем все предыдущие данные ОДНИМ запросом
-            var allPreviousRates = await _repository.GetRatesAsync(null, null, cancellationToken);
+            var allPreviousRates = await _repository.GetAllRatesAsync(cancellationToken);
             var ratesByExchange = allPreviousRates
                 .GroupBy(r => r.Exchange)
                 .ToDictionary(g => g.Key, g => g.ToDictionary(r => r.NormalizedSymbol));
@@ -58,10 +63,21 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
             var allRates = results.SelectMany(r => r.Rates).ToList();
             var allEvents = results.SelectMany(r => r.Events).ToList();
 
-            if (allRates.Count != 0)
+            foreach (var result in results)
             {
-                await _repository.UpdateAsync(allRates, cancellationToken);
-                _logger.LogDebug("Updated {Rates} rates", allRates.Count);
+                if (result.Succeeded)
+                {
+                    await _repository.UpdateExchangeAsync(
+                        result.Exchange,
+                        result.Rates,
+                        cancellationToken);
+                    _logger.LogDebug("[{Exchange}] Updated {Rates} rates", result.Exchange, result.Rates.Count);
+                }
+
+                await _repository.DeactivateStaleAsync(
+                    result.Exchange,
+                    _deactivateMissingAfter,
+                    cancellationToken);
             }
 
             if (allEvents.Count != 0)
@@ -90,7 +106,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
         }
     }
 
-    private async Task<(List<CurrentFundingRate> Rates, List<FundingRateChangedEvent> Events)> CollectFromExchangeAsync(
+    private async Task<ExchangeCollectionResult> CollectFromExchangeAsync(
         IExchangeFundingRateClient client,
         Dictionary<ExchangeType, Dictionary<string, CurrentFundingRate>> previousStateByExchange,
         CancellationToken cancellationToken)
@@ -114,12 +130,18 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
                 client.ExchangeType, newRates.Count, events.Count);
 
             // 4. Возвращаем данные для обновления в БД
-            return (newRates, events);
+            return new ExchangeCollectionResult(client.ExchangeType, true, newRates, events);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[{Exchange}] Collection failed", client.ExchangeType);
-            return (Rates: [], Events: []);
+            return new ExchangeCollectionResult(client.ExchangeType, false, [], []);
         }
     }
+
+    private sealed record ExchangeCollectionResult(
+        ExchangeType Exchange,
+        bool Succeeded,
+        List<CurrentFundingRate> Rates,
+        List<FundingRateChangedEvent> Events);
 }

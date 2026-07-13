@@ -10,13 +10,13 @@ public record CurrentFundingRate
     public required decimal FundingRate { get; init; } // Ставка финансирования
     public required int? FundingIntervalHours { get; init; } = 8; // Период выплат
     public required DateTime? NextFundingTime { get; init; } // Время выплаты
-    public required DateTime LastCheck { get; init; } = DateTime.UtcNow; // Последняя проверка
+    public required DateTime LastSeenAt { get; init; } = DateTime.UtcNow; // Когда биржа последний раз вернула пару
 
     // Опциональные данные
     public decimal? PredictedNextRate { get; init; }
 
     // Дополнительные данные
-    public bool IsActive { get; init; } = true; // Статус
+    public bool IsActive { get; init; } = true; // Пара участвует в API/arbitrage
     public required string BaseAsset { get; init; } = string.Empty; // "BTC"
     public required string QuoteAsset { get; init; } = string.Empty; // "USDT"
 

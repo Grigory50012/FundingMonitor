@@ -28,7 +28,6 @@ public class FundingRatesController : ControllerBase
     /// </summary>
     /// <param name="symbol">Символ (опционально, например: BTC)</param>
     /// <param name="exchanges">Список бирж (опционально, через запятую: Binance,Bybit)</param>
-    /// <param name="includeInactive">Включать неактивные символы</param>
     /// <returns>Список текущих ставок</returns>
     /// <response code="200">Успешное получение данных</response>
     /// <response code="400">Неверные параметры запроса</response>
@@ -39,13 +38,12 @@ public class FundingRatesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<FundingRateDto>>> GetFundingRates(
         [FromQuery] string? symbol,
-        [FromQuery] string? exchanges,
-        [FromQuery] bool includeInactive = false)
+        [FromQuery] string? exchanges)
     {
         var exchangeList = exchanges.ParseExchanges();
 
-        _logger.LogDebug("GetFundingRates: symbol={Symbol}, exchanges={Exchanges}, includeInactive={IncludeInactive}",
-            symbol, exchanges ?? "all", includeInactive);
+        _logger.LogDebug("GetFundingRates: symbol={Symbol}, exchanges={Exchanges}",
+            symbol, exchanges ?? "all");
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -53,8 +51,6 @@ public class FundingRatesController : ControllerBase
             symbol,
             exchangeList,
             HttpContext.RequestAborted);
-
-        if (!includeInactive) rates = rates.Where(r => r.IsActive);
 
         stopwatch.Stop();
         _logger.LogInformation("GetFundingRates completed: {Count} rates in {Elapsed}ms",

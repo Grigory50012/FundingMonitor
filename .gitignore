@@ -34,9 +34,6 @@ appsettings.Local.json
 # Docker volume
 postgres_data/
 
-# Миграции EF Core (файлы генерируемые)
-**/Migrations/
-
 # Скомпилированные файлы
 *.dll
 *.exe

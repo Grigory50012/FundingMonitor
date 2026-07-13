@@ -116,8 +116,6 @@ export interface paths {
                     symbol?: string;
                     /** @description Список бирж (опционально, через запятую: Binance,Bybit) */
                     exchanges?: string;
-                    /** @description Включать неактивные символы */
-                    includeInactive?: boolean;
                 };
                 header?: never;
                 path?: never;

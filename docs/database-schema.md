@@ -22,9 +22,9 @@ PostgreSQL 17 schema for FundingMonitor, managed via EF Core migrations.
 | `FundingRate` | `decimal(10,8)` | NO | Ставка финансирования (на период) |
 | `FundingIntervalHours` | `integer` | NO | Интервал выплат в часах (8, 4, 1) |
 | `NextFundingTime` | `timestamp with time zone` | YES | Время следующей выплаты (UTC) |
-| `LastCheck` | `timestamp with time zone` | NO | Когда последний раз опрашивали |
+| `LastSeenAt` | `timestamp with time zone` | NO | Когда биржа последний раз вернула эту пару |
 | `PredictedNextRate` | `decimal(10,8)` | YES | Прогноз следующей ставки |
-| `IsActive` | `boolean` | NO | Активен ли символ (true по умолчанию) |
+| `IsActive` | `boolean` | NO | Используется ли пара в обычной API-выдаче и arbitrage (true по умолчанию) |
 
 **Индексы**:
 - `PK_CurrentFundingRate` — Primary Key на `Id`
@@ -32,6 +32,8 @@ PostgreSQL 17 schema for FundingMonitor, managed via EF Core migrations.
 - `IX_CurrentFundingRate_IsActive_BaseAsset` — для фильтрации активных по базе
 
 **Примечание**: EF Core использует `Id` как PK, но бизнес-ключ — `(Exchange, NormalizedSymbol)`. Unique индекс гарантирует уникальность.
+
+Отсутствующие в очередном snapshot пары не удаляются физически. Если биржа не возвращает пару дольше `CurrentDataCollectionOptions.DeactivateMissingAfterMinutes`, `IsActive` переключается в `false`; при повторном появлении пары collector снова выставляет `IsActive=true` и обновляет `LastSeenAt`.
 
 ---
 
@@ -72,20 +74,15 @@ CurrentFundingRate (1) ──────< (0..*) HistoricalFundingRate
 
 ## Migrations
 
-Расположены в `src/FundingMonitor.Infrastructure/Migrations/`.
-
-> **Первый запуск**: если папка миграций пуста, создайте начальную миграцию:
-> ```bash
-> dotnet ef migrations add InitialCreate --project src/FundingMonitor.Infrastructure --startup-project src/FundingMonitor.Api
-> ```
+Полная история migrations и `AppDbContextModelSnapshot` хранится в Git в `src/FundingMonitor.Infrastructure/Migrations/`. При изменении EF-модели новая migration создаётся локально и коммитится вместе с соответствующим изменением snapshot.
 
 Применение:
 ```bash
 # Автоматически при старте API (Program.cs)
 await dbContext.Database.MigrateAsync();
 
-# Или вручную
-dotnet ef database update --project src/FundingMonitor.Infrastructure
+# Или вручную из корня репозитория
+dotnet ef database update --project src/FundingMonitor.Infrastructure --startup-project src/FundingMonitor.Infrastructure
 ```
 
 ---

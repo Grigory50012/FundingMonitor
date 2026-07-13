@@ -30,7 +30,7 @@
 
 | Method | Path | Query params |
 | --- | --- | --- |
-| GET | `/api/v1/FundingRates` | `symbol?`, `exchanges?`, `includeInactive?` |
+| GET | `/api/v1/FundingRates` | `symbol?`, `exchanges?` |
 | GET | `/api/v1/History` | `symbol`, `exchanges?`, `from?`, `to?`, `limit?` |
 | GET | `/api/v1/History/apr-stats` | `symbol`, `exchanges?` |
 | GET | `/api/v1/Arbitrage` | `symbol?`, `exchanges?` |

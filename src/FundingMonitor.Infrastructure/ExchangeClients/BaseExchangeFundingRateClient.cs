@@ -121,7 +121,7 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
             FundingRate = fundingRate,
             FundingIntervalHours = fundingIntervalHours,
             NextFundingTime = nextFundingTime,
-            LastCheck = DateTime.UtcNow,
+            LastSeenAt = DateTime.UtcNow,
             IsActive = true,
             BaseAsset = parsed.Base,
             QuoteAsset = "USDT"
