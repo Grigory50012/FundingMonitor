@@ -43,11 +43,9 @@ postgres_data/
 .DS_Store
 Thumbs.db
 
-# Логи нашего приложения
+# Логи приложения
 logs/*.log
 !logs/.gitkeep
-.qwen/settings.json
-.qwen/settings.json.orig
 # Local Obsidian vault configuration
 .obsidian/
 
