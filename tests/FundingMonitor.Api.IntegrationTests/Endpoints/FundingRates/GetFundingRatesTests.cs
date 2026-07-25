@@ -18,10 +18,13 @@ public sealed class GetFundingRatesTests(PostgreSqlFixture database)
         await Fixture.SeedAsync(
             new FundingRateBuilder()
                 .WithExchange("Bybit")
-                .WithSymbol("ETH-USDT", "ETH")
                 .WithFunding(3_500m, 0.0002m)
                 .Build(),
-            new FundingRateBuilder().Build());
+            new FundingRateBuilder().Build(),
+            new FundingRateBuilder()
+                .WithExchange("OKX")
+                .WithSymbol("ETH-USDT", "ETH")
+                .Build());
 
         var cancellationToken = TestContext.Current.CancellationToken;
         using var client = Fixture.Factory.CreateClient();
@@ -50,10 +53,18 @@ public sealed class GetFundingRatesTests(PostgreSqlFixture database)
                 Assert.Equal(
                     new DateTime(2026, 7, 16, 16, 0, 0, DateTimeKind.Utc),
                     rate.NextFundingTime);
+                Assert.Equal(
+                    "https://www.binance.com/en/futures/BTCUSDT",
+                    rate.ExchangeUrl);
             },
             rate =>
             {
                 Assert.Equal("Bybit", rate.Exchange);
+                Assert.Equal("BTC-USDT", rate.Symbol);
+            },
+            rate =>
+            {
+                Assert.Equal("OKX", rate.Exchange);
                 Assert.Equal("ETH-USDT", rate.Symbol);
             });
     }
