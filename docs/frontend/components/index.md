@@ -51,5 +51,5 @@ APR table дополнительно использует `useAprStats`.
 
 ## Связанные заметки
 
-- [[../../dashboard|Дашборд]]
 - [[../../architecture/index|Архитектура]]
+- [[../../project/overview|Описание проекта]]

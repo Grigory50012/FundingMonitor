@@ -36,8 +36,8 @@ API использует встроенный `Microsoft.AspNetCore.OpenApi`; и
 
 ## Документация
 
-- [Project Dashboard](../docs/dashboard.md)
 - [Documentation Index](../docs/index.md)
+- [Project Overview](../docs/project/overview.md)
 - [Architecture](../docs/architecture/index.md)
 - [ADR](../docs/adr/index.md)
 - [Database Schema](../docs/database-schema.md)

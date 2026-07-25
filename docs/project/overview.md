@@ -34,8 +34,7 @@ FundingMonitor отслеживает funding rates на криптовалют�
 
 ## Основные ссылки
 
-- [[../dashboard|Дашборд]]
-- [[status|Статус проекта]]
-- [[roadmap|Roadmap]]
 - [[../architecture/index|Архитектура]]
 - [[../adr/index|Архитектурные решения]]
+- [[../database-schema|Схема базы данных]]
+- [[../deployment/docker|Docker deployment]]

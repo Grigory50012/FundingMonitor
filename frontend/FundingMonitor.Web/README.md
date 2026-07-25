@@ -30,8 +30,7 @@ http://localhost:5173
 
 ## Документация
 
-- [Project Dashboard](../../docs/dashboard.md)
 - [Documentation Index](../../docs/index.md)
 - [Frontend Components](../../docs/frontend/components/index.md)
-- [Project Status](../../docs/project/status.md)
+- [Project Overview](../../docs/project/overview.md)
 - [Architecture](../../docs/architecture/index.md)
