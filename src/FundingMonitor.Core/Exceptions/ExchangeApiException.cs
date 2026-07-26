@@ -1,16 +1,40 @@
+using System.Net;
 using FundingMonitor.Core.Entities;
+using FundingMonitor.Core.Failures;
 
 namespace FundingMonitor.Core.Exceptions;
 
-public class ExchangeApiException : Exception
+public sealed class ExchangeApiException : Exception
 {
     public ExchangeType Exchange { get; }
-    public int? StatusCode { get; }
-    
-    public ExchangeApiException(ExchangeType exchange, string message, int? statusCode = null) 
-        : base($"{exchange}: {message}")
+    public HttpStatusCode? HttpStatusCode { get; }
+    public string? ExchangeErrorCode { get; }
+    public FailureCategory FailureCategory { get; }
+
+    public ExchangeApiException(
+        ExchangeType exchange,
+        string message,
+        HttpStatusCode? httpStatusCode = null,
+        string? exchangeErrorCode = null,
+        FailureCategory failureCategory = FailureCategory.Unknown,
+        Exception? innerException = null)
+        : base($"{exchange}: {message}", innerException)
     {
         Exchange = exchange;
-        StatusCode = statusCode;
+        HttpStatusCode = httpStatusCode;
+        ExchangeErrorCode = exchangeErrorCode;
+        FailureCategory = failureCategory;
+    }
+
+    public ExchangeApiException(
+        ExchangeType exchange,
+        string message,
+        int exchangeErrorCode)
+        : this(
+            exchange,
+            message,
+            httpStatusCode: null,
+            exchangeErrorCode: exchangeErrorCode.ToString())
+    {
     }
 }

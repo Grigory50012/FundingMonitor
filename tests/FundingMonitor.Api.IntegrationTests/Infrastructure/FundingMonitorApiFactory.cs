@@ -1,4 +1,5 @@
 using FundingMonitor.Application.BackgroundServices;
+using FundingMonitor.Infrastructure.BackgroundServices;
 using FundingMonitor.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -21,7 +22,8 @@ public sealed class FundingMonitorApiFactory(string connectionString)
             var workerTypes = new HashSet<Type>
             {
                 typeof(CurrentCollectionBackgroundService),
-                typeof(HistoricalCollectionBackgroundService)
+                typeof(HistoricalCollectionBackgroundService),
+                typeof(RabbitMqTopologyHostedService)
             };
 
             var workerDescriptors = services

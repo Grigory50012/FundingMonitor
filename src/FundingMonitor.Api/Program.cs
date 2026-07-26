@@ -51,6 +51,7 @@ app.UseCors("AllowAll");
 app.UseResponseCaching();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {

@@ -148,7 +148,7 @@ dotnet format                      # Автоисправление
 
 Планируемый стек:
 - **Unit**: xUnit + Moq + FluentAssertions
-- **Integration**: Testcontainers (PostgreSQL, Redis)
+- **Integration**: Testcontainers (PostgreSQL, RabbitMQ)
 - **API**: `WebApplicationFactory<Program>`
 - **Frontend**: Vitest + React Testing Library + Playwright (E2E)
 

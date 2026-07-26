@@ -66,8 +66,8 @@ UC14 .> UC5 : <<extend>>
 | -------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------- |
 | **UC10** | Сбор текущих ставок            | Система | `CurrentCollectionBackgroundService` - опрос бирж каждые 10 секунд                      |
 | **UC11** | Детектирование изменений       | Система | `FundingRateChangeDetector` - обнаружение новых символов или изменений времени выплаты  |
-| **UC12** | Создание задач сбора истории   | Система | `HistoricalCollectionProducer` - создание задач для Redis очереди при изменении ставок  |
-| **UC13** | Сбор исторических данных       | Система | `HistoricalCollectionBackgroundService` - обработка очереди с ограничением параллелизма |
+| **UC12** | Создание задач сбора истории   | Система | `DirectRabbitMqHistoricalCollectionTaskPublisher` — confirmed-публикация задач          |
+| **UC13** | Сбор исторических данных       | Система | `HistoricalCollectionBackgroundService` — отдельные per-exchange worker pools            |
 | **UC14** | Поиск арбитражных возможностей | Система | `FundingArbitrageDetector` + `FundingArbitrageService` — анализ разниц ставок между биржами |
 | **UC15** | Расчёт APR статистики          | Система | `AprStatsService` - вычисление годовой процентной ставки с кэшированием                 |
 
@@ -76,7 +76,7 @@ UC14 .> UC5 : <<extend>>
 | ID       | Сценарий                 | Actor   | Описание                                                         |
 | -------- | ------------------------ | ------- | ---------------------------------------------------------------- |
 | **UC20** | Сохранение в PostgreSQL  | Система | EF Core Bulk Extensions для эффективной записи данных            |
-| **UC21** | Очередь задач Redis      | Система | Персистентная очередь для надёжного хранения задач сбора истории |
+| **UC21** | Очереди RabbitMQ         | Система | Durable per-exchange queues, manual ack, retry и общая DLQ       |
 | **UC22** | Получение данных Binance | Система | Binance.Net API - получение текущих и исторических ставок        |
 | **UC23** | Получение данных Bybit   | Система | Bybit.Net API - получение текущих и исторических ставок          |
 | **UC24** | Получение данных OKX     | Система | JK.OKX.Net API - получение текущих и исторических ставок         |
@@ -111,7 +111,7 @@ sequenceDiagram
     alt Если есть изменения
         C->>P: ProduceTasksAsync(events)
         P->>R: EnqueueAsync(task)
-        R->>R: Redis List Push
+        R->>R: Persistent publish + confirm
     end
 
     alt Exchange collection succeeded
@@ -149,7 +149,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant BS as HistoricalBackgroundService
-    participant Q as RedisQueue
+    participant Q as RabbitMQ
     participant H as HistoricalCollector
     participant B as BinanceClient
     participant DB as HistoricalRepository
@@ -158,7 +158,7 @@ sequenceDiagram
     BS->>Q: DequeueAsync()
     Q-->>BS: HistoricalCollectionTask
 
-    par Ограничение параллелизма (SemaphoreSlim)
+    par Отдельный worker pool биржи
         BS->>H: CollectAsync(task)
         H->>B: GetHistoricalFundingRatesAsync()
         B-->>H: List<HistoricalFundingRate>
@@ -184,7 +184,7 @@ classDiagram
         +CurrentFundingRateCollector
         +HistoricalFundingRateCollector
         +FundingRateChangeDetector
-        +HistoricalCollectionProducer
+        +HistoricalCollectionTaskPublisher
         +AprStatsService
         +FundingArbitrageDetector
         +FundingArbitrageService
@@ -207,7 +207,7 @@ classDiagram
         +BinanceFundingRateClient
         +BybitFundingRateClient
         +OkxFundingRateClient
-        +RedisHistoryTaskQueue
+        +RabbitMqMessagePublisher
     }
 
     class "External Services" {
@@ -220,7 +220,7 @@ classDiagram
     class "Data Stores" {
         <<database>>
         PostgreSQL
-        Redis
+        RabbitMQ
     }
 
     FundingMonitor.Api --> FundingMonitor.Application
@@ -237,7 +237,7 @@ classDiagram
 graph TB
     subgraph "Docker Compose (инфраструктура)"
         PG[(PostgreSQL<br/>17)]
-        Redis[(Redis<br/>7)]
+        RabbitMQ[(RabbitMQ<br/>4.2)]
     end
 
     subgraph "Локально (dotnet run)"
@@ -258,11 +258,11 @@ graph TB
 
     Frontend -->|HTTP/REST /api| API
     API --> PG
-    API --> Redis
+    API --> RabbitMQ
     BG1 -->|Query| Binance
     BG1 -->|Query| Bybit
     BG1 -->|Query| OKX
-    BG2 -->|Dequeue| Redis
+    BG2 -->|Consume / manual ack| RabbitMQ
     BG2 -->|Query| Binance
     BG2 -->|Query| Bybit
     BG2 -->|Query| OKX
@@ -278,4 +278,4 @@ graph TB
 | **Система (Background Services)** | UC10, UC11, UC12, UC13, UC14, UC15 |
 | **Внешние биржи**                 | UC22, UC23, UC24                   |
 | **PostgreSQL**                    | UC20                               |
-| **Redis**                         | UC21                               |
+| **RabbitMQ**                      | UC21                               |

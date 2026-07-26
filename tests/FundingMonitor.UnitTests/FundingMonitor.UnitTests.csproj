@@ -9,10 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
     <PackageReference Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\FundingMonitor.Application\FundingMonitor.Application.csproj" />
     <ProjectReference Include="..\..\src\FundingMonitor.Core\FundingMonitor.Core.csproj" />
+    <ProjectReference Include="..\..\src\FundingMonitor.Infrastructure\FundingMonitor.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

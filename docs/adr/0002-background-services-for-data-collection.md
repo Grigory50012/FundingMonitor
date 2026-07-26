@@ -17,14 +17,14 @@
 
 Два сервиса:
 1. `CurrentCollectionBackgroundService` — интервал 10 сек, параллельный опрос 3 бирж
-2. `HistoricalCollectionBackgroundService` — потребляет очередь Redis, ограничивает параллелизм `SemaphoreSlim`
+2. `HistoricalCollectionBackgroundService` — запускает отдельные RabbitMQ worker pools по биржам с configurable concurrency и `prefetch = 1`
 
 Запускаются автоматически при старте хоста, поддерживают graceful shutdown через `CancellationToken`.
 
 ## Последствия
 
 ✅ **Плюсы**:
-- Нет внешних зависимостей (Hangfire, Quartz, Redis Queue workers)
+- Не требуются отдельные Hangfire или Quartz workers
 - Простая отладка — это просто C# классы в том же процессе
 - Единое логирование, DI, конфигурация
 - Graceful shutdown из коробки
@@ -45,4 +45,4 @@
 
 ## Планы на будущее
 
-При горизонтальном масштабировании API — вынести сбор в отдельный Worker Service / контейнер с лидер-элекшеном (Redis lock) или использовать Hangfire.
+При горизонтальном масштабировании API нужно отдельно спроектировать ownership текущего collection cycle; RabbitMQ consumers допускают масштабирование, но producer coordination в текущую версию не входит.

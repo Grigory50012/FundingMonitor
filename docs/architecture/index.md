@@ -16,7 +16,9 @@ src/
 ├── FundingMonitor.Infrastructure
 │   ├── Data
 │   ├── ExchangeClients
-│   └── Queues
+│   ├── Messaging
+│   ├── BackgroundServices
+│   └── HealthChecks
 └── FundingMonitor.Api
     ├── Controllers
     ├── Models
@@ -45,10 +47,11 @@ CurrentCollectionBackgroundService
 -> CurrentFundingRateCollector
 -> Binance/Bybit/OKX exchange clients
 -> FundingRateChangeDetector
--> HistoricalCollectionProducer
--> RedisHistoryTaskQueue
 -> CurrentFundingRateRepository
 -> PostgreSQL
+-> DirectRabbitMqHistoricalCollectionTaskPublisher
+-> funding.history direct exchange
+-> history.binance / history.bybit / history.okx
 ```
 
 Интервал обновления задаётся в `CurrentDataCollectionOptions.UpdateIntervalSeconds`, сейчас `10` секунд. Отсутствующие current rates не удаляются: `LastSeenAt` фиксирует последний успешный сбор пары, а `CurrentDataCollectionOptions.DeactivateMissingAfterMinutes` задаёт порог деактивации, сейчас `5` минут.
@@ -57,14 +60,20 @@ CurrentCollectionBackgroundService
 
 ```text
 HistoricalCollectionBackgroundService
--> RedisHistoryTaskQueue
+-> отдельный pool для каждой биржи
+-> manual ack, prefetch = 1
 -> HistoricalFundingRateCollector
 -> exchange client
 -> HistoricalFundingRateRepository
 -> PostgreSQL
+-> BasicAck
 ```
 
-Ограничения сбора задаются в `HistoricalDataCollectionOptions`: `MaxConcurrentTasks`, `ApiPageSize`, `MaxHistoryMonths`, `MaxRetries`.
+Ограничения сбора задаются в `HistoricalDataCollectionOptions`: `DefaultConcurrencyPerExchange`, `ExchangeConcurrency`, `ApiPageSize`, `MaxHistoryMonths`, `MaxRetries`, `RetryDelaySeconds`.
+
+Временная ошибка оставляет original message unacked, после задержки публикует confirmed-копию с увеличенным `RetryCount` и только затем подтверждает original. Permanent error и исчерпание retries направляют confirmed-копию в общую `history.dead`.
+
+Consumer side гарантирует `at-least-once`. В Phase 1 producer публикует после PostgreSQL commit напрямую, поэтому crash-window до RabbitMQ confirm имеет гарантию `best effort`. Transactional Outbox запланирован отдельной итерацией.
 
 ### API request
 
@@ -132,7 +141,8 @@ Docker Compose поднимает только инфраструктуру:
 
 ```text
 PostgreSQL :5432
-Redis      :6379
+RabbitMQ   :5672
+Management :15672
 ```
 
 API и frontend запускаются локально:

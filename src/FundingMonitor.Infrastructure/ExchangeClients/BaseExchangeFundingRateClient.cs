@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text.Json;
 using FundingMonitor.Core.Entities;
 using FundingMonitor.Core.Exceptions;
+using FundingMonitor.Core.Failures;
 using FundingMonitor.Core.Interfaces.Clients;
 using FundingMonitor.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
@@ -82,7 +84,12 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
             sw.Stop();
             _logger.LogWarning(ex, "[{Exchange}] {Operation} server error ({StatusCode}) after {Elapsed}ms",
                 ExchangeType, operationName, ex.StatusCode, sw.ElapsedMilliseconds);
-            throw new ExchangeApiException(ExchangeType, $"Server error: {ex.Message}", (int)ex.StatusCode.Value);
+            throw new ExchangeApiException(
+                ExchangeType,
+                $"Server error: {ex.Message}",
+                ex.StatusCode,
+                failureCategory: FailureCategory.Transient,
+                innerException: ex);
         }
         catch (HttpRequestException ex) when (ex.StatusCode.HasValue &&
                                               ex.StatusCode.Value >= HttpStatusCode.BadRequest &&
@@ -91,7 +98,32 @@ public abstract class BaseExchangeFundingRateClient : IExchangeFundingRateClient
             sw.Stop();
             _logger.LogError(ex, "[{Exchange}] {Operation} client error ({StatusCode}) after {Elapsed}ms",
                 ExchangeType, operationName, ex.StatusCode, sw.ElapsedMilliseconds);
-            throw new ExchangeApiException(ExchangeType, $"Client error: {ex.Message}", (int)ex.StatusCode.Value);
+            throw new ExchangeApiException(
+                ExchangeType,
+                $"Client error: {ex.Message}",
+                ex.StatusCode,
+                failureCategory: FailureCategory.Permanent,
+                innerException: ex);
+        }
+        catch (ExchangeApiException)
+        {
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            throw new ExchangeApiException(
+                ExchangeType,
+                $"Response contract error: {ex.Message}",
+                failureCategory: FailureCategory.Permanent,
+                innerException: ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new ExchangeApiException(
+                ExchangeType,
+                $"Invalid symbol or request: {ex.Message}",
+                failureCategory: FailureCategory.Permanent,
+                innerException: ex);
         }
         catch (Exception ex)
         {

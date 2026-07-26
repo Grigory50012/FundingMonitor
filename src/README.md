@@ -1,6 +1,6 @@
 # FundingMonitor Backend
 
-Backend FundingMonitor: .NET 10, ASP.NET Core, EF Core, PostgreSQL, Redis.
+Backend FundingMonitor: .NET 10, ASP.NET Core, EF Core, PostgreSQL, RabbitMQ.
 
 Этот README нужен как быстрый вход в backend-часть проекта. Подробная документация ведётся в `docs/` и Obsidian.
 
@@ -32,7 +32,7 @@ API использует встроенный `Microsoft.AspNetCore.OpenApi`; и
 - `FundingMonitor.Api` — HTTP API, controllers, DTO, middleware.
 - `FundingMonitor.Application` — application services и background services.
 - `FundingMonitor.Core` — domain entities, interfaces, configuration, events.
-- `FundingMonitor.Infrastructure` — EF Core, repositories, queues, exchange clients.
+- `FundingMonitor.Infrastructure` — EF Core, repositories, RabbitMQ messaging, exchange clients.
 
 ## Документация
 

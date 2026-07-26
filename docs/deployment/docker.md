@@ -1,214 +1,96 @@
-# FundingMonitor - Docker
+# FundingMonitor — Docker
 
-## 📋 Компоненты
+Docker Compose поднимает инфраструктуру; backend и frontend запускаются отдельно.
 
-| Сервис         | Порт | Описание                    |
-| -------------- | ---- | --------------------------- |
-| **PostgreSQL** | 5432 | База данных                 |
-| **Redis**      | 6379 | Персистентная очередь задач |
+## Компоненты
 
----
+| Сервис | Порты | Назначение |
+| --- | --- | --- |
+| PostgreSQL 17 | `5432` | Current и historical funding rates |
+| RabbitMQ 4.2 Management | `5672`, `15672` | Historical tasks и Management UI |
 
-## 🚀 Быстрый старт
-
-### **1. Запустить все сервисы:**
+## Запуск
 
 ```bash
-docker-compose up -d
+docker compose up -d
+docker compose ps
 ```
 
-### **2. Проверить статус:**
+Оба контейнера должны перейти в состояние `healthy`.
+
+```text
+funding_monitor_db
+funding_monitor_rabbitmq
+```
+
+Management UI: `http://localhost:15672`, local credentials: `guest` / `guest`.
+
+## RabbitMQ topology
+
+Приложение идемпотентно создаёт direct exchange `funding.history` и durable classic queues:
+
+```text
+history.binance
+history.bybit
+history.okx
+history.dead
+```
+
+Проверить очереди можно в Management UI или командой:
 
 ```bash
-docker-compose ps
+docker exec funding_monitor_rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
 ```
 
-**Ожидаемый результат:**
+`history.dead` не имеет автоматического consumer. Просмотр и replay выполняются оператором вручную после устранения причины ошибки.
 
+## Consumer acknowledgement timeout
+
+Файл `infrastructure/rabbitmq/rabbitmq.conf` монтируется read-only и содержит:
+
+```ini
+consumer_timeout = 1800000
 ```
-NAME                      STATUS                    PORTS
-funding_monitor_db        Up (healthy)              0.0.0.0:5432->5432/tcp
-funding_monitor_redis     Up (healthy)              0.0.0.0:6379->6379/tcp
-```
 
----
+Тридцать минут превышают известное пятиминутное ожидание Binance SDK limiter. Это broker-side setting и не дублируется в `appsettings.json`.
 
-## 🔧 Управление
-
-### **Остановить все сервисы:**
+Проверка effective configuration:
 
 ```bash
-docker-compose down
+docker exec funding_monitor_rabbitmq rabbitmq-diagnostics environment
 ```
 
-### **Остановить и удалить данные:**
+## Управление и логи
 
 ```bash
-docker-compose down -v
+docker compose logs -f
+docker compose logs -f postgres
+docker compose logs -f rabbitmq
+docker compose restart rabbitmq
+docker compose down
 ```
 
-### **Перезапустить сервис:**
+`docker compose down` сохраняет данные. Команда `docker compose down -v` удаляет volumes `postgres_data` и `rabbitmq_data`; использовать её только когда данные действительно больше не нужны.
 
-```bash
-docker-compose restart postgres
-docker-compose restart redis
-```
-
----
-
-## 📊 Логи
-
-### **Все логи:**
-
-```bash
-docker-compose logs -f
-```
-
-### **Только PostgreSQL:**
-
-```bash
-docker-compose logs -f postgres
-```
-
-### **Только Redis:**
-
-```bash
-docker-compose logs -f redis
-```
-
----
-
-## 🗄️ База данных
-
-### **Подключиться к PostgreSQL:**
+## PostgreSQL
 
 ```bash
 docker exec -it funding_monitor_db psql -U postgres -d funding_monitor
 ```
 
-### **Проверить таблицы:**
-
 ```sql
 \dt
-```
-
-### **Проверить миграции** (после первого запуска API):
-
-```sql
 SELECT * FROM "__EFMigrationsHistory" ORDER BY "MigrationId" DESC;
 ```
 
-> Если таблицы не созданы, проверьте запуск API и его логи: полная история migrations уже хранится в репозитории и применяется через `Database.MigrateAsync()`. Создавать повторную `InitialCreate` не нужно.
+Migrations применяются backend через `Database.MigrateAsync()` при запуске.
 
----
+## Production
 
-## 🔴 Redis
+Перед production deployment:
 
-### **Подключиться к Redis:**
-
-```bash
-docker exec -it funding_monitor_redis redis-cli
-```
-
-### **Проверить очередь:**
-
-```bash
-LLEN funding_monitor:history_queue
-```
-
-### **Посмотреть задачи:**
-
-```bash
-LRANGE funding_monitor:history_queue 0 -1
-```
-
-### **Очистить очередь:**
-
-```bash
-DEL funding_monitor:history_queue
-```
-
----
-
-## 🐛 Отладка
-
-### **Проверить health сервисов:**
-
-```bash
-docker-compose ps
-```
-
-### **Если PostgreSQL не запускается:**
-
-```bash
-# Проверить логи
-docker-compose logs postgres
-
-# Удалить volume и запустить заново
-docker-compose down -v
-docker-compose up -d postgres
-```
-
-### **Если Redis не запускается:**
-
-```bash
-# Проверить логи
-docker-compose logs redis
-
-# Перезапустить
-docker-compose restart redis
-```
-
----
-
-## 📁 Тома
-
-| Том             | Назначение         |
-| --------------- | ------------------ |
-| `postgres_data` | Данные PostgreSQL  |
-| `redis_data`    | Данные Redis (AOF) |
-
----
-
-## 🔐 Безопасность
-
-**⚠️ Для production измените:**
-
-1. Пароль PostgreSQL в `docker-compose.yml`
-2. Ограничьте доступ к портам (firewall)
-3. Используйте secrets для чувствительных данных
-
----
-
-## 📊 Мониторинг
-
-### **Использование ресурсов:**
-
-```bash
-docker stats funding_monitor_db funding_monitor_redis
-```
-
-### **Размер volumes:**
-
-```bash
-docker system df -v
-```
-
----
-
-## 🔄 Обновление
-
-### **Обновить образы:**
-
-```bash
-docker-compose pull
-docker-compose up -d
-```
-
----
-
-## 📝 Примечания
-
-- **Данные:** Сохраняются в volumes (не удаляются при `down`)
-- **Порты:** 5432 (PostgreSQL), 6379 (Redis)
-- **Сеть:** Изолированная `funding_monitor`
+- заменить credentials PostgreSQL и RabbitMQ;
+- хранить secrets вне tracked configuration;
+- ограничить доступ к `5432`, `5672` и `15672`;
+- настроить backup PostgreSQL и RabbitMQ volume;
+- не считать single-node classic queues защитой от физической потери диска.

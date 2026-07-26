@@ -16,7 +16,7 @@
 | [Architecture](architecture/index.md) | Архитектура backend/frontend, data flow, deployment view |
 | [ADR](adr/index.md) | Architecture Decision Records |
 | [Database Schema](database-schema.md) | Таблицы, индексы, миграции, performance notes |
-| [Docker Deployment](deployment/docker.md) | PostgreSQL и Redis через Docker Compose |
+| [Docker Deployment](deployment/docker.md) | PostgreSQL и RabbitMQ через Docker Compose |
 | [Frontend Components](frontend/components/index.md) | Frontend-структура и component map |
 
 ## README входные точки

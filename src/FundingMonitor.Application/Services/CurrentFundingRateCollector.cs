@@ -20,20 +20,20 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
     private readonly IEnumerable<IExchangeFundingRateClient> _exchangeClients;
     private readonly ILogger<CurrentFundingRateCollector> _logger;
     private readonly TimeSpan _deactivateMissingAfter;
-    private readonly IHistoricalCollectionProducer _producer;
+    private readonly IHistoricalCollectionTaskPublisher _publisher;
     private readonly ICurrentFundingRateRepository _repository;
 
     public CurrentFundingRateCollector(
         IEnumerable<IExchangeFundingRateClient> exchangeClients,
         ICurrentFundingRateRepository repository,
-        IHistoricalCollectionProducer producer,
+        IHistoricalCollectionTaskPublisher publisher,
         ILogger<CurrentFundingRateCollector> logger,
         IFundingRateChangeDetector changeDetector,
         IOptions<CurrentDataCollectionOptions> options)
     {
         _exchangeClients = exchangeClients;
         _repository = repository;
-        _producer = producer;
+        _publisher = publisher;
         _logger = logger;
         _changeDetector = changeDetector;
         _deactivateMissingAfter = TimeSpan.FromMinutes(options.Value.DeactivateMissingAfterMinutes);
@@ -82,7 +82,7 @@ public class CurrentFundingRateCollector : ICurrentFundingRateCollector
 
             if (allEvents.Count != 0)
             {
-                await _producer.EnqueueHistoricalCollectionTasksAsync(allEvents, cancellationToken);
+                await _publisher.PublishAsync(allEvents, cancellationToken);
                 _logger.LogDebug("Published {Events} events", allEvents.Count);
             }
 

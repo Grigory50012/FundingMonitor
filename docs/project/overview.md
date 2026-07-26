@@ -1,7 +1,7 @@
 ---
 type: project
 status: active
-updated: 2026-07-11
+updated: 2026-07-26
 ---
 
 # Описание проекта
@@ -21,7 +21,7 @@ FundingMonitor отслеживает funding rates на криптовалют�
 
 - Backend API на .NET.
 - Хранение данных в PostgreSQL.
-- Очередь исторического сбора данных на Redis.
+- Независимые RabbitMQ-очереди исторического сбора для Binance, Bybit и OKX.
 - Frontend на React/Vite.
 - Документация в Markdown, управляемая через Obsidian.
 

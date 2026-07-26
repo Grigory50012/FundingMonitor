@@ -15,9 +15,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentFundingRateCollector, CurrentFundingRateCollector>();
         services.AddScoped<IHistoricalFundingRateCollector, HistoricalFundingRateCollector>();
         services.AddScoped<IExchangeAvailabilityChecker, ExchangeAvailabilityChecker>();
-        services.AddScoped<IHistoricalCollectionProducer, HistoricalCollectionProducer>();
         services.AddScoped<IAprStatsService, AprStatsService>();
         services.AddScoped<IFundingRateChangeDetector, FundingRateChangeDetector>();
+        services.AddSingleton<IHistoricalCollectionFailureClassifier, HistoricalCollectionFailureClassifier>();
 
         services.AddSingleton<ISymbolService, SymbolService>();
 
@@ -28,6 +28,5 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFundingArbitrageDetector, FundingArbitrageDetector>();
 
         services.AddHostedService<CurrentCollectionBackgroundService>();
-        services.AddHostedService<HistoricalCollectionBackgroundService>();
     }
 }

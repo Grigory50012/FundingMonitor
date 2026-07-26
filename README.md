@@ -16,10 +16,11 @@ FundingMonitor — приложение для мониторинга funding ra
 docker-compose up -d
 ```
 
-Поднимаются только PostgreSQL и Redis:
+Поднимаются PostgreSQL и RabbitMQ:
 
 - PostgreSQL: `localhost:5432`
-- Redis: `localhost:6379`
+- RabbitMQ AMQP: `localhost:5672`
+- RabbitMQ Management UI: `http://localhost:15672`
 
 ### Backend
 
@@ -65,7 +66,7 @@ npm run generate:api-types
 ## Основные возможности
 
 - Сбор текущих funding rates каждые 10 секунд.
-- Исторический сбор через Redis-backed очередь.
+- Исторический сбор через независимые RabbitMQ queues Binance, Bybit и OKX.
 - REST API для текущих ставок, истории, APR statistics, arbitrage и health бирж.
 - React/Vite dashboard с фильтрами по символу и биржам.
 - APR analytics по периодам 1, 2, 3, 7, 14, 21 и 30 дней.
@@ -77,7 +78,7 @@ npm run generate:api-types
 | --- | --- |
 | Backend | .NET 10, ASP.NET Core / EF Core 10.0.9, NLog 6.1.4 |
 | Database | PostgreSQL 17 |
-| Queue | Redis 7, StackExchange.Redis 3.0.17 |
+| Queue | RabbitMQ 4.2, RabbitMQ.Client 7.2.1 |
 | Exchange APIs | Binance.Net 13.1.0, Bybit.Net 7.1.0, JK.OKX.Net 5.1.0 |
 | API contract | Microsoft.AspNetCore.OpenApi 10.0.9, Microsoft.OpenApi 2.10.0, Scalar 2.16.11, openapi-typescript 7.10.1 |
 | Frontend | React 19.1, TypeScript 5.8, Vite 7, Tailwind CSS 4.2, Recharts 3.8, Axios 1.13 |

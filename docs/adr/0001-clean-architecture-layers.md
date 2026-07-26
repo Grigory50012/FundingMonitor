@@ -29,7 +29,7 @@ src/
 ├── FundingMonitor.Infrastructure # External concerns
 │   ├── Data (EF Core, Repositories)
 │   ├── ExchangeClients (Binance, Bybit, OKX)
-│   └── Queues (Redis)
+│   └── Messaging (RabbitMQ)
 └── FundingMonitor.Api           # Presentation
     ├── Controllers
     ├── DTOs
