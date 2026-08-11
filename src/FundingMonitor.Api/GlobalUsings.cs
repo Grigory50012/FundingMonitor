@@ -1,0 +1,17 @@
+global using FundingMonitor.Api.CurrentRates;
+global using FundingMonitor.Api.CurrentRates.Dtos;
+global using FundingMonitor.Api.CurrentRates.Mappers;
+global using FundingMonitor.Api.HistoricalRates.Dtos;
+global using FundingMonitor.Api.Shared.Middleware;
+global using FundingMonitor.Api.Shared.ProblemDetails;
+global using FundingMonitor.Application.CurrentRates;
+global using FundingMonitor.Application.HistoricalRates;
+global using FundingMonitor.Core.CurrentRates.Entities;
+global using FundingMonitor.Core.CurrentRates.Interfaces;
+global using FundingMonitor.Core.HistoricalRates.Entities;
+global using FundingMonitor.Core.HistoricalRates.Interfaces;
+global using FundingMonitor.Core.Shared.Exchanges;
+global using FundingMonitor.Infrastructure.Shared.Persistence;
+global using FundingMonitor.Infrastructure.Shared;
+global using FundingMonitor.Infrastructure.CurrentRates;
+global using FundingMonitor.Infrastructure.HistoricalRates;

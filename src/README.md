@@ -29,10 +29,18 @@ API использует встроенный `Microsoft.AspNetCore.OpenApi`; и
 
 ## Проекты
 
-- `FundingMonitor.Api` — HTTP API, controllers, DTO, middleware.
-- `FundingMonitor.Application` — application services и background services.
-- `FundingMonitor.Core` — domain entities, interfaces, configuration, events.
-- `FundingMonitor.Infrastructure` — EF Core, repositories, RabbitMQ messaging, exchange clients.
+- `FundingMonitor.Api` — HTTP API, DTO и middleware.
+- `FundingMonitor.Application` — use cases и background services.
+- `FundingMonitor.Core` — entities, contracts, configuration и events.
+- `FundingMonitor.Infrastructure` — EF Core, RabbitMQ и exchange clients.
+
+Внутри проектов используется module-first организация:
+
+- `CurrentRates` — текущие ставки, staleness и арбитраж;
+- `HistoricalRates` — исторический сбор, retry/DLQ и APR;
+- `Shared` — общие exchange clients, persistence и HTTP infrastructure.
+
+Подробнее: [ADR 0011](../docs/adr/0011-module-first-modular-monolith.md).
 
 ## Документация
 

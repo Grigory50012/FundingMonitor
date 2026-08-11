@@ -1,11 +1,3 @@
-using FundingMonitor.Application.Services;
-using FundingMonitor.Core.Configuration;
-using FundingMonitor.Core.Entities;
-using FundingMonitor.Core.Exceptions;
-using FundingMonitor.Core.Failures;
-using FundingMonitor.Core.Interfaces.Clients;
-using FundingMonitor.Core.Interfaces.Repositories;
-using FundingMonitor.Core.Queues;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;

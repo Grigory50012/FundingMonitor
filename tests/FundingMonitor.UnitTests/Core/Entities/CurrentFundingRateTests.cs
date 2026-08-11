@@ -1,5 +1,4 @@
 using System.Globalization;
-using FundingMonitor.Core.Entities;
 using Xunit;
 
 namespace FundingMonitor.UnitTests.Core.Entities;

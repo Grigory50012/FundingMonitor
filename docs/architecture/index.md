@@ -1,30 +1,27 @@
 # Architecture Documentation
 
-## Backend Layers
+## Модули и слои backend
+
+Backend остаётся единым приложением с четырьмя проектами Clean Architecture. Внутри каждого проекта код организован сначала по бизнес-модулю, затем по технической роли.
 
 ```text
 src/
 ├── FundingMonitor.Core
-│   ├── Entities
-│   ├── Interfaces
-│   ├── Configuration
-│   ├── Events
-│   └── Results
+│   ├── CurrentRates
+│   ├── HistoricalRates
+│   └── Shared
 ├── FundingMonitor.Application
-│   ├── Services
-│   └── BackgroundServices
+│   ├── CurrentRates
+│   └── HistoricalRates
 ├── FundingMonitor.Infrastructure
-│   ├── Data
-│   ├── ExchangeClients
-│   ├── Messaging
-│   ├── BackgroundServices
-│   └── HealthChecks
+│   ├── CurrentRates
+│   ├── HistoricalRates
+│   ├── Shared
+│   └── Migrations
 └── FundingMonitor.Api
-    ├── Controllers
-    ├── Models
-    ├── Mappers
-    ├── Middleware
-    └── Extensions
+    ├── CurrentRates
+    ├── HistoricalRates
+    └── Shared
 ```
 
 Dependency rule:
@@ -37,6 +34,8 @@ Infrastructure -> Core
 ```
 
 `Core` не зависит от внешних слоёв. `Infrastructure` реализует интерфейсы из `Core`. `Api` собирает зависимости и публикует HTTP surface.
+
+Модуль `CurrentRates` отвечает за текущие ставки, staleness и арбитраж. `HistoricalRates` отвечает за исторический сбор, RabbitMQ processing и APR. Оба модуля используют только действительно общие компоненты из `Shared`; `HistoricalRates` не зависит от внутренних типов `CurrentRates`.
 
 ## Data Flows
 

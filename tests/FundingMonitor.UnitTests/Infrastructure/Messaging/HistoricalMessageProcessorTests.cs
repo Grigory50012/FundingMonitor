@@ -1,9 +1,3 @@
-using FundingMonitor.Core.Configuration;
-using FundingMonitor.Core.Entities;
-using FundingMonitor.Core.Failures;
-using FundingMonitor.Core.Interfaces.Services;
-using FundingMonitor.Core.Queues;
-using FundingMonitor.Infrastructure.Messaging.RabbitMq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;

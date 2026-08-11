@@ -1,9 +1,4 @@
 using System.Text.Json.Serialization;
-using FundingMonitor.Api.Middleware;
-using FundingMonitor.Application.Extensions;
-using FundingMonitor.Core.Extensions;
-using FundingMonitor.Infrastructure.Data;
-using FundingMonitor.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 using Scalar.AspNetCore;
@@ -19,9 +14,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
 builder.Services.AddOpenApi();
 
-builder.Services.AddCoreServices(builder.Configuration);
-builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddSharedInfrastructure(builder.Configuration);
+builder.Services.AddCurrentRatesInfrastructure();
+builder.Services.AddHistoricalRatesInfrastructure();
+builder.Services.AddCurrentRatesModule(builder.Configuration);
+builder.Services.AddHistoricalRatesModule(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {

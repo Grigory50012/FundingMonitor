@@ -1,8 +1,3 @@
-using FundingMonitor.Api.IntegrationTests.Infrastructure;
-using FundingMonitor.Api.IntegrationTests.Infrastructure.Collections;
-using FundingMonitor.Application.BackgroundServices;
-using FundingMonitor.Infrastructure.BackgroundServices;
-using FundingMonitor.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

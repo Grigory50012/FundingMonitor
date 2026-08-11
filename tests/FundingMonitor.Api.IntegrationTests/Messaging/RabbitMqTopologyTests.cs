@@ -1,13 +1,9 @@
 using System.Text.Json;
-using FundingMonitor.Core.Configuration;
-using FundingMonitor.Core.Entities;
-using FundingMonitor.Core.Queues;
-using FundingMonitor.Infrastructure.Messaging.RabbitMq;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using Testcontainers.RabbitMq;
 using Xunit;
-using FundingExchangeType = FundingMonitor.Core.Entities.ExchangeType;
+using FundingExchangeType = FundingMonitor.Core.Shared.Exchanges.ExchangeType;
 
 namespace FundingMonitor.Api.IntegrationTests.Messaging;
 

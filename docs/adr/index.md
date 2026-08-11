@@ -32,3 +32,4 @@ ADR — это документ, фиксирующий значимое арх�
 | [0008](0008-frontend-react-typescript-vite.md) | Frontend: React 19 + TypeScript + Vite + Tailwind CSS | Принято | 2026-06-14 |
 | [0009](0009-built-in-openapi-and-scalar.md) | Встроенный OpenAPI и Scalar | Принято | 2026-07-12 |
 | [0010](0010-rabbitmq-for-parallel-historical-collection.md) | RabbitMQ для параллельного исторического сбора | Принято | 2026-07-26 |
+| [0011](0011-module-first-modular-monolith.md) | Module-first организация модульного монолита | Принято | 2026-08-05 |

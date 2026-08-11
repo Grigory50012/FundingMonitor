@@ -1,5 +1,3 @@
-using FundingMonitor.Core.Entities;
-using FundingMonitor.Core.Queues;
 using Xunit;
 
 namespace FundingMonitor.UnitTests.Core.Queues;

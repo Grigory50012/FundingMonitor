@@ -1,9 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using FundingMonitor.Api.IntegrationTests.Infrastructure;
-using FundingMonitor.Api.IntegrationTests.Infrastructure.Collections;
-using FundingMonitor.Api.IntegrationTests.TestData;
-using FundingMonitor.Api.Models.Dtos;
 using Xunit;
 
 namespace FundingMonitor.Api.IntegrationTests.Endpoints.FundingRates;

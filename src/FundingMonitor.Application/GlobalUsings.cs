@@ -1,0 +1,17 @@
+global using FundingMonitor.Application.CurrentRates.Arbitrage;
+global using FundingMonitor.Application.CurrentRates.Collection;
+global using FundingMonitor.Application.CurrentRates.Services;
+global using FundingMonitor.Application.HistoricalRates.AprStats;
+global using FundingMonitor.Application.HistoricalRates.Collection;
+global using FundingMonitor.Core.CurrentRates.Configuration;
+global using FundingMonitor.Core.CurrentRates.Entities;
+global using FundingMonitor.Core.CurrentRates.Events;
+global using FundingMonitor.Core.CurrentRates.Interfaces;
+global using FundingMonitor.Core.CurrentRates.Results;
+global using FundingMonitor.Core.HistoricalRates.Configuration;
+global using FundingMonitor.Core.HistoricalRates.Entities;
+global using FundingMonitor.Core.HistoricalRates.Failures;
+global using FundingMonitor.Core.HistoricalRates.Interfaces;
+global using FundingMonitor.Core.HistoricalRates.Messaging;
+global using FundingMonitor.Core.Shared.Exchanges;
+global using FundingMonitor.Core.Shared.Interfaces;

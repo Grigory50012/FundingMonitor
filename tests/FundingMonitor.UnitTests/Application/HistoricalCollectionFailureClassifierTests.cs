@@ -1,9 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using FundingMonitor.Application.Services;
-using FundingMonitor.Core.Entities;
-using FundingMonitor.Core.Exceptions;
-using FundingMonitor.Core.Failures;
 using Xunit;
 
 namespace FundingMonitor.UnitTests.Application;

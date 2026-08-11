@@ -1,4 +1,3 @@
-using FundingMonitor.Infrastructure.Data.Entities;
 
 namespace FundingMonitor.Api.IntegrationTests.TestData;
 

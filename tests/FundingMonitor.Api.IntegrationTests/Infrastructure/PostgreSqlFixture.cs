@@ -1,5 +1,3 @@
-using FundingMonitor.Infrastructure.Data;
-using FundingMonitor.Infrastructure.Data.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Xunit;
