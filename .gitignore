@@ -52,3 +52,4 @@ logs/*.log
 # Local agent skills, developer documentation and working notes
 .agents/skills/
 private-docs/
+.superpowers/
