@@ -5,6 +5,14 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.4"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.9"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
+    </ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="..\FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj"/>
         <ProjectReference Include="..\FundingMonitor.CurrentRates.Domain\FundingMonitor.CurrentRates.Domain.csproj"/>
         <ProjectReference Include="..\FundingMonitor.CurrentRates.Application\FundingMonitor.CurrentRates.Application.csproj"/>
