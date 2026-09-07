@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Contracts\FundingMonitor.ExchangeIntegration.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Application\FundingMonitor.ExchangeIntegration.Application.csproj" />
+  </ItemGroup>
+</Project>

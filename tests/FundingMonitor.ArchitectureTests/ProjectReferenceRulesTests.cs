@@ -89,6 +89,27 @@ public sealed class ProjectReferenceRulesTests
         }
     }
 
+    [Fact]
+    public void ExchangeSdkPackages_AreOwnedOnlyByExchangeIntegrationInfrastructure()
+    {
+        var sdkPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Binance.Net",
+            "Bybit.Net",
+            "JK.OKX.Net"
+        };
+
+        var owners = Directory
+            .EnumerateFiles(Path.Combine(Root, "src", "Modules"), "*.csproj", SearchOption.AllDirectories)
+            .Select(path => (Path: path, Document: XDocument.Load(path)))
+            .Where(item => item.Document.Descendants("PackageReference")
+                .Any(reference => sdkPackages.Contains(reference.Attribute("Include")?.Value ?? string.Empty)))
+            .Select(item => Path.GetFileNameWithoutExtension(item.Path))
+            .ToArray();
+
+        Assert.Equal(["FundingMonitor.ExchangeIntegration.Infrastructure"], owners);
+    }
+
     private static string[] ReadReferences(string projectName)
     {
         var projectFile = Directory
