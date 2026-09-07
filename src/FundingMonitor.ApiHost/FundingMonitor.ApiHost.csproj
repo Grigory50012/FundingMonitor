@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Modules\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Presentation\FundingMonitor.ExchangeIntegration.Presentation.csproj"/>
+        <ProjectReference Include="..\Modules\CurrentRates\FundingMonitor.CurrentRates.Presentation\FundingMonitor.CurrentRates.Presentation.csproj"/>
+        <ProjectReference Include="..\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Presentation\FundingMonitor.HistoricalRates.Presentation.csproj"/>
+        <ProjectReference Include="..\Modules\Arbitrage\FundingMonitor.Arbitrage.Presentation\FundingMonitor.Arbitrage.Presentation.csproj"/>
+    </ItemGroup>
+</Project>

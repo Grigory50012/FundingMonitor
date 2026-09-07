@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\FundingMonitor.Arbitrage.Contracts\FundingMonitor.Arbitrage.Contracts.csproj"/>
+        <ProjectReference Include="..\FundingMonitor.Arbitrage.Domain\FundingMonitor.Arbitrage.Domain.csproj"/>
+        <ProjectReference Include="..\FundingMonitor.Arbitrage.Application\FundingMonitor.Arbitrage.Application.csproj"/>
+        <ProjectReference Include="..\..\..\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj"/>
+    </ItemGroup>
+</Project>

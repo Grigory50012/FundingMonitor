@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\FundingMonitor.HistoricalRates.Contracts\FundingMonitor.HistoricalRates.Contracts.csproj"/>
+        <ProjectReference Include="..\FundingMonitor.HistoricalRates.Domain\FundingMonitor.HistoricalRates.Domain.csproj"/>
+        <ProjectReference Include="..\..\..\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj"/>
+        <ProjectReference Include="..\..\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Contracts\FundingMonitor.ExchangeIntegration.Contracts.csproj"/>
+    </ItemGroup>
+</Project>
