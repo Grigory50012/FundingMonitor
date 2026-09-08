@@ -44,6 +44,8 @@ DashboardPage
 
 APR table дополнительно использует `useAprStats`. API-функции каждого feature используют общий Axios client и generated DTO types; feature internals не импортируют друг друга. Их composition разрешён только в `widgets` и `app`.
 
+Backend состоит из модулей `CurrentRates`, `HistoricalRates`, `Arbitrage` и `ExchangeIntegration`, зарегистрированных в `FundingMonitor.ApiHost`. HTTP-маршруты и OpenAPI-контракт сохранены. APR, spread и freshness рассчитываются на backend; frontend отвечает за отображение, фильтры, сортировку и состояние UI. Типы обновляются через `npm run generate:api-types` из единого `/openapi/v1.json`.
+
 ## State
 
 - Фильтры сохраняются через `useLocalStorage`.
@@ -53,5 +55,5 @@ APR table дополнительно использует `useAprStats`. API-ф�
 
 ## Связанные заметки
 
-- [[../../architecture/index|Архитектура]]
-- [[../../project/overview|Описание проекта]]
+- [Архитектура](../../architecture/index.md)
+- [Описание проекта](../../project/overview.md)

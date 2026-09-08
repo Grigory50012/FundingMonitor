@@ -13,7 +13,7 @@ FundingMonitor — приложение для мониторинга funding ra
 ### Инфраструктура
 
 ```bash
-docker-compose up -d
+docker compose up -d --remove-orphans
 ```
 
 Поднимаются PostgreSQL и RabbitMQ:
@@ -27,10 +27,13 @@ docker-compose up -d
 ```bash
 dotnet restore
 dotnet build FundingMonitor.sln
-dotnet run --project src/FundingMonitor.Api
+dotnet run --project src/FundingMonitor.DatabaseMigrator
+dotnet run --project src/FundingMonitor.ApiHost
 ```
 
-Development API documentation (Scalar):
+Сначала `DatabaseMigrator` применяет миграции модулей; `ApiHost` запускается только после его успешного завершения и не меняет схему БД.
+
+Документация API в Development (Scalar):
 
 ```text
 http://localhost:5000/scalar
@@ -70,7 +73,8 @@ npm run generate:api-types
 - REST API для текущих ставок, истории, APR statistics, arbitrage и health бирж.
 - React/Vite dashboard с фильтрами по символу и биржам.
 - APR analytics по периодам 1, 2, 3, 7, 14, 21 и 30 дней.
-- Clean Architecture: `Core`, `Application`, `Infrastructure`, `Api`.
+- Строгий модульный монолит: `ExchangeIntegration`, `CurrentRates`, `HistoricalRates`, `Arbitrage`; каждый модуль содержит пять отдельных слоёв, внешние зависимости разрешены только через `Contracts`.
+- Надёжная доставка изменений ставок: PostgreSQL Outbox → RabbitMQ → Inbox.
 
 ## Технологии
 
@@ -106,6 +110,7 @@ npm run generate:api-types
 | GET | `/api/v1/History/apr-stats` | APR statistics |
 | GET | `/api/v1/Arbitrage` | Funding arbitrage opportunities |
 | GET | `/api/v1/exchanges/health` | Health status бирж |
+| GET | `/health` | Проверка доступности HTTP host |
 
 ## README политика
 

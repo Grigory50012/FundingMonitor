@@ -12,11 +12,12 @@ git clone https://github.com/YOUR_FORK/FundingMonitor.git
 cd FundingMonitor
 
 # 2. Infrastructure
-docker-compose up -d
+docker compose up -d --remove-orphans
 
 # 3. Backend
 dotnet restore
-dotnet run --project src/FundingMonitor.Api
+dotnet run --project src/FundingMonitor.DatabaseMigrator
+dotnet run --project src/FundingMonitor.ApiHost
 
 # 4. Frontend
 cd frontend/FundingMonitor.Web
@@ -108,7 +109,7 @@ dotnet format                      # Автоисправление
 - **TypeScript**: `strict: true`, избегайте `any`
 - **Компоненты**: Functional + Hooks, именуйте `PascalCase`
 - **Хуки**: `use` prefix, выносите в `hooks/`
-- **API типы**: пока вручную в `types/`, планируется codegen из OpenAPI
+- **API типы**: `npm run generate:api-types` обновляет `src/types/generated/api.ts` из работающего `/openapi/v1.json`; Axios client остаётся ручным
 
 ---
 
@@ -116,41 +117,33 @@ dotnet format                      # Автоисправление
 
 ### Новые биржи (Exchange)
 
-1. Создайте `XxxFundingRateClient` в `Infrastructure/ExchangeClients`
-2. Реализуйте `IExchangeFundingRateClient` из `Core`
-3. Зарегистрируйте в `Infrastructure/Extensions/ServiceCollectionExtensions.cs`
-4. Добавьте `ExchangeType` в `Core/Entities/ExchangeType.cs`
-5. Обновите `ExchangeTypeExtensions.ParseSingle` (или используйте кэш)
+1. Добавьте адаптер в `src/Modules/ExchangeIntegration/FundingMonitor.ExchangeIntegration.Infrastructure`.
+2. Используйте публичные интерфейсы `ExchangeIntegration.Contracts`; SDK-типы не должны выходить за Infrastructure.
+3. Зарегистрируйте адаптер в DI модуля и обновите поддерживаемые биржи и конфигурацию worker pools.
+4. Проверьте нормализацию, health и модульные тесты. Другие модули используют только Contracts.
 
 ### Новые Background Services
 
 1. Наследуйтесь от `BackgroundService`
 2. Инжектируйте `ILogger<T>`, сервисы через конструктор
 3. Уважайте `CancellationToken` — проверяйте в циклах
-4. Регистрируйте в `Application/Extensions/ServiceCollectionExtensions.cs`
+4. Размещайте сервис в Infrastructure владельца и регистрируйте через DI этого модуля
 
 ### Database Changes
 
-1. Измените Entity в `Infrastructure/Data/Entities/`
-2. Добавьте конфигурацию в `FundingMonitorDbContext.OnModelCreating`
-3. Создайте миграцию:
-   ```bash
-   dotnet ef migrations add MigrationName --project src/FundingMonitor.Infrastructure
-   ```
-4. Проверьте SQL (`dotnet ef migrations script`)
-5. **Не редактируйте** уже применённые миграции
+1. Измените persistence-модель и DbContext владельца: CurrentRates или HistoricalRates.
+2. Создайте миграцию в `Infrastructure/Persistence/Migrations` этого модуля, указав его Infrastructure project и нужный `--context`; startup project — `src/FundingMonitor.DatabaseMigrator`.
+3. Проверьте SQL, snapshot и integration tests; коммитьте миграцию вместе с моделью.
+4. Примените `dotnet run --project src/FundingMonitor.DatabaseMigrator` до запуска ApiHost.
+5. Не редактируйте уже применённые миграции и не добавляйте cross-schema queries/FK. Arbitrage не имеет persistence.
+
+Границы четырёх модулей и пяти слоёв описаны в [архитектуре](docs/architecture/index.md) и [ADR 0012](docs/adr/0012-strict-modular-monolith.md).
 
 ---
 
 ## Testing
 
-> ⚠️ Тесты пока в планах. При добавлении функциональности — пишите тесты.
-
-Планируемый стек:
-- **Unit**: xUnit + Moq + FluentAssertions
-- **Integration**: Testcontainers (PostgreSQL, RabbitMQ)
-- **API**: `WebApplicationFactory<Program>`
-- **Frontend**: Vitest + React Testing Library + Playwright (E2E)
+Backend использует отдельные модульные unit/integration suites, architecture tests и `ApiHost.IntegrationTests`. Полный прогон: `dotnet test FundingMonitor.sln`; для PostgreSQL/RabbitMQ Testcontainers нужен работающий Docker. HTTP-тесты используют `WebApplicationFactory<Program>`, подменяя внешние биржи. Во frontend обязательны `npm run lint` и `npm run build`. Добавляйте релевантные тесты вместе с изменением поведения.
 
 ---
 

@@ -12,7 +12,7 @@ Docker Compose поднимает инфраструктуру; backend и front
 ## Запуск
 
 ```bash
-docker compose up -d
+docker compose up -d --remove-orphans
 docker compose ps
 ```
 
@@ -27,22 +27,24 @@ Management UI: `http://localhost:15672`, local credentials: `guest` / `guest`.
 
 ## RabbitMQ topology
 
-Приложение идемпотентно создаёт direct exchange `funding.history` и durable classic queues:
+HistoricalRates идемпотентно создаёт direct exchange `current-rates.events` и durable classic queues:
 
 ```text
-history.binance
-history.bybit
-history.okx
-history.dead
+historical-rates.collect.binance
+historical-rates.collect.bybit
+historical-rates.collect.okx
+historical-rates.dead
 ```
 
 Проверить очереди можно в Management UI или командой:
 
 ```bash
-docker exec funding_monitor_rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
+docker exec funding_monitor_rabbitmq rabbitmqctl list_queues name consumers messages_ready messages_unacknowledged
 ```
 
-`history.dead` не имеет автоматического consumer. Просмотр и replay выполняются оператором вручную после устранения причины ошибки.
+При работающем ApiHost каждая collection queue имеет по умолчанию 10 consumers: три независимых worker pool с `prefetch=1` и manual ACK. `historical-rates.dead` не имеет автоматического consumer. Просмотр и replay выполняются оператором вручную после устранения причины ошибки.
+
+CurrentRates отправляет события через PostgreSQL Outbox и publisher confirms. HistoricalRates сохраняет историю и Inbox в одной транзакции до ACK. Retry/DLQ также подтверждаются брокером перед ACK исходного сообщения. После остановки ApiHost число consumers становится нулевым; ошибки внешних бирж и географические ограничения диагностируются отдельно от topology брокера.
 
 ## Consumer acknowledgement timeout
 
@@ -79,11 +81,33 @@ docker exec -it funding_monitor_db psql -U postgres -d funding_monitor
 ```
 
 ```sql
-\dt
-SELECT * FROM "__EFMigrationsHistory" ORDER BY "MigrationId" DESC;
+\dt current_rates.*
+\dt historical_rates.*
+SELECT * FROM current_rates."__EFMigrationsHistory" ORDER BY "MigrationId" DESC;
+SELECT * FROM historical_rates."__EFMigrationsHistory" ORDER BY "MigrationId" DESC;
 ```
 
-Migrations применяются backend через `Database.MigrateAsync()` при запуске.
+Схемы принадлежат разным DbContext и имеют отдельные истории миграций. Миграции применяет только `DatabaseMigrator`; ApiHost не изменяет схему при старте.
+
+## Запуск backend и проверка
+
+После готовности Compose из корня репозитория выполните:
+
+```bash
+dotnet run --project src/FundingMonitor.DatabaseMigrator
+dotnet run --project src/FundingMonitor.ApiHost --no-launch-profile -- --urls http://127.0.0.1:5000 --environment Development
+```
+
+ApiHost запускается только после успешного завершения migrator. Эта команда выбирает HTTP на IPv4 без HTTPS launch profile. В Development доступны Scalar `/scalar` и OpenAPI `/openapi/v1.json`. Во втором терминале проверьте реальные ответы:
+
+```bash
+curl --noproxy "*" http://127.0.0.1:5000/openapi/v1.json
+curl --noproxy "*" http://127.0.0.1:5000/api/v1/FundingRates
+curl --noproxy "*" http://127.0.0.1:5000/api/v1/Arbitrage
+curl --noproxy "*" http://127.0.0.1:5000/health
+```
+
+На Windows используйте `curl.exe`. Ожидается HTTP 200; один занятый порт не доказывает работоспособность. `/health` показывает доступность HTTP host, поэтому состояние RabbitMQ consumers нужно проверять указанной выше командой отдельно. Frontend запускается командой `npm run dev` из `frontend/FundingMonitor.Web`.
 
 ## Production
 

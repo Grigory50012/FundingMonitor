@@ -1,106 +1,65 @@
-# Database Schema Documentation
+# Схема базы данных
 
-PostgreSQL 17 schema for FundingMonitor, managed via EF Core migrations.
+Одна PostgreSQL 17 database содержит две независимые схемы. `CurrentRatesDbContext` владеет `current_rates`, `HistoricalRatesDbContext` — `historical_rates`. Каждый контекст имеет собственные миграции, model snapshot и таблицу `__EFMigrationsHistory` в своей схеме. Cross-schema queries, foreign keys и EF navigation properties между модулями запрещены.
 
----
+`Arbitrage` вычисляет результат в памяти и не имеет schema или DbContext. `ExchangeIntegration` не использует persistence. Доступ к данным другого модуля возможен через его `Contracts`, см. [архитектуру](architecture/index.md).
 
-## Tables
+## Текущие ставки
 
-### 1. CurrentFundingRate
+Таблица `current_rates."CurrentFundingRates"`:
 
-Хранит **актуальные** ставки финансирования. Обновляется каждые 10 секунд фоновым сервисом.
+| Поле | Тип PostgreSQL | Назначение |
+| --- | --- | --- |
+| `Id` | `integer`, identity | Primary key |
+| `Exchange` | `varchar(32)` | Биржа |
+| `NormalizedSymbol` | `varchar(64)` | Нормализованный символ |
+| `BaseAsset`, `QuoteAsset` | `varchar(32)` | Активы пары |
+| `MarkPrice`, `IndexPrice` | `numeric(28,12)` | Цены, обязательные поля |
+| `FundingRate` | `numeric(20,12)` | Ставка за период |
+| `FundingIntervalHours` | `integer`, nullable | Интервал выплат |
+| `NextFundingTime` | `timestamptz`, nullable | Следующая выплата |
+| `PredictedNextRate` | `numeric(20,12)`, nullable | Прогноз |
+| `LastSeenOnUtc` | `timestamptz` | Последний успешный сбор пары |
+| `IsActive` | `boolean` | Доступна в обычной выдаче и арбитраже |
 
-| Колонка | Тип | Nullable | Описание |
-|---------|-----|----------|----------|
-| `Id` | `integer` | NO | Surrogate PK (identity) |
-| `Exchange` | `text` | NO | Биржа: 'Binance', 'Bybit', 'OKX' |
-| `NormalizedSymbol` | `text` | NO | Символ: 'BTC-USDT', 'ETH-USDT' |
-| `BaseAsset` | `text` | NO | Базовый актив: 'BTC' |
-| `QuoteAsset` | `text` | NO | Котируемый актив: 'USDT' |
-| `MarkPrice` | `decimal(18,8)` | YES | Mark Price |
-| `IndexPrice` | `decimal(18,8)` | YES | Index Price |
-| `FundingRate` | `decimal(10,8)` | NO | Ставка финансирования (на период) |
-| `FundingIntervalHours` | `integer` | NO | Интервал выплат в часах (8, 4, 1) |
-| `NextFundingTime` | `timestamp with time zone` | YES | Время следующей выплаты (UTC) |
-| `LastSeenAt` | `timestamp with time zone` | NO | Когда биржа последний раз вернула эту пару |
-| `PredictedNextRate` | `decimal(10,8)` | YES | Прогноз следующей ставки |
-| `IsActive` | `boolean` | NO | Используется ли пара в обычной API-выдаче и arbitrage (true по умолчанию) |
+Уникальный индекс `(NormalizedSymbol, Exchange)` защищает бизнес-ключ. Индекс `(IsActive, BaseAsset)` поддерживает выдачу активных ставок. Отсутствующие пары деактивируются после порога `DeactivateMissingAfterMinutes`, физически не удаляются; повторное появление обновляет timestamp и активирует пару. Неудачный snapshot биржи не деактивирует её прежние данные.
 
-**Индексы**:
-- `PK_CurrentFundingRate` — Primary Key на `Id`
-- `IX_CurrentFundingRate_NormalizedSymbol_Exchange` — **Unique** на `(NormalizedSymbol, Exchange)` — один символ на биржу
-- `IX_CurrentFundingRate_IsActive_BaseAsset` — для фильтрации активных по базе
+## Outbox
 
-**Примечание**: EF Core использует `Id` как PK, но бизнес-ключ — `(Exchange, NormalizedSymbol)`. Unique индекс гарантирует уникальность.
+`current_rates."OutboxMessages"` записывается в одной транзакции с текущими ставками. Поля: `Id` (UUID, PK и идентификатор события), `Type`, `Payload` (`jsonb`), `OccurredOnUtc`, nullable `ProcessedOnUtc`, `Attempts`, nullable `Error`, `LockedUntilUtc`, `LockOwner`.
 
-Отсутствующие в очередном snapshot пары не удаляются физически. Если биржа не возвращает пару дольше `CurrentDataCollectionOptions.DeactivateMissingAfterMinutes`, `IsActive` переключается в `false`; при повторном появлении пары collector снова выставляет `IsActive=true` и обновляет `LastSeenAt`.
+Индексы `(ProcessedOnUtc, OccurredOnUtc)` и `(ProcessedOnUtc, LockedUntilUtc)` обслуживают выборку и lease отправки. Dispatcher публикует событие в RabbitMQ и отмечает `ProcessedOnUtc` после publisher confirm. Сбой между confirm и отметкой может дать повторную доставку, которую обработает Inbox.
 
----
+## Исторические ставки и Inbox
 
-### 2. HistoricalFundingRate
+Таблица `historical_rates."HistoricalFundingRates"`:
 
-Хранит **историю** начислений ставок. Только `INSERT`, никогда не обновляется.
+| Поле | Тип PostgreSQL | Назначение |
+| --- | --- | --- |
+| `Exchange` | `varchar(32)` | Часть PK |
+| `NormalizedSymbol` | `varchar(64)` | Часть PK |
+| `FundingTime` | `timestamptz` | Часть PK, время выплаты |
+| `FundingRate` | `numeric(20,12)` | Ставка |
+| `CollectedOnUtc` | `timestamptz` | Время сбора |
 
-| Колонка | Тип | Nullable | Описание |
-|---------|-----|----------|----------|
-| `Exchange` | `text` | NO | Биржа (часть PK) |
-| `NormalizedSymbol` | `text` | NO | Символ (часть PK) |
-| `Id` | `integer` | NO | Surrogate column (не входит в PK, генерируется EF) |
-| `FundingRate` | `decimal(10,8)` | NO | Ставка финансирования |
-| `FundingTime` | `timestamp with time zone` | NO | Время выплаты (часть PK) |
-| `CollectedAt` | `timestamp with time zone` | NO | Когда записали в БД |
+Composite PK `(Exchange, NormalizedSymbol, FundingTime)` делает сохранение идемпотентным. Дополнительные индексы: `(Exchange, NormalizedSymbol)` и `FundingTime`. Пакетная запись использует параметризованный PostgreSQL `INSERT ... ON CONFLICT ... DO UPDATE`; повторная выплата обновляет `FundingRate` и `CollectedOnUtc` без создания дубля.
 
-**Индексы**:
-- `PK_HistoricalFundingRate` — **Composite Primary Key** на `(Exchange, NormalizedSymbol, FundingTime)`
-- `IX_HistoricalFundingRate_Exchange_Symbol` — на `(Exchange, NormalizedSymbol)` для выборки истории по символу
-- `IX_HistoricalFundingRate_Time` — на `FundingTime` для временных окон
+Таблица `historical_rates."InboxMessages"` хранит `EventId` (UUID), `Consumer` (`varchar(256)`) и `ProcessedOnUtc`. PK `(EventId, Consumer)` подавляет redelivery одного события для конкретного обработчика. История и Inbox фиксируются в одной транзакции, затем consumer отправляет manual ACK. Разные `EventId` одной пары обрабатываются независимо.
 
-**Объём**: ~1000 записей/цикл × 3 биржи × 3 выплаты/день = ~9,000 записей/день. За месяц ~270K строк на символ.
+## Миграции
 
----
+Исходники миграций и model snapshots находятся в:
 
-## Relationships
+- [CurrentRates Infrastructure/Persistence/Migrations](../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Infrastructure/Persistence/Migrations)
+- [HistoricalRates Infrastructure/Persistence/Migrations](../src/Modules/HistoricalRates/FundingMonitor.HistoricalRates.Infrastructure/Persistence/Migrations)
 
-```
-CurrentFundingRate (1) ──────< (0..*) HistoricalFundingRate
-   │
-   └── связаны по (Exchange, NormalizedSymbol)
-       (нет FK constraint — исторические данные не удаляются при деактивации current)
-```
+Применение из корня репозитория:
 
-Нет явных Foreign Keys — производительность bulk insert и независимость таблиц.
-
----
-
-## Migrations
-
-Полная история migrations и `AppDbContextModelSnapshot` хранится в Git в `src/FundingMonitor.Infrastructure/Migrations/`. При изменении EF-модели новая migration создаётся локально и коммитится вместе с соответствующим изменением snapshot.
-
-Применение:
 ```bash
-# Автоматически при старте API (Program.cs)
-await dbContext.Database.MigrateAsync();
-
-# Или вручную из корня репозитория
-dotnet ef database update --project src/FundingMonitor.Infrastructure --startup-project src/FundingMonitor.Infrastructure
+dotnet run --project src/FundingMonitor.DatabaseMigrator
+dotnet run --project src/FundingMonitor.ApiHost
 ```
 
----
+Вторая команда допустима только после успешного завершения первой. ApiHost не применяет миграции. Переход использует новые baseline migrations и не переносит прежние development-данные; повторный запуск migrator безопасен для уже актуальной схемы. При изменении модели новая миграция и snapshot коммитятся вместе с кодом владельца.
 
-## Performance Notes
-
-| Операция | Метод | Комментарий |
-|----------|-------|-------------|
-| Запись current rates (1000+ за цикл) | `EFCore.BulkExtensions.BulkInsertOrUpdateAsync` | ~50ms vs 2-5 сек на SaveChanges |
-| Запись history (batch) | `BulkInsertOrUpdateAsync` | Отключены change tracking, triggers |
-| Чтение current | `AsNoTracking().Where(...)` | Индекс по Symbol+Exchange |
-| Чтение history | `AsNoTracking().Where(...).OrderByDescending(t => t.FundingTime)` | Индекс по Time + Symbol |
-
----
-
-## Future Improvements
-
-1. **Partitioning** `HistoricalFundingRate` по `FundingTime` (месячные партиции) при >50M строк
-2. **TimescaleDB** — гипертаблицы для автоматического партиционирования и компрессии
-3. **Materialized Views** для предрасчёта APR статистики
-4. **Archive policy** — перемещение старых данных в cold storage (S3/Parquet)
+Правила изоляции и миграций закреплены в [ADR 0012](adr/0012-strict-modular-monolith.md). Команды проверки БД и брокера: [Docker](deployment/docker.md).

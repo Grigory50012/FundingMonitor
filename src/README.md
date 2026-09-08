@@ -9,13 +9,14 @@ Backend FundingMonitor: .NET 10, ASP.NET Core, EF Core, PostgreSQL, RabbitMQ.
 ```bash
 dotnet restore
 dotnet build FundingMonitor.sln
-dotnet run --project src/FundingMonitor.Api
+dotnet run --project src/FundingMonitor.DatabaseMigrator
+dotnet run --project src/FundingMonitor.ApiHost
 ```
 
 Инфраструктура для локального запуска:
 
 ```bash
-docker-compose up -d
+docker compose up -d --remove-orphans
 ```
 
 Development API:
@@ -29,18 +30,18 @@ API использует встроенный `Microsoft.AspNetCore.OpenApi`; и
 
 ## Проекты
 
-- `FundingMonitor.Api` — HTTP API, DTO и middleware.
-- `FundingMonitor.Application` — use cases и background services.
-- `FundingMonitor.Core` — entities, contracts, configuration и events.
-- `FundingMonitor.Infrastructure` — EF Core, RabbitMQ и exchange clients.
+- `FundingMonitor.ApiHost` — единый composition root, HTTP pipeline и регистрация модулей.
+- `FundingMonitor.DatabaseMigrator` — отдельное применение миграций перед запуском API.
+- `FundingMonitor.SharedKernel` — общие примитивы без бизнес-логики.
+- `FundingMonitor.Messaging` — транспортная механика без бизнес-контрактов.
+- `Modules/ExchangeIntegration` — адаптеры бирж, нормализация и health.
+- `Modules/CurrentRates` — текущие ставки, актуальность, схема `current_rates` и Outbox.
+- `Modules/HistoricalRates` — история, APR, схема `historical_rates`, Inbox и RabbitMQ consumers.
+- `Modules/Arbitrage` — расчёт арбитража через `CurrentRates.Contracts`, без persistence.
 
-Внутри проектов используется module-first организация:
+Каждый модуль содержит отдельные проекты `Contracts`, `Domain`, `Application`, `Infrastructure`, `Presentation`. Зависимость от другого модуля разрешена только через его `Contracts`; правила проверяют architecture tests. HTTP/OpenAPI-контракт сохранён.
 
-- `CurrentRates` — текущие ставки, staleness и арбитраж;
-- `HistoricalRates` — исторический сбор, retry/DLQ и APR;
-- `Shared` — общие exchange clients, persistence и HTTP infrastructure.
-
-Подробнее: [ADR 0011](../docs/adr/0011-module-first-modular-monolith.md).
+Подробнее: [ADR 0012](../docs/adr/0012-strict-modular-monolith.md).
 
 ## Документация
 

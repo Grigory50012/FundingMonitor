@@ -1,164 +1,82 @@
-# Architecture Documentation
+# Архитектура FundingMonitor
 
-## Модули и слои backend
+Backend — строгий модульный монолит: один HTTP host и четыре изолированных модуля. Решение закреплено в [ADR 0012](../adr/0012-strict-modular-monolith.md), заменившем подход [ADR 0011](../adr/0011-module-first-modular-monolith.md).
 
-Backend остаётся единым приложением с четырьмя проектами Clean Architecture. Внутри каждого проекта код организован сначала по бизнес-модулю, затем по технической роли.
+## Модули и слои
 
-```text
-src/
-├── FundingMonitor.Core
-│   ├── CurrentRates
-│   ├── HistoricalRates
-│   └── Shared
-├── FundingMonitor.Application
-│   ├── CurrentRates
-│   └── HistoricalRates
-├── FundingMonitor.Infrastructure
-│   ├── CurrentRates
-│   ├── HistoricalRates
-│   ├── Shared
-│   └── Migrations
-└── FundingMonitor.Api
-    ├── CurrentRates
-    ├── HistoricalRates
-    └── Shared
-```
-
-Dependency rule:
-
-```text
-Api -> Application -> Core
-Api -> Infrastructure -> Core
-Application -> Core
-Infrastructure -> Core
-```
-
-`Core` не зависит от внешних слоёв. `Infrastructure` реализует интерфейсы из `Core`. `Api` собирает зависимости и публикует HTTP surface.
-
-Модуль `CurrentRates` отвечает за текущие ставки, staleness и арбитраж. `HistoricalRates` отвечает за исторический сбор, RabbitMQ processing и APR. Оба модуля используют только действительно общие компоненты из `Shared`; `HistoricalRates` не зависит от внутренних типов `CurrentRates`.
-
-## Data Flows
-
-### Current rates
-
-```text
-CurrentCollectionBackgroundService
--> CurrentFundingRateCollector
--> Binance/Bybit/OKX exchange clients
--> FundingRateChangeDetector
--> CurrentFundingRateRepository
--> PostgreSQL
--> DirectRabbitMqHistoricalCollectionTaskPublisher
--> funding.history direct exchange
--> history.binance / history.bybit / history.okx
-```
-
-Интервал обновления задаётся в `CurrentDataCollectionOptions.UpdateIntervalSeconds`, сейчас `10` секунд. Отсутствующие current rates не удаляются: `LastSeenAt` фиксирует последний успешный сбор пары, а `CurrentDataCollectionOptions.DeactivateMissingAfterMinutes` задаёт порог деактивации, сейчас `5` минут.
-
-### Historical rates
-
-```text
-HistoricalCollectionBackgroundService
--> отдельный pool для каждой биржи
--> manual ack, prefetch = 1
--> HistoricalFundingRateCollector
--> exchange client
--> HistoricalFundingRateRepository
--> PostgreSQL
--> BasicAck
-```
-
-Ограничения сбора задаются в `HistoricalDataCollectionOptions`: `DefaultConcurrencyPerExchange`, `ExchangeConcurrency`, `ApiPageSize`, `MaxHistoryMonths`, `MaxRetries`, `RetryDelaySeconds`.
-
-Временная ошибка оставляет original message unacked, после задержки публикует confirmed-копию с увеличенным `RetryCount` и только затем подтверждает original. Permanent error и исчерпание retries направляют confirmed-копию в общую `history.dead`.
-
-Consumer side гарантирует `at-least-once`. В Phase 1 producer публикует после PostgreSQL commit напрямую, поэтому crash-window до RabbitMQ confirm имеет гарантию `best effort`. Transactional Outbox запланирован отдельной итерацией.
-
-### API request
-
-```text
-Frontend
--> /api/v1/*
--> ExceptionHandlingMiddleware
--> Controller
--> repository/service
--> DTO mapper
--> JSON response
-```
-
-### OpenAPI contract
-
-```text
-Controllers and DTO metadata
--> Microsoft.AspNetCore.OpenApi
--> GET /openapi/v1.json
--> openapi-typescript
--> frontend/FundingMonitor.Web/src/types/generated/api.ts
-```
-
-Scalar предоставляет интерактивную документацию по адресу `/scalar`. Axios API client остаётся ручным, генерируются только TypeScript types. Для генерации backend должен быть запущен локально, после чего во frontend выполняется `npm run generate:api-types`.
-
-Числовой JSON-контракт использует `JsonNumberHandling.Strict`, чтобы OpenAPI описывал `decimal` и целые значения как числа, а не как `number | string`.
-
-## API Surface
-
-| Controller | Route | Назначение |
+| Каталог под `src/Modules` | Ответственность | Владение данными |
 | --- | --- | --- |
-| `FundingRatesController` | `GET /api/v1/FundingRates` | Текущие funding rates |
-| `HistoryController` | `GET /api/v1/History` | Исторические funding rates |
-| `HistoryController` | `GET /api/v1/History/apr-stats` | APR statistics |
-| `ArbitrageController` | `GET /api/v1/Arbitrage` | Funding arbitrage opportunities |
-| `ExchangesController` | `GET /api/v1/exchanges/health` | Health status бирж |
+| `ExchangeIntegration` | SDK бирж, нормализация, rate limits, health | Без persistence |
+| `CurrentRates` | Сбор, актуальность и выдача текущих ставок | `current_rates`, Outbox |
+| `HistoricalRates` | Исторический сбор, retry/DLQ, история и APR | `historical_rates`, Inbox |
+| `Arbitrage` | Расчёт арбитражных возможностей | Без persistence |
 
-## Frontend Architecture
+Каждый модуль содержит пять проектов `FundingMonitor.<Module>.<Layer>`:
 
-```text
-frontend/FundingMonitor.Web/src/
-├── app/providers
-├── config
-├── entities
-├── features
-│   ├── arbitrage
-│   ├── current-rates
-│   ├── exchange-health
-│   ├── filters
-│   └── historical-rates
-├── shared
-│   ├── api
-│   ├── hooks
-│   ├── lib
-│   └── ui
-├── types
-└── widgets
-    └── dashboard
-```
+- `Contracts` — публичные DTO, интерфейсы и integration events.
+- `Domain` — бизнес-модель и правила модуля.
+- `Application` — сценарии использования и внутренние порты.
+- `Infrastructure` — реализация портов, persistence и фоновые сервисы.
+- `Presentation` — HTTP controllers, mapping и регистрация модуля.
 
-`DashboardPage` находится в `widgets/dashboard` и собирает feature-компоненты. Каждый feature владеет API-функциями, custom hooks и UI: `useCurrentRates`, `useHistoryRates`, `useArbitrageRates`, `useAprStats`, а также exchange-health state. API-функции используют `shared/api/client.ts` и generated OpenAPI DTO types; feature internals не импортируют друг друга, а composition разрешена только в `widgets` и `app`. Runtime state/data-fetching library вроде Redux, Zustand или TanStack Query пока не используется.
+Модуль может зависеть от другого модуля только через его `Contracts`. Внутри модуля зависимости направлены к `Domain` и `Contracts`; `Application` не ссылается на `Infrastructure` или `Presentation`. Architecture tests проверяют проекты, сборки, видимость типов и отсутствие общих EF-моделей.
 
-## Deployment View
+`FundingMonitor.SharedKernel` содержит стабильные примитивы без бизнес-логики. `FundingMonitor.Messaging` содержит транспортную механику RabbitMQ, сериализацию и envelope; бизнес-контракты принадлежат модулям.
 
-Docker Compose поднимает только инфраструктуру:
+`FundingMonitor.ApiHost` — composition root: регистрирует четыре модуля через `Presentation`, настраивает HTTP pipeline и единый OpenAPI. `FundingMonitor.DatabaseMigrator` отдельно применяет обе группы миграций; ApiHost не мигрирует БД при старте.
+
+## Потоки данных
+
+`CurrentRates` и `HistoricalRates` получают данные бирж через `ExchangeIntegration.Contracts`. `Arbitrage` читает ставки через `CurrentRates.Contracts`, рассчитывает результат в памяти и не обращается к чужой схеме БД.
 
 ```text
-PostgreSQL :5432
-RabbitMQ   :5672
-Management :15672
+CurrentRates: сбор → текущие ставки + integration event в одной транзакции
+→ current_rates.OutboxMessages
+→ Outbox dispatcher → RabbitMQ publisher confirm
+→ current-rates.events
+→ historical-rates.collect.binance / .bybit / .okx
+→ проверка Inbox → сбор истории через ExchangeIntegration.Contracts
+→ история + Inbox в одной транзакции → manual ACK
 ```
 
-API и frontend запускаются локально:
+Outbox сохраняет событие вместе с текущими ставками и закрывает окно потери между commit БД и публикацией. Dispatcher отмечает отправку после publisher confirm; повторная доставка допустима. Inbox подавляет повторную обработку одного `EventId` для consumer. Разные события одной пары не дедуплицируются: время выплаты на бирже может измениться.
+
+У каждой биржи независимый worker pool, по умолчанию по 10 consumers; manual ACK и `prefetch=1`. Временная ошибка повторяется после задержки с увеличенным retry count. Original message подтверждается после confirmed-публикации retry или DLQ; permanent error и исчерпанные retries направляются в `historical-rates.dead`. Это доставка `at-least-once` с идемпотентным сохранением истории.
+
+Интервал текущего сбора задаёт `CurrentDataCollectionOptions.UpdateIntervalSeconds` (10 секунд). Порог деактивации отсутствующих пар — `DeactivateMissingAfterMinutes` (5 минут). Неудачный сбор биржи не деактивирует её последний успешный snapshot. Детали таблиц и транзакций: [схема БД](../database-schema.md).
+
+## HTTP и OpenAPI
+
+Маршруты и JSON-контракт при переходе сохранены:
+
+| Метод | Маршрут | Назначение |
+| --- | --- | --- |
+| GET | `/api/v1/FundingRates` | Текущие ставки |
+| GET | `/api/v1/History` | История |
+| GET | `/api/v1/History/apr-stats` | APR по периодам |
+| GET | `/api/v1/Arbitrage` | Арбитражные возможности |
+| GET | `/api/v1/exchanges/health` | Состояние бирж |
+| GET | `/health` | Доступность HTTP host |
+
+`/health` проверяет HTTP host, а состояние consumers и бирж проверяется отдельно. В Development `Microsoft.AspNetCore.OpenApi` публикует `/openapi/v1.json`, Scalar — `/scalar`. `JsonNumberHandling.Strict` сохраняет числовой JSON-контракт. Команда `npm run generate:api-types` при запущенном API обновляет `frontend/FundingMonitor.Web/src/types/generated/api.ts`; Axios client остаётся ручным.
+
+## Frontend и запуск
+
+`app` и `widgets/dashboard` собирают features `current-rates`, `historical-rates`, `arbitrage`, `exchange-health` и `filters`. Каждый feature владеет API-функциями, hooks и UI; feature internals не импортируют друг друга. Общие Axios client, форматирование и UI находятся в `shared`, exchange primitives — в `entities`. APR, spread и freshness рассчитывает backend; frontend отображает данные, фильтрует и сортирует.
 
 ```bash
-dotnet run --project src/FundingMonitor.Api
-cd frontend/FundingMonitor.Web
-npm run dev
+docker compose up -d --remove-orphans
+dotnet run --project src/FundingMonitor.DatabaseMigrator
+dotnet run --project src/FundingMonitor.ApiHost
 ```
 
-Vite proxy отправляет `/api` на backend. Подробности: [Docker Deployment](../deployment/docker.md).
+Compose запускает PostgreSQL на `5432`, RabbitMQ на `5672` и Management UI на `15672`. Frontend запускается из `frontend/FundingMonitor.Web` командой `npm run dev`; Vite перенаправляет `/api` на backend.
 
 ## Связанная документация
 
-- [Documentation Index](../index.md)
-- [ADR Index](../adr/index.md)
-- [Database Schema](../database-schema.md)
-- [Frontend Components](../frontend/components/index.md)
-- [Docker Deployment](../deployment/docker.md)
+- [Вход в документацию](../index.md)
+- [ADR](../adr/index.md)
+- [Сценарии использования](USE_CASE_DIAGRAM.md)
+- [Схема БД](../database-schema.md)
+- [Frontend-компоненты](../frontend/components/index.md)
+- [Развёртывание](../deployment/docker.md)
