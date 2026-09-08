@@ -111,6 +111,31 @@ public sealed class ProjectReferenceRulesTests
         Assert.Equal(["FundingMonitor.ExchangeIntegration.Infrastructure"], owners);
     }
 
+    [Fact]
+    public void ArbitrageProjects_HaveNoPersistenceDependenciesOrTypes()
+    {
+        var arbitrageRoot = Path.Combine(Root, "src", "Modules", "Arbitrage");
+        var forbiddenPackages = new[] { "EntityFrameworkCore", "Npgsql" };
+
+        foreach (var projectFile in Directory.EnumerateFiles(
+                     arbitrageRoot, "*.csproj", SearchOption.AllDirectories))
+        {
+            var project = File.ReadAllText(projectFile);
+            Assert.DoesNotContain(forbiddenPackages, package =>
+                project.Contains(package, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var forbiddenSourceTokens = new[] { "DbContext", "DbSet<" };
+        foreach (var sourceFile in Directory
+                     .EnumerateFiles(arbitrageRoot, "*.cs", SearchOption.AllDirectories)
+                     .Where(path => !IsBuildOutput(path)))
+        {
+            var source = File.ReadAllText(sourceFile);
+            Assert.DoesNotContain(forbiddenSourceTokens, token =>
+                source.Contains(token, StringComparison.Ordinal));
+        }
+    }
+
     private static string[] ReadReferences(string projectName)
     {
         var projectFile = Directory
@@ -130,4 +155,8 @@ public sealed class ProjectReferenceRulesTests
         return directory?.FullName
                ?? throw new DirectoryNotFoundException("FundingMonitor repository root was not found.");
     }
+
+    private static bool IsBuildOutput(string path) =>
+        path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Any(segment => segment is "bin" or "obj");
 }

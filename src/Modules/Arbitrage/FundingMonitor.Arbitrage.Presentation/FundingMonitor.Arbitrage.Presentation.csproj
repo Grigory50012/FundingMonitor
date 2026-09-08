@@ -5,6 +5,9 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="..\FundingMonitor.Arbitrage.Contracts\FundingMonitor.Arbitrage.Contracts.csproj"/>
         <ProjectReference Include="..\FundingMonitor.Arbitrage.Application\FundingMonitor.Arbitrage.Application.csproj"/>
         <ProjectReference Include="..\FundingMonitor.Arbitrage.Infrastructure\FundingMonitor.Arbitrage.Infrastructure.csproj"/>
