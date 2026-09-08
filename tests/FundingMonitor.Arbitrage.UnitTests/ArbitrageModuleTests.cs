@@ -1,7 +1,10 @@
 using FundingMonitor.Arbitrage.Application;
 using FundingMonitor.Arbitrage.Contracts;
+using FundingMonitor.Arbitrage.Infrastructure;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.SharedKernel;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -10,6 +13,21 @@ namespace FundingMonitor.Arbitrage.UnitTests;
 public sealed class ArbitrageModuleTests
 {
     [Fact]
+    public void AddArbitrageInfrastructure_ResolvesArbitrageModule()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<ICurrentRatesModule>(new StubCurrentRatesModule([]));
+        services.AddArbitrageInfrastructure(new ConfigurationManager());
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var module = scope.ServiceProvider.GetRequiredService<IArbitrageModule>();
+
+        Assert.NotNull(module);
+    }
+
+    [Fact]
     public async Task GetOpportunitiesAsync_TwoFreshExchanges_ReturnsCalculatedOpportunity()
     {
         var current = new StubCurrentRatesModule(
@@ -17,10 +35,10 @@ public sealed class ArbitrageModuleTests
             TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0.001m, 109.5m, true),
             TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true)
         ]);
-        var sut = new ArbitrageModuleService(current, Options.Create(new FundingArbitrageOptions
+        var sut = CreateSut(current, new FundingArbitrageOptions
         {
             MinSpreadPercent = 10m
-        }));
+        });
 
         var result = await sut.GetOpportunitiesAsync(
             new ArbitrageQuery("BTC", null), TestContext.Current.CancellationToken);
@@ -38,8 +56,11 @@ public sealed class ArbitrageModuleTests
     public async Task GetOpportunitiesAsync_InactiveRate_ReturnsEmpty()
     {
         var current = new StubCurrentRatesModule(
-            [TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0.001m, 109.5m, false)]);
-        var sut = new ArbitrageModuleService(current, Options.Create(new FundingArbitrageOptions()));
+        [
+            TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0.001m, 109.5m, false),
+            TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true)
+        ]);
+        var sut = CreateSut(current, new FundingArbitrageOptions());
 
         var result = await sut.GetOpportunitiesAsync(
             new ArbitrageQuery(null, null), TestContext.Current.CancellationToken);
@@ -62,7 +83,7 @@ public sealed class ArbitrageModuleTests
                 DateTimeOffset.UtcNow.AddMinutes(-6)),
             TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true)
         ]);
-        var sut = new ArbitrageModuleService(current, Options.Create(new FundingArbitrageOptions()));
+        var sut = CreateSut(current, new FundingArbitrageOptions());
 
         var result = await sut.GetOpportunitiesAsync(
             new ArbitrageQuery(null, null), TestContext.Current.CancellationToken);
@@ -78,7 +99,7 @@ public sealed class ArbitrageModuleTests
             TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0.001m, 109.5m, true),
             TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true)
         ]);
-        var sut = new ArbitrageModuleService(current, Options.Create(new FundingArbitrageOptions()));
+        var sut = CreateSut(current, new FundingArbitrageOptions());
 
         var result = await sut.GetOpportunitiesAsync(
             new ArbitrageQuery(null, null), TestContext.Current.CancellationToken);
@@ -93,6 +114,13 @@ public sealed class ArbitrageModuleTests
             CurrentRatesQuery query,
             CancellationToken cancellationToken) => Task.FromResult(rates);
     }
+
+    private static ArbitrageModuleService CreateSut(
+        ICurrentRatesModule currentRates,
+        FundingArbitrageOptions options) =>
+        new(
+            new FundingArbitrageDetector(currentRates, Options.Create(options)),
+            new FundingArbitrageService());
 
     private static class TestCurrentRate
     {
