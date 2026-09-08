@@ -1,8 +1,10 @@
-using System.Text.Json;
+using FundingMonitor.CurrentRates.Contracts;
+using FundingMonitor.HistoricalRates.Infrastructure.Messaging;
+using FundingMonitor.Messaging;
+using FundingMonitor.SharedKernel;
 using Microsoft.Extensions.Options;
 using Testcontainers.RabbitMq;
 using Xunit;
-using FundingExchangeType = FundingMonitor.Core.Shared.Exchanges.ExchangeType;
 
 namespace FundingMonitor.ApiHost.IntegrationTests.Messaging;
 
@@ -29,10 +31,10 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
             Password = "guest",
             PublisherConfirmTimeoutSeconds = 10
         });
-        var health = new RabbitMqHealthState();
+        var health = new RabbitMqTopologyHealthState();
         _connection = new RabbitMqConnection(options);
         var initializer = new RabbitMqTopologyInitializer(_connection, health);
-        _publisher = new RabbitMqMessagePublisher(_connection, health, options);
+        _publisher = new RabbitMqMessagePublisher(_connection, options);
 
         await initializer.InitializeAsync(cancellationToken);
     }
@@ -56,10 +58,10 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
 
         foreach (var queue in new[]
                  {
-                     "history.binance",
-                     "history.bybit",
-                     "history.okx",
-                     "history.dead"
+                     "historical-rates.collect.binance",
+                     "historical-rates.collect.bybit",
+                     "historical-rates.collect.okx",
+                     "historical-rates.dead"
                  })
         {
             var declaration = await channel.QueueDeclarePassiveAsync(
@@ -72,51 +74,54 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
     [Fact]
     public async Task PublishAsync_KnownRoutingKey_ConfirmsPersistentMessage()
     {
-        var task = new HistoricalCollectionTask(
-            Guid.NewGuid(),
-            FundingExchangeType.Binance,
-            "BTC-USDT",
-            DateTime.UtcNow);
+        var task = CreateMessage("Binance", "BTC-USDT");
 
         var result = await _publisher.PublishAsync(
+            RabbitMqTopology.ExchangeName,
+            "funding-rate.changed.binance",
             task,
-            "binance",
             null,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(RabbitMqPublishResult.Success, result);
+        Assert.Equal(MessagePublishResult.Success, result);
         var cancellationToken = TestContext.Current.CancellationToken;
         var connection = await _connection.GetAsync(cancellationToken);
         await using var channel = await connection.CreateChannelAsync(
             cancellationToken: cancellationToken);
         var message = await channel.BasicGetAsync(
-            "history.binance",
+            "historical-rates.collect.binance",
             true,
             cancellationToken);
         Assert.NotNull(message);
         Assert.True(message.BasicProperties.Persistent);
-        Assert.Equal(task.TaskId.ToString(), message.BasicProperties.MessageId);
+        Assert.Equal(task.MessageId.ToString(), message.BasicProperties.MessageId);
         Assert.Equal(
             task,
-            JsonSerializer.Deserialize<HistoricalCollectionTask>(message.Body.Span));
+            MessagingJson.Deserialize<MessageEnvelope<FundingRateChangedIntegrationEvent>>(message.Body.Span));
     }
 
     [Fact]
     public async Task PublishAsync_UnknownRoutingKey_ReturnsUnroutable()
     {
-        var task = new HistoricalCollectionTask(
-            Guid.NewGuid(),
-            FundingExchangeType.Bybit,
-            "ETH-USDT",
-            DateTime.UtcNow);
+        var task = CreateMessage("Bybit", "ETH-USDT");
 
         var result = await _publisher.PublishAsync(
-            task,
+            RabbitMqTopology.ExchangeName,
             "unknown",
+            task,
             null,
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Returned);
         Assert.True(result.Confirmed);
+    }
+
+    private static MessageEnvelope<FundingRateChangedIntegrationEvent> CreateMessage(string exchange, string symbol)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var id = Guid.NewGuid();
+        return new MessageEnvelope<FundingRateChangedIntegrationEvent>(
+            id, id, null, now, nameof(FundingRateChangedIntegrationEvent), 1,
+            new FundingRateChangedIntegrationEvent(id, now, ExchangeId.Parse(exchange), Symbol.Create(symbol), now));
     }
 }

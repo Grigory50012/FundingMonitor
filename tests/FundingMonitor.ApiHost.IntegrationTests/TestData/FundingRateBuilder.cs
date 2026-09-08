@@ -6,10 +6,10 @@ internal sealed class FundingRateBuilder
     private string _exchange = "Binance";
     private int _fundingIntervalHours = 8;
     private decimal _fundingRate = 0.0001m;
-    private readonly decimal? _indexPrice = 64_990m;
+    private readonly decimal _indexPrice = 64_990m;
     private bool _isActive = true;
     private readonly DateTime _lastSeenAt = new(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
-    private decimal? _markPrice = 65_000.50m;
+    private decimal _markPrice = 65_000.50m;
     private readonly DateTime? _nextFundingTime = new(2026, 7, 16, 16, 0, 0, DateTimeKind.Utc);
     private string _normalizedSymbol = "BTC-USDT";
     private string _quoteAsset = "USDT";
@@ -61,7 +61,7 @@ internal sealed class FundingRateBuilder
             FundingRate = _fundingRate,
             FundingIntervalHours = _fundingIntervalHours,
             NextFundingTime = _nextFundingTime,
-            LastSeenAt = _lastSeenAt,
+            LastSeenOnUtc = _lastSeenAt,
             IsActive = _isActive
         };
     }

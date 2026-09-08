@@ -10,17 +10,19 @@ public sealed class ApplicationStartupTests(PostgreSqlFixture fixture)
     : IntegrationTestBase(fixture)
 {
     [Fact]
-    public async Task Start_EmptyDatabase_AppliesAllMigrations()
+    public async Task Start_PreMigratedDatabase_HasBothModuleBaselines()
     {
         await using var scope = Fixture.Factory.Services.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<FundingMonitorDbContext>();
+        var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
+        var historical = scope.ServiceProvider.GetRequiredService<FundingMonitor.HistoricalRates.Infrastructure.Persistence.HistoricalRatesDbContext>();
 
         var cancellationToken = TestContext.Current.CancellationToken;
-        var pending = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
-        var applied = await dbContext.Database.GetAppliedMigrationsAsync(cancellationToken);
-
-        Assert.Empty(pending);
-        Assert.NotEmpty(applied);
+        Assert.Empty(await current.Database.GetPendingMigrationsAsync(cancellationToken));
+        Assert.Empty(await historical.Database.GetPendingMigrationsAsync(cancellationToken));
+        Assert.Equal(["20260906000100_InitialCurrentRates"],
+            await current.Database.GetAppliedMigrationsAsync(cancellationToken));
+        Assert.Equal(["20260906000200_InitialHistoricalRates"],
+            await historical.Database.GetAppliedMigrationsAsync(cancellationToken));
     }
 
     [Fact]
@@ -29,8 +31,6 @@ public sealed class ApplicationStartupTests(PostgreSqlFixture fixture)
         var hostedServices = Fixture.Factory.Services.GetServices<IHostedService>().ToList();
 
         Assert.DoesNotContain(hostedServices, service =>
-            service is CurrentCollectionBackgroundService
-                or HistoricalCollectionBackgroundService
-                or RabbitMqTopologyHostedService);
+            service.GetType().Namespace?.StartsWith("FundingMonitor.", StringComparison.Ordinal) == true);
     }
 }

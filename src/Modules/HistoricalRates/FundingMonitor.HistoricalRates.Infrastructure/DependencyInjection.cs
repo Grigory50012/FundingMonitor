@@ -15,9 +15,7 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.TryAddSingleton(TimeProvider.System);
-        services.AddDbContextFactory<HistoricalRatesDbContext>((provider, options) =>
-            options.UseNpgsql(provider.GetRequiredService<IConfiguration>()
-                .GetConnectionString("DefaultConnection")));
+        services.AddHistoricalRatesPersistence(configuration);
         services.AddScoped<HistoricalRatesRepository>();
         services.AddScoped<IHistoricalRatesRepository>(provider =>
             provider.GetRequiredService<HistoricalRatesRepository>());
@@ -31,6 +29,16 @@ public static class DependencyInjection
         services.AddHostedService<RabbitMqTopologyHostedService>();
         services.AddHostedService<HistoricalCollectionBackgroundService>();
         services.AddHealthChecks().AddCheck<RabbitMqTopologyHealthCheck>("rabbitmq-topology");
+        return services;
+    }
+
+    public static IServiceCollection AddHistoricalRatesPersistence(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddDbContextFactory<HistoricalRatesDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"), npgsql =>
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "historical_rates")));
         return services;
     }
 }

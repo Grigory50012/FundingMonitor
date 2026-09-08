@@ -25,8 +25,12 @@ public sealed class DatabaseResetter
             new RespawnerOptions
             {
                 DbAdapter = DbAdapter.Postgres,
-                SchemasToInclude = ["public"],
-                TablesToIgnore = [new Table("public", "__EFMigrationsHistory")]
+                SchemasToInclude = ["current_rates", "historical_rates"],
+                TablesToIgnore =
+                [
+                    new Table("current_rates", "__EFMigrationsHistory"),
+                    new Table("historical_rates", "__EFMigrationsHistory")
+                ]
             });
 
         return new DatabaseResetter(connectionString, respawner);

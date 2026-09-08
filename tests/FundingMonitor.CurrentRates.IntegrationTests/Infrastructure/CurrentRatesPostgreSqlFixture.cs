@@ -26,7 +26,7 @@ public sealed class CurrentRatesPostgreSqlFixture : IAsyncLifetime
     {
         await _container.StartAsync();
         await using var context = await CreateDbContextAsync();
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.MigrateAsync();
     }
 
     public async ValueTask DisposeAsync()
@@ -44,7 +44,8 @@ public sealed class CurrentRatesPostgreSqlFixture : IAsyncLifetime
     public Task<CurrentRatesDbContext> CreateDbContextAsync()
     {
         var options = new DbContextOptionsBuilder<CurrentRatesDbContext>()
-            .UseNpgsql(ConnectionString)
+            .UseNpgsql(ConnectionString, npgsql =>
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "current_rates"))
             .Options;
         return Task.FromResult(new CurrentRatesDbContext(options));
     }

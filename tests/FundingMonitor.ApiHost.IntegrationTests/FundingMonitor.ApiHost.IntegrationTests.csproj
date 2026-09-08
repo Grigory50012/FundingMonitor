@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\FundingMonitor.Api\FundingMonitor.Api.csproj"/>
+        <ProjectReference Include="..\..\src\FundingMonitor.ApiHost\FundingMonitor.ApiHost.csproj"/>
+        <ProjectReference Include="..\..\src\FundingMonitor.DatabaseMigrator\FundingMonitor.DatabaseMigrator.csproj"/>
     </ItemGroup>
 </Project>

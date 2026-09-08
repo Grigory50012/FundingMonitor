@@ -2,6 +2,7 @@ using FundingMonitor.CurrentRates.Application.Collection;
 using FundingMonitor.CurrentRates.Application.Persistence;
 using FundingMonitor.CurrentRates.Infrastructure.Outbox;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
+using FundingMonitor.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,12 +21,8 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(CurrentDataCollectionOptions.SectionName));
         services.AddOptions<OutboxOptions>()
             .Bind(configuration.GetSection(OutboxOptions.SectionName));
-        services.AddDbContextFactory<CurrentRatesDbContext>((serviceProvider, options) =>
-        {
-            var connectionString = serviceProvider.GetRequiredService<IConfiguration>()
-                .GetConnectionString("DefaultConnection");
-            options.UseNpgsql(connectionString);
-        });
+        services.AddCurrentRatesPersistence(configuration);
+        services.AddFundingMonitorMessaging(configuration);
         services.AddScoped<CurrentRatesRepository>();
         services.AddScoped<ICurrentRatesRepository>(provider =>
             provider.GetRequiredService<CurrentRatesRepository>());
@@ -34,6 +31,16 @@ public static class DependencyInjection
         services.AddSingleton<OutboxMetrics>();
         services.AddSingleton<OutboxPublisher>();
         services.AddHostedService<OutboxPublisherBackgroundService>();
+        return services;
+    }
+
+    public static IServiceCollection AddCurrentRatesPersistence(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddDbContextFactory<CurrentRatesDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"), npgsql =>
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "current_rates")));
         return services;
     }
 }

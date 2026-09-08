@@ -1,6 +1,8 @@
+using FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -13,32 +15,27 @@ public sealed class FundingMonitorApiFactory(string connectionString)
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-
         builder.ConfigureServices(services =>
         {
-            var workerTypes = new HashSet<Type>
-            {
-                typeof(CurrentCollectionBackgroundService),
-                typeof(HistoricalCollectionBackgroundService),
-                typeof(RabbitMqTopologyHostedService)
-            };
-
-            var workerDescriptors = services
-                .Where(descriptor =>
-                    descriptor.ServiceType == typeof(IHostedService) &&
-                    descriptor.ImplementationType is not null &&
-                    workerTypes.Contains(descriptor.ImplementationType))
-                .ToList();
-
-            foreach (var descriptor in workerDescriptors)
+            foreach (var descriptor in services.Where(descriptor =>
+                         descriptor.ServiceType == typeof(IHostedService) &&
+                         descriptor.ImplementationType?.Namespace?.StartsWith(
+                             "FundingMonitor.", StringComparison.Ordinal) == true).ToArray())
                 services.Remove(descriptor);
 
-            services.RemoveAll<FundingMonitorDbContext>();
-            services.RemoveAll<IDbContextFactory<FundingMonitorDbContext>>();
-            services.RemoveAll<DbContextOptions<FundingMonitorDbContext>>();
-
-            services.AddDbContextFactory<FundingMonitorDbContext>(options =>
-                options.UseNpgsql(connectionString));
+            ReplaceContext<CurrentRatesDbContext>(services, "current_rates");
+            ReplaceContext<HistoricalRatesDbContext>(services, "historical_rates");
         });
+    }
+
+    private void ReplaceContext<TContext>(IServiceCollection services, string schema)
+        where TContext : DbContext
+    {
+        services.RemoveAll<TContext>();
+        services.RemoveAll<IDbContextFactory<TContext>>();
+        services.RemoveAll<DbContextOptions<TContext>>();
+        services.RemoveAll<IDbContextOptionsConfiguration<TContext>>();
+        services.AddDbContextFactory<TContext>(options => options.UseNpgsql(
+            connectionString, npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", schema)));
     }
 }

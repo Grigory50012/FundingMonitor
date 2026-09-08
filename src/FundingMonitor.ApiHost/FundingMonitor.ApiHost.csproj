@@ -3,7 +3,16 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591</NoWarn>
     </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.OpenApi" Version="2.10.0"/>
+        <PackageReference Include="NLog" Version="6.1.4"/>
+        <PackageReference Include="NLog.Web.AspNetCore" Version="6.1.4"/>
+        <PackageReference Include="Scalar.AspNetCore" Version="2.16.11"/>
+    </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Modules\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Presentation\FundingMonitor.ExchangeIntegration.Presentation.csproj"/>
         <ProjectReference Include="..\Modules\CurrentRates\FundingMonitor.CurrentRates.Presentation\FundingMonitor.CurrentRates.Presentation.csproj"/>

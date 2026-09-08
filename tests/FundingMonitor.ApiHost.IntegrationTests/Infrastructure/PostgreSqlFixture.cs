@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using FundingMonitor.DatabaseMigrator;
+using FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -21,7 +23,13 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         await _container.StartAsync();
         Factory = new FundingMonitorApiFactory(_container.GetConnectionString());
 
-        _ = Factory.Services;
+        await using (var scope = Factory.Services.CreateAsyncScope())
+        {
+            await new ModuleDatabaseMigrator(
+                scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>(),
+                scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>())
+                .MigrateAsync(TestContext.Current.CancellationToken);
+        }
 
         _resetter = await DatabaseResetter.CreateAsync(_container.GetConnectionString());
     }
@@ -39,11 +47,11 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         return _resetter.ResetAsync();
     }
 
-    public async Task SeedAsync(params CurrentFundingRateDb[] rates)
+    internal async Task SeedAsync(params CurrentFundingRateDb[] rates)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<FundingMonitorDbContext>();
-        dbContext.CurrentFundingRate.AddRange(rates);
+        var dbContext = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
+        dbContext.CurrentFundingRates.AddRange(rates);
         await dbContext.SaveChangesAsync();
     }
 }
