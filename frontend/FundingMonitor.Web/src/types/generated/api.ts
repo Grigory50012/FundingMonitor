@@ -11,7 +11,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Получить арбитражные возможности с фильтрацией по символу и биржам */
         get: {
             parameters: {
                 query?: {
@@ -43,6 +42,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/FundingRates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    symbol?: string;
+                    exchanges?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FundingRateDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exchanges/health": {
         parameters: {
             query?: never;
@@ -50,10 +105,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Проверить доступность бирж
-         * @description Возвращает статус каждой биржи (true = доступна, false = недоступна)
-         */
         get: {
             parameters: {
                 query?: never;
@@ -63,7 +114,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Успешная проверка */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -78,76 +129,6 @@ export interface paths {
                         "text/json": {
                             [key: string]: boolean;
                         };
-                    };
-                };
-                /** @description Ошибка при проверке */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/FundingRates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Получить текущие ставки финансирования */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Символ (опционально, например: BTC) */
-                    symbol?: string;
-                    /** @description Список бирж (опционально, через запятую: Binance,Bybit) */
-                    exchanges?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Успешное получение данных */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FundingRateDto"][];
-                    };
-                };
-                /** @description Неверные параметры запроса */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Ошибка сервера */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": unknown;
                     };
                 };
             };
@@ -167,19 +148,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Получить исторические ставки финансирования */
         get: {
             parameters: {
                 query?: {
-                    /** @description Символ (обязательно, например: BTC-USDT) */
                     symbol?: string;
-                    /** @description Список бирж (опционально, через запятую) */
                     exchanges?: string;
-                    /** @description Начальная дата (опционально, ISO формат) */
                     from?: string;
-                    /** @description Конечная дата (опционально, ISO формат) */
                     to?: string;
-                    /** @description Максимальное количество записей (по умолчанию 1000, макс 1000) */
                     limit?: number;
                 };
                 header?: never;
@@ -227,13 +202,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Получить APR статистику по периодам */
         get: {
             parameters: {
                 query?: {
-                    /** @description Символ (обязательно, например: BTC-USDT) */
                     symbol?: string;
-                    /** @description Список бирж (опционально, через запятую) */
                     exchanges?: string;
                 };
                 header?: never;
@@ -278,169 +250,76 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description DTO для статистики APR по периодам */
         AprPeriodStatsDto: {
-            /** @description Название биржи (Binance, Bybit, OKX) */
             exchange: string;
-            /** @description Человекочитаемое название периода (например, "7 дней", "30 дней") */
             period: string;
-            /**
-             * Format: int32
-             * @description Количество календарных дней в периоде
-             */
+            /** Format: int32 */
             days: number;
-            /**
-             * Format: double
-             * @description Годовая процентная ставка (APR) в процентах. Экстраполированная годовая доходность на основе средней ставки за период
-             */
+            /** Format: double */
             apr: number;
-            /**
-             * Format: double
-             * @description Суммарная ставка финансирования за весь период в процентах (сумма всех выплат)
-             */
+            /** Format: double */
             totalFundingRatePercent: number;
-            /**
-             * Format: int32
-             * @description Общее количество выплат финансирования за период
-             */
+            /** Format: int32 */
             paymentsCount: number;
-            /**
-             * Format: double
-             * @description Средняя ставка за одну выплату в процентах
-             */
+            /** Format: double */
             avgFundingRatePercent: number;
-            /**
-             * Format: double
-             * @description Стандартное отклонение ставки финансирования за период (мера волатильности)
-             */
+            /** Format: double */
             stdDev: number;
         };
-        /** @description DTO для арбитражной возможности по ставке финансирования (Funding Rate Arbitrage) */
         FundingArbitrageDto: {
-            /** @description Торговая пара (например, BTC-USDT) */
             symbol: string;
-            /** @description Первая биржа в паре */
             exchangeA: string;
-            /** @description Вторая биржа в паре */
             exchangeB: string;
-            /**
-             * Format: double
-             * @description Mark Price на бирже A
-             */
+            /** Format: double */
             priceA: number;
-            /**
-             * Format: double
-             * @description Mark Price на бирже B
-             */
+            /** Format: double */
             priceB: number;
-            /**
-             * Format: double
-             * @description Абсолютный спред цен между биржами (PriceA - PriceB)
-             */
+            /** Format: double */
             priceSpread: number;
-            /**
-             * Format: double
-             * @description Спред цен в процентах от цены биржа B
-             */
+            /** Format: double */
             priceSpreadPercent: number;
-            /**
-             * Format: double
-             * @description Ставка финансирования на бирже A
-             */
+            /** Format: double */
             fundingRateA: number;
-            /**
-             * Format: double
-             * @description Ставка финансирования на бирже B
-             */
+            /** Format: double */
             fundingRateB: number;
-            /**
-             * Format: double
-             * @description Разница ставок финансирования (FundingRateA - FundingRateB)
-             */
+            /** Format: double */
             fundingRateSpread: number;
-            /**
-             * Format: double
-             * @description APR ставки биржи A в процентах
-             */
+            /** Format: double */
             aprA: number;
-            /**
-             * Format: double
-             * @description APR ставки биржи B в процентах
-             */
+            /** Format: double */
             aprB: number;
-            /**
-             * Format: double
-             * @description Абсолютная разница APR между биржами в процентных пунктах
-             */
+            /** Format: double */
             aprSpread: number;
-            /**
-             * Format: int32
-             * @description Количество выплат в день на бирже A
-             */
+            /** Format: int32 */
             paymentsA: number;
-            /**
-             * Format: int32
-             * @description Количество выплат в день на бирже B
-             */
+            /** Format: int32 */
             paymentsB: number;
-            /** @description Биржа для открытия Short (где APR выше) */
             shortExchange: string;
-            /** @description Биржа для открытия Long (где APR ниже) */
             longExchange: string;
-            /** @description External trading page URL for exchange A */
             exchangeAUrl: string;
-            /** @description External trading page URL for exchange B */
             exchangeBUrl: string;
         };
-        /** @description DTO для текущей ставки финансирования (funding rate) */
         FundingRateDto: {
-            /** @description Название биржи (Binance, Bybit, OKX) */
             exchange: string;
-            /** @description Торговая пара в формате BASE-QUOTE (например, BTC-USDT, ETH-USDT) */
             symbol: string;
-            /**
-             * Format: double
-             * @description Mark Price (индексная цена) — справочная цена для расчёта PnL и ликвидаций
-             */
+            /** Format: double */
             markPrice: number;
-            /**
-             * Format: double
-             * @description Ставка финансирования за период (например, 0.0001 = 0.01%)
-             */
+            /** Format: double */
             fundingRate: number;
-            /**
-             * Format: double
-             * @description Годовая процентная ставка (APR) в процентах. Расчёт: FundingRate * 365 * (24 / FundingIntervalHours) * 100
-             */
+            /** Format: double */
             apr: number;
-            /**
-             * Format: int32
-             * @description Количество выплат в день (обычно 3 для 8-часовых интервалов)
-             */
+            /** Format: int32 */
             numberOfPaymentsPerDay: number;
-            /**
-             * Format: date-time
-             * @description Время следующей выплаты финансирования в UTC (ISO 8601)
-             */
+            /** Format: date-time */
             nextFundingTime: null | string;
-            /** @description External exchange trading page URL */
             exchangeUrl: string;
         };
-        /** @description DTO для исторической ставки финансирования */
         HistoricalFundingRateDto: {
-            /** @description Название биржи (Binance, Bybit, OKX) */
             exchange: string;
-            /** @description Торговая пара в формате BASE-QUOTE (например, BTC-USDT) */
             symbol: string;
-            /**
-             * Format: double
-             * @description Ставка финансирования за период (например, 0.000125 = 0.0125%)
-             */
+            /** Format: double */
             fundingRate: number;
-            /**
-             * Format: date-time
-             * @description Время начисления/выплаты финансирования в UTC (ISO 8601)
-             */
+            /** Format: date-time */
             fundingTime: string;
         };
         ProblemDetails: {

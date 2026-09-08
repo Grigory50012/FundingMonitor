@@ -114,17 +114,18 @@ Scalar предоставляет интерактивную документа�
 
 ```text
 frontend/FundingMonitor.Web/src/
-├── api
+├── app/providers
 ├── config
 ├── entities
 ├── features
 │   ├── arbitrage
 │   ├── current-rates
+│   ├── exchange-health
 │   ├── filters
-│   └── history
-├── hooks
+│   └── historical-rates
 ├── shared
 │   ├── api
+│   ├── hooks
 │   ├── lib
 │   └── ui
 ├── types
@@ -132,7 +133,7 @@ frontend/FundingMonitor.Web/src/
     └── dashboard
 ```
 
-`DashboardPage` находится в `widgets/dashboard` и собирает feature-компоненты. Данные загружаются через existing custom hooks: `useCurrentRates`, `useHistoryRates`, `useArbitrageRates`, `useAprStats`. Runtime state/data-fetching library вроде Redux, Zustand или TanStack Query пока не используется.
+`DashboardPage` находится в `widgets/dashboard` и собирает feature-компоненты. Каждый feature владеет API-функциями, custom hooks и UI: `useCurrentRates`, `useHistoryRates`, `useArbitrageRates`, `useAprStats`, а также exchange-health state. API-функции используют `shared/api/client.ts` и generated OpenAPI DTO types; feature internals не импортируют друг друга, а composition разрешена только в `widgets` и `app`. Runtime state/data-fetching library вроде Redux, Zustand или TanStack Query пока не используется.
 
 ## Deployment View
 

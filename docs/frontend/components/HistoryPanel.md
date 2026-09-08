@@ -1,18 +1,11 @@
 # HistoryPanel
 
-Compatibility name для графика исторических funding rates.
+График исторических funding rates.
 
 ## Реальная реализация
 
 ```text
-frontend/FundingMonitor.Web/src/features/history/HistoryChartPanel.tsx
-```
-
-Compatibility export:
-
-```text
-frontend/FundingMonitor.Web/src/components/HistoryPanel.tsx
-frontend/FundingMonitor.Web/src/components/index.ts
+frontend/FundingMonitor.Web/src/features/historical-rates/HistoryChartPanel.tsx
 ```
 
 ## Props

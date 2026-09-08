@@ -22,10 +22,10 @@ http://localhost:5173
 
 ## Структура
 
-- `src/api/` — клиент API и endpoint-функции.
+- `src/app/providers/` — точка подключения application-level providers.
 - `src/entities/` — доменные UI-сущности.
-- `src/features/` — feature-owned компоненты и модели.
-- `src/shared/` — переиспользуемые UI и helper-функции.
+- `src/features/` — feature-owned API, hooks, компоненты и модели: `current-rates`, `historical-rates`, `arbitrage`, `exchange-health`, `filters`.
+- `src/shared/` — переиспользуемые UI, API client, hooks и helper-функции.
 - `src/widgets/dashboard/` — страница dashboard и orchestration hook.
 
 ## Документация

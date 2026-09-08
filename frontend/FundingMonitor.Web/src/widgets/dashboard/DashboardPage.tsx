@@ -1,8 +1,8 @@
 import { ArbitrageTable } from "../../features/arbitrage/ArbitrageTable";
 import { CurrentRatesTable as CurrentDataTable } from "../../features/current-rates/CurrentRatesTable";
 import { CompactFilter } from "../../features/filters/CompactFilter";
-import { HistoryAprTable as HistoryTable } from "../../features/history/HistoryAprTable";
-import { HistoryChartPanel as HistoryPanel } from "../../features/history/HistoryChartPanel";
+import { HistoryAprTable as HistoryTable } from "../../features/historical-rates/HistoryAprTable";
+import { HistoryChartPanel as HistoryPanel } from "../../features/historical-rates/HistoryChartPanel";
 import { Panel } from "../../shared/ui/Panel";
 import { Spinner } from "../../shared/ui/Spinner";
 import type { ExchangeType } from "../../types";

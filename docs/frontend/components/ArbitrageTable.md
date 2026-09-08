@@ -8,13 +8,6 @@
 frontend/FundingMonitor.Web/src/features/arbitrage/ArbitrageTable.tsx
 ```
 
-Compatibility export:
-
-```text
-frontend/FundingMonitor.Web/src/components/ArbitrageTable.tsx
-frontend/FundingMonitor.Web/src/components/index.ts
-```
-
 ## Props
 
 ```ts

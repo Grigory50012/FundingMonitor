@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { fundingRatesApi } from "../../api/fundingRates";
 import { getApiErrorMessage } from "../../shared/api/errors";
 import type { AprPeriodStatsDto, ExchangeType } from "../../types";
+import { getAprStats } from "./api/getAprStats";
 
 type UseAprStatsParams = {
   symbol: string;
@@ -15,6 +15,7 @@ export function useAprStats({
   const [data, setData] = useState<AprPeriodStatsDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const exchangesKey = selectedExchanges.join(",");
 
   useEffect(() => {
     if (!symbol) {
@@ -29,12 +30,11 @@ export function useAprStats({
       setError(null);
 
       try {
-        const stats = await fundingRatesApi.getAprStats({
+        const stats = await getAprStats({
           symbol,
-          exchanges:
-            selectedExchanges.length > 0 ? selectedExchanges : undefined,
+          exchanges: exchangesKey ? exchangesKey.split(",") : undefined,
         });
-        if (isActive) setData(stats);
+        if (isActive) setData(stats as AprPeriodStatsDto[]);
       } catch (err) {
         if (isActive) {
           setError(
@@ -54,7 +54,7 @@ export function useAprStats({
     return () => {
       isActive = false;
     };
-  }, [symbol, selectedExchanges]);
+  }, [symbol, exchangesKey]);
 
   return { data, isLoading, error };
 }

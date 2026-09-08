@@ -1,18 +1,11 @@
 # CurrentDataTable
 
-Compatibility name для текущей таблицы funding rates.
+Таблица текущих funding rates.
 
 ## Реальная реализация
 
 ```text
 frontend/FundingMonitor.Web/src/features/current-rates/CurrentRatesTable.tsx
-```
-
-Compatibility export:
-
-```text
-frontend/FundingMonitor.Web/src/components/CurrentDataTable.tsx
-frontend/FundingMonitor.Web/src/components/index.ts
 ```
 
 ## Props

@@ -8,13 +8,6 @@
 frontend/FundingMonitor.Web/src/features/filters/CompactFilter.tsx
 ```
 
-Compatibility export:
-
-```text
-frontend/FundingMonitor.Web/src/components/CompactFilter.tsx
-frontend/FundingMonitor.Web/src/components/index.ts
-```
-
 ## Props
 
 ```ts

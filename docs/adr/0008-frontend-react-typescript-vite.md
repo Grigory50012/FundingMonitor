@@ -28,16 +28,22 @@
 **Архитектура**:
 ```
 frontend/FundingMonitor.Web/src/
-├── api/              # Axios instance + endpoint functions
-├── components/       # Presentational components (таблицы, графики, фильтры)
-├── containers/       # DashboardContainer — smart component, данные + состояние
-├── hooks/            # useFundingRates.ts (useCurrentRates, useHistoryRates, useArbitrageRates), useLocalStorage
+├── app/providers/    # Application-level providers
+├── entities/         # UI domain constants and badges
+├── features/         # Feature-owned API, hooks, components and models
+│   ├── current-rates
+│   ├── historical-rates
+│   ├── arbitrage
+│   ├── exchange-health
+│   └── filters
+├── shared/           # Axios client, error helper, shared hooks/UI/lib
 ├── types/            # Generated API DTO и ручные frontend-only типы
 ├── config/           # Константы (storage keys)
+├── widgets/dashboard # Cross-feature dashboard composition
 └── main.tsx          # Entry point
 ```
 
-**State management**: React Query / TanStack Query НЕ используется — данные загружаются через `useEffect` при изменении параметров. Фильтры кэшируются в `localStorage`. Автоматический поллинг планируется.
+**State management**: React Query / TanStack Query НЕ используется — данные загружаются через feature-owned `useEffect` hooks при изменении параметров. Фильтры кэшируются в `localStorage`. Feature internals не импортируют друг друга; cross-feature composition разрешена только в `widgets` и `app`. Автоматический поллинг планируется.
 
 ## Последствия
 

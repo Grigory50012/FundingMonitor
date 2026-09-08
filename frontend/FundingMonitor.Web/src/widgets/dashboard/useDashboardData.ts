@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fundingRatesApi } from "../../api/fundingRates";
 import { STORAGE_KEYS } from "../../config/storageKeys";
-import {
-  useArbitrageRates,
-  useCurrentRates,
-  useHistoryRates,
-} from "../../hooks/useFundingRates";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useArbitrageRates } from "../../features/arbitrage/useArbitrageRates";
+import { useCurrentRates } from "../../features/current-rates/useCurrentRates";
+import { getCurrentRates } from "../../features/current-rates/api/getCurrentRates";
+import { useHistoryRates } from "../../features/historical-rates/useHistoryRates";
+import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 import { toUsdtSymbol } from "../../shared/lib/symbols";
 import type { ExchangeType } from "../../types";
 import type { TimeRangeType } from "../../types/history";
@@ -62,7 +60,7 @@ export function useDashboardData() {
 
   const loadAllCoins = useCallback(async () => {
     try {
-      const data = await fundingRatesApi.getCurrentRates({});
+      const data = await getCurrentRates({});
       const coins = Array.from(
         new Set(data.map((item) => item.symbol.replace("-USDT", ""))),
       ).sort();

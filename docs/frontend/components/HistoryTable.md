@@ -1,18 +1,11 @@
 # HistoryTable
 
-Compatibility name для APR table по историческим funding rates.
+APR table по историческим funding rates.
 
 ## Реальная реализация
 
 ```text
-frontend/FundingMonitor.Web/src/features/history/HistoryAprTable.tsx
-```
-
-Compatibility export:
-
-```text
-frontend/FundingMonitor.Web/src/components/HistoryTable.tsx
-frontend/FundingMonitor.Web/src/components/index.ts
+frontend/FundingMonitor.Web/src/features/historical-rates/HistoryAprTable.tsx
 ```
 
 ## Props
