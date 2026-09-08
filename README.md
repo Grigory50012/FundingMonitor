@@ -7,7 +7,7 @@ FundingMonitor — приложение для мониторинга funding ra
 ### Требования
 
 - .NET SDK 10, см. `global.json`
-- Node.js 18+
+- Node.js ^20.19.0 or >=22.12.0
 - Docker
 
 ### Инфраструктура
