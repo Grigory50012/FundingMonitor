@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.4" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.13.0" />
+    <PackageReference Include="Testcontainers.RabbitMq" Version="4.13.0" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\FundingMonitor.Messaging\FundingMonitor.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Contracts\FundingMonitor.ExchangeIntegration.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\CurrentRates\FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Contracts\FundingMonitor.HistoricalRates.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Domain\FundingMonitor.HistoricalRates.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Application\FundingMonitor.HistoricalRates.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Infrastructure\FundingMonitor.HistoricalRates.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

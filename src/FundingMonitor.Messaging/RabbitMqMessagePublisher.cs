@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
@@ -58,7 +57,7 @@ public sealed class RabbitMqMessagePublisher : IMessagePublisher, IAsyncDisposab
                     ? null
                     : headers.ToDictionary(pair => pair.Key, pair => pair.Value)
             };
-            var body = JsonSerializer.SerializeToUtf8Bytes(message);
+            var body = MessagingJson.SerializeToUtf8Bytes(message);
 
             using var timeoutSource =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

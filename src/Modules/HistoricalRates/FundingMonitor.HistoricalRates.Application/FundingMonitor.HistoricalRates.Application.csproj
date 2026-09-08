@@ -5,9 +5,15 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.9"/>
+    </ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="..\FundingMonitor.HistoricalRates.Contracts\FundingMonitor.HistoricalRates.Contracts.csproj"/>
         <ProjectReference Include="..\FundingMonitor.HistoricalRates.Domain\FundingMonitor.HistoricalRates.Domain.csproj"/>
         <ProjectReference Include="..\..\..\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj"/>
         <ProjectReference Include="..\..\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Contracts\FundingMonitor.ExchangeIntegration.Contracts.csproj"/>
+        <ProjectReference Include="..\..\CurrentRates\FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj"/>
     </ItemGroup>
 </Project>
