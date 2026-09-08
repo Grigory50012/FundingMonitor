@@ -50,7 +50,7 @@ public sealed class ModuleDatabaseMigratorTests
         await using var scope = provider.CreateAsyncScope();
         var migrator = scope.ServiceProvider.GetRequiredService<ModuleDatabaseMigrator>();
         await migrator.MigrateAsync(cancellationToken);
-        // A restart must preserve independently recorded migrations and owned data.
+        // A second migration run must preserve independently recorded migrations and owned schema.
         await migrator.MigrateAsync(cancellationToken);
         var currentRates = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
         var historicalRates = scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>();

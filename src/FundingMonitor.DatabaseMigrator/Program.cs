@@ -14,11 +14,7 @@ internal static class Program
         var logger = bootstrapLoggerFactory.CreateLogger("DatabaseMigrator");
         try
         {
-            var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
-            {
-                Args = args,
-                ContentRootPath = AppContext.BaseDirectory
-            });
+            var builder = DatabaseMigratorHost.CreateBuilder(args);
             builder.Services.AddCurrentRatesPersistence(builder.Configuration);
             builder.Services.AddHistoricalRatesPersistence(builder.Configuration);
             builder.Services.AddScoped<ModuleDatabaseMigrator>();

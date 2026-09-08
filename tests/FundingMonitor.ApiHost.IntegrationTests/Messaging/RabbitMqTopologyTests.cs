@@ -121,7 +121,7 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
         var now = DateTimeOffset.UtcNow;
         var id = Guid.NewGuid();
         return new MessageEnvelope<FundingRateChangedIntegrationEvent>(
-            id, id, null, now, nameof(FundingRateChangedIntegrationEvent), 1,
+            id, id, null, now, "funding-rate.changed", 1,
             new FundingRateChangedIntegrationEvent(id, now, ExchangeId.Parse(exchange), Symbol.Create(symbol), now));
     }
 }
