@@ -1,6 +1,7 @@
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.HistoricalRates.Infrastructure.Messaging;
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using FundingMonitor.SharedKernel;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;

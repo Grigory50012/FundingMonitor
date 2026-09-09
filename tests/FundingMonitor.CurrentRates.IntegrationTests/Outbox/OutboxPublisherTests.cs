@@ -2,6 +2,7 @@ using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates.Infrastructure.Outbox;
 using FundingMonitor.CurrentRates.IntegrationTests.Infrastructure;
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using FundingMonitor.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

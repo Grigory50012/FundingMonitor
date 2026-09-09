@@ -107,7 +107,7 @@ curl --noproxy "*" http://127.0.0.1:5000/api/v1/Arbitrage
 curl --noproxy "*" http://127.0.0.1:5000/health
 ```
 
-На Windows используйте `curl.exe`. Ожидается HTTP 200; один занятый порт не доказывает работоспособность. `/health` показывает доступность HTTP host, поэтому состояние RabbitMQ consumers нужно проверять указанной выше командой отдельно. Frontend запускается командой `npm run dev` из `frontend/FundingMonitor.Web`.
+На Windows используйте `curl.exe`. При исправной системе ожидается HTTP 200; один занятый порт не доказывает работоспособность. `/health` выполняет live AMQP probe exchange и четырёх очередей с бюджетом отмены 5 секунд. Потеря брокера или topology даёт `Degraded`, восстановление — `Healthy`; HTTP 200 возможен для обоих статусов, поэтому проверяйте тело ответа. Passive probe не создаёт очереди, не проверяет bindings, consumers или внешние биржи. Число consumers проверяется указанной выше командой отдельно. Frontend запускается командой `npm run dev` из `frontend/FundingMonitor.Web`.
 
 ## Production
 

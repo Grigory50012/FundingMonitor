@@ -1,3 +1,4 @@
+using FundingMonitor.Messaging.Abstractions;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;

@@ -9,7 +9,7 @@ using NpgsqlTypes;
 
 namespace FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 
-public sealed class HistoricalRatesRepository(
+internal sealed class HistoricalRatesRepository(
     HistoricalRatesDbContext dbContext,
     TimeProvider timeProvider) : IHistoricalRatesRepository, IHistoricalRatesUnitOfWork
 {

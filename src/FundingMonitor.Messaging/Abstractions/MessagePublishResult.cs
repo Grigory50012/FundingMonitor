@@ -1,4 +1,4 @@
-namespace FundingMonitor.Messaging;
+namespace FundingMonitor.Messaging.Abstractions;
 
 public readonly record struct MessagePublishResult(
     bool Confirmed,

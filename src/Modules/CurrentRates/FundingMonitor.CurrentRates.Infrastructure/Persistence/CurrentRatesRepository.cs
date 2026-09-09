@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace FundingMonitor.CurrentRates.Infrastructure.Persistence;
 
-public sealed class CurrentRatesRepository(
+internal sealed class CurrentRatesRepository(
     CurrentRatesDbContext dbContext,
     TimeProvider timeProvider,
     IOptions<CurrentDataCollectionOptions> options)
@@ -19,9 +19,11 @@ public sealed class CurrentRatesRepository(
         CurrentRatesQuery query,
         CancellationToken cancellationToken)
     {
+        // Freshness must expire even when an exchange has no successful snapshots.
+        var cutoff = timeProvider.GetUtcNow().AddMinutes(-options.Value.DeactivateMissingAfterMinutes);
         var databaseQuery = dbContext.CurrentFundingRates
             .AsNoTracking()
-            .Where(item => item.IsActive);
+            .Where(item => item.IsActive && item.LastSeenOnUtc >= cutoff);
 
         if (query.Exchanges is { Count: > 0 })
         {

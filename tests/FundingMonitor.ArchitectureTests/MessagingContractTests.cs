@@ -1,4 +1,5 @@
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using Xunit;
 
 namespace FundingMonitor.ArchitectureTests;

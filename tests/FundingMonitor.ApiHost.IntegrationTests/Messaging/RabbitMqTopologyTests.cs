@@ -1,8 +1,11 @@
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.HistoricalRates.Infrastructure.Messaging;
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using FundingMonitor.SharedKernel;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Testcontainers.RabbitMq;
 using Xunit;
 
@@ -18,6 +21,7 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
 
     private RabbitMqConnection _connection = null!;
     private RabbitMqMessagePublisher _publisher = null!;
+    private ServiceProvider _services = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -37,10 +41,19 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
         _publisher = new RabbitMqMessagePublisher(_connection, options);
 
         await initializer.InitializeAsync(cancellationToken);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(_connection);
+        services.AddSingleton(health);
+        services.AddSingleton(initializer);
+        services.AddHealthChecks().AddCheck<RabbitMqTopologyHealthCheck>("rabbitmq-topology");
+        _services = services.BuildServiceProvider();
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (_services is not null)
+            await _services.DisposeAsync();
         if (_publisher is not null)
             await _publisher.DisposeAsync();
         if (_connection is not null)
@@ -114,6 +127,22 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
 
         Assert.True(result.Returned);
         Assert.True(result.Confirmed);
+    }
+
+    [Fact]
+    public async Task HealthCheck_BrokerLostAfterStartup_DegradesAndRecovers()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var health = _services.GetRequiredService<HealthCheckService>();
+        Assert.Equal(HealthStatus.Healthy, (await health.CheckHealthAsync(ct)).Status);
+
+        Assert.Equal(0, (await _container.ExecAsync(["rabbitmqctl", "stop_app"], ct)).ExitCode);
+        Assert.Equal(HealthStatus.Degraded, (await health.CheckHealthAsync(ct)).Status);
+
+        Assert.Equal(0, (await _container.ExecAsync(["rabbitmqctl", "start_app"], ct)).ExitCode);
+        var recovered = await health.CheckHealthAsync(ct);
+        Assert.True(recovered.Status == HealthStatus.Healthy,
+            string.Join(Environment.NewLine, recovered.Entries.Select(entry => entry.Value.Exception?.ToString())));
     }
 
     private static MessageEnvelope<FundingRateChangedIntegrationEvent> CreateMessage(string exchange, string symbol)

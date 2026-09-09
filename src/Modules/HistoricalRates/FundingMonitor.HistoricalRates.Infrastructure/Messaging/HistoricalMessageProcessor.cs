@@ -1,6 +1,7 @@
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.HistoricalRates.Application;
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

@@ -43,7 +43,7 @@ Outbox сохраняет событие вместе с текущими ста
 
 У каждой биржи независимый worker pool, по умолчанию по 10 consumers; manual ACK и `prefetch=1`. Временная ошибка повторяется после задержки с увеличенным retry count. Original message подтверждается после confirmed-публикации retry или DLQ; permanent error и исчерпанные retries направляются в `historical-rates.dead`. Это доставка `at-least-once` с идемпотентным сохранением истории.
 
-Интервал текущего сбора задаёт `CurrentDataCollectionOptions.UpdateIntervalSeconds` (10 секунд). Порог деактивации отсутствующих пар — `DeactivateMissingAfterMinutes` (5 минут). Неудачный сбор биржи не деактивирует её последний успешный snapshot. Детали таблиц и транзакций: [схема БД](../database-schema.md).
+Интервал текущего сбора задаёт `CurrentDataCollectionOptions.UpdateIntervalSeconds` (10 секунд). Порог актуальности — `DeactivateMissingAfterMinutes` (5 минут). При каждом чтении CurrentRates выдаёт только активные пары с `LastSeenOnUtc >= now - threshold`; после истечения порога ставка исчезает из текущей выдачи и расчёта Arbitrage даже при недоступной бирже. Последние значения остаются в БД. Успешный snapshot дополнительно деактивирует отсутствующие просроченные пары, а повторное появление пары обновляет timestamp и активирует её. Детали таблиц и транзакций: [схема БД](../database-schema.md).
 
 ## HTTP и OpenAPI
 
@@ -56,9 +56,9 @@ Outbox сохраняет событие вместе с текущими ста
 | GET | `/api/v1/History/apr-stats` | APR по периодам |
 | GET | `/api/v1/Arbitrage` | Арбитражные возможности |
 | GET | `/api/v1/exchanges/health` | Состояние бирж |
-| GET | `/health` | Доступность HTTP host |
+| GET | `/health` | Состояние зарегистрированных health checks |
 
-`/health` проверяет HTTP host, а состояние consumers и бирж проверяется отдельно. В Development `Microsoft.AspNetCore.OpenApi` публикует `/openapi/v1.json`, Scalar — `/scalar`. `JsonNumberHandling.Strict` сохраняет числовой JSON-контракт. Команда `npm run generate:api-types` при запущенном API обновляет `frontend/FundingMonitor.Web/src/types/generated/api.ts`; Axios client остаётся ручным.
+`/health` включает `rabbitmq-topology`: при каждом запросе выполняется passive probe exchange и четырёх очередей через AMQP с бюджетом отмены 5 секунд. Недоступный брокер или отсутствующая topology дают `Degraded`; восстановление доступности возвращает `Healthy`. Проверка не пересоздаёт topology, не проверяет bindings или число consumers и не обращается к биржам. При стандартном mapping ASP.NET Core статус `Degraded` также возвращается с HTTP 200, поэтому нужно учитывать тело ответа; consumers проверяются отдельно. В Development `Microsoft.AspNetCore.OpenApi` публикует `/openapi/v1.json`, Scalar — `/scalar`. `JsonNumberHandling.Strict` сохраняет числовой JSON-контракт. Команда `npm run generate:api-types` при запущенном API обновляет `frontend/FundingMonitor.Web/src/types/generated/api.ts`; Axios client остаётся ручным.
 
 ## Frontend и запуск
 

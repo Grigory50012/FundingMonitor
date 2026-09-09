@@ -1,6 +1,7 @@
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

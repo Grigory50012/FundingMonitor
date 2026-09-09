@@ -3,6 +3,7 @@ using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.HistoricalRates.Application;
 using FundingMonitor.HistoricalRates.Infrastructure.Messaging;
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using FundingMonitor.SharedKernel;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

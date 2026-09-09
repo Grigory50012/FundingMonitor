@@ -10,10 +10,13 @@
 
     <ItemGroup>
         <PackageReference Include="xunit.v3" Version="3.2.2"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj"/>
         <ProjectReference Include="..\..\src\FundingMonitor.Messaging\FundingMonitor.Messaging.csproj"/>
+        <ProjectReference Include="..\..\src\FundingMonitor.ApiHost\FundingMonitor.ApiHost.csproj"/>
+        <ProjectReference Include="..\..\src\FundingMonitor.DatabaseMigrator\FundingMonitor.DatabaseMigrator.csproj"/>
     </ItemGroup>
 </Project>

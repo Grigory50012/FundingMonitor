@@ -3,6 +3,7 @@ using FundingMonitor.CurrentRates.Application.Persistence;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
 using FundingMonitor.CurrentRates.Infrastructure.Outbox;
 using FundingMonitor.Messaging;
+using FundingMonitor.Messaging.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
