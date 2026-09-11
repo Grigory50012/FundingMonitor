@@ -81,7 +81,8 @@ internal sealed class HistoricalMessageProcessor(
     {
         try
         {
-            await handler.HandleAsync(integrationEvent, stoppingToken);
+            await handler.HandleAsync(new HistoricalCollectionRequest(
+                integrationEvent.EventId, integrationEvent.Exchange, integrationEvent.Symbol), stoppingToken);
             return HistoricalMessageDisposition.Ack;
         }
         catch (Exception exception)

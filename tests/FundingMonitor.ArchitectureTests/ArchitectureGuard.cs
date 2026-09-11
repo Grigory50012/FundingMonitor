@@ -19,6 +19,13 @@ internal static class ArchitectureGuard
         ["Infrastructure"] = ["Contracts", "Domain", "Application"],
         ["Presentation"] = ["Contracts", "Domain", "Application", "Infrastructure"]
     };
+    private static readonly HashSet<(string Owner, string Target)> AllowedCrossModuleReferences =
+    [
+        ("FundingMonitor.CurrentRates.Application", "FundingMonitor.ExchangeIntegration.Contracts"),
+        ("FundingMonitor.HistoricalRates.Application", "FundingMonitor.ExchangeIntegration.Contracts"),
+        ("FundingMonitor.HistoricalRates.Infrastructure", "FundingMonitor.CurrentRates.Contracts"),
+        ("FundingMonitor.Arbitrage.Application", "FundingMonitor.CurrentRates.Contracts")
+    ];
     // These small composition/transport surfaces are deliberately closed. New types require review.
     private static readonly HashSet<string> TransportTypes =
     [
@@ -93,8 +100,8 @@ internal static class ArchitectureGuard
         if (targetParts.Length == 3 && Modules.Contains(targetParts[1]))
         {
             if (sourceParts[1] != targetParts[1])
-                return targetParts[2] == "Contracts" && sourceParts[2] is "Application" or "Infrastructure" or "Presentation"
-                    ? null : "foreign module implementation dependency";
+                return AllowedCrossModuleReferences.Contains((owner, target))
+                    ? null : "foreign module dependency outside the approved matrix";
             return AllowedLayers[sourceParts[2]].Contains(targetParts[2]) ? null : "reverse layer dependency";
         }
         if (target == "FundingMonitor.Messaging" && sourceParts[2] != "Infrastructure")

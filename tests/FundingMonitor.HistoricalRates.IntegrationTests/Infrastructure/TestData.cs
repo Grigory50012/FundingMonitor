@@ -1,4 +1,4 @@
-using FundingMonitor.CurrentRates.Contracts;
+using FundingMonitor.HistoricalRates.Application;
 using FundingMonitor.ExchangeIntegration.Contracts;
 using FundingMonitor.SharedKernel;
 
@@ -6,12 +6,10 @@ namespace FundingMonitor.HistoricalRates.IntegrationTests.Infrastructure;
 
 internal static class TestEvents
 {
-    public static FundingRateChangedIntegrationEvent BtcChanged => new(
+    public static HistoricalCollectionRequest BtcChanged => new(
         Guid.Parse("30000000-0000-0000-0000-000000000001"),
-        new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero),
         ExchangeId.Parse("Binance"),
-        Symbol.Create("BTC-USDT"),
-        new DateTimeOffset(2026, 9, 8, 16, 0, 0, TimeSpan.Zero));
+        Symbol.Create("BTC-USDT"));
 }
 
 internal static class TestHistory

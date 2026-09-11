@@ -137,6 +137,48 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
         Assert.Equal(1, _market.Calls["BTC-USDT"]);
     }
 
+    [Fact]
+    public async Task HostedConsumer_QueueDeletedAndRecreated_ResubscribesAndAcknowledgesSubsequentEvent()
+    {
+        _host = await CreateHostAsync();
+        await _host.StartAsync(Ct);
+        var connection = await _host.Services.GetRequiredService<RabbitMqConnection>().GetAsync(Ct);
+        await using var channel = await connection.CreateChannelAsync(cancellationToken: Ct);
+        var exchange = ExchangeId.Parse("Binance");
+        var queue = RabbitMqTopology.GetQueueName(exchange);
+        await EventuallyAsync(async () => (await channel.QueueDeclarePassiveAsync(queue, Ct)).ConsumerCount == 1,
+            "configured hosted consumer before queue deletion");
+
+        // Deleting this isolated test queue sends basic.cancel without closing the consumer channel.
+        await channel.QueueDeleteAsync(queue, false, false, cancellationToken: Ct);
+        await channel.QueueDeclareAsync(queue, durable: true, exclusive: false, autoDelete: false,
+            arguments: new Dictionary<string, object?> { ["x-queue-type"] = "classic" }, cancellationToken: Ct);
+        await channel.QueueBindAsync(queue, RabbitMqTopology.ExchangeName, RabbitMqTopology.GetRoutingKey(exchange),
+            arguments: null, cancellationToken: Ct);
+        await EventuallyAsync(async () => (await channel.QueueDeclarePassiveAsync(queue, Ct)).ConsumerCount == 1,
+            "configured hosted consumer restored after queue deletion and recreation");
+
+        await using (var collectionScope = _host.Services.CreateAsyncScope())
+        {
+            var collected = await collectionScope.ServiceProvider
+                .GetRequiredService<ICurrentFundingRateCollector>().CollectAsync(Ct);
+            Assert.Equal(1, collected.EventsCount);
+        }
+        await EventuallyAsync(async () =>
+        {
+            await using var scope = _host.Services.CreateAsyncScope();
+            var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
+            var history = scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>();
+            var outbox = await current.OutboxMessages.AsNoTracking().SingleAsync(Ct);
+            var eventId = OutboxEventSerializer.Deserialize(outbox.Payload).EventId;
+            return outbox.ProcessedOnUtc is not null
+                && await history.InboxMessages.CountAsync(row => row.EventId == eventId, Ct) == 1
+                && await history.HistoricalFundingRates.CountAsync(row => row.NormalizedSymbol == "BTC-USDT", Ct) == 1;
+        }, "subsequent event confirmed and committed to history plus Inbox");
+        await AssertAcknowledgedAsync(1);
+        Assert.Equal(1, _market.Calls["BTC-USDT"]);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

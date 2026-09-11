@@ -138,7 +138,7 @@ public sealed class HistoricalMessageProcessorTests
     private sealed class ThrowingHandler(Exception exception) : IHistoricalEventHandler
     {
         public Task HandleAsync(
-            FundingRateChangedIntegrationEvent integrationEvent,
+            HistoricalCollectionRequest request,
             CancellationToken cancellationToken) => Task.FromException(exception);
     }
 

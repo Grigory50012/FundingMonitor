@@ -62,6 +62,8 @@ internal sealed class HistoricalCollectionBackgroundService(
         var restart = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         channel.ChannelShutdownAsync += (_, _) => { restart.TrySetResult(); return Task.CompletedTask; };
         var consumer = new AsyncEventingBasicConsumer(channel);
+        // basic.cancel (for example, queue deletion) does not necessarily close the channel.
+        consumer.UnregisteredAsync += (_, _) => { restart.TrySetResult(); return Task.CompletedTask; };
         consumer.ReceivedAsync += async (_, delivery) =>
         {
             try

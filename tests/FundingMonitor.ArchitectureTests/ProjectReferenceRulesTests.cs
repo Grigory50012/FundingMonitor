@@ -64,8 +64,7 @@ public sealed class ProjectReferenceRulesTests
         allowed["FundingMonitor.HistoricalRates.Application"] =
         [
             .. allowed["FundingMonitor.HistoricalRates.Application"],
-            "FundingMonitor.ExchangeIntegration.Contracts",
-            "FundingMonitor.CurrentRates.Contracts"
+            "FundingMonitor.ExchangeIntegration.Contracts"
         ];
         allowed["FundingMonitor.HistoricalRates.Infrastructure"] =
         [

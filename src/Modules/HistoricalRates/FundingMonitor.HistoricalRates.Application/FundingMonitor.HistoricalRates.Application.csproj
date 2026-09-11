@@ -14,6 +14,5 @@
         <ProjectReference Include="..\FundingMonitor.HistoricalRates.Domain\FundingMonitor.HistoricalRates.Domain.csproj"/>
         <ProjectReference Include="..\..\..\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj"/>
         <ProjectReference Include="..\..\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Contracts\FundingMonitor.ExchangeIntegration.Contracts.csproj"/>
-        <ProjectReference Include="..\..\CurrentRates\FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj"/>
     </ItemGroup>
 </Project>

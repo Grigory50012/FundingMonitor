@@ -1,5 +1,4 @@
 using System.Diagnostics.Metrics;
-using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.ExchangeIntegration.Contracts;
 using FundingMonitor.HistoricalRates.Application.Persistence;
 using FundingMonitor.HistoricalRates.Domain;
@@ -20,24 +19,24 @@ public sealed class HistoricalEventHandler(
         Meter.CreateCounter<long>("fundingmonitor.inbox.duplicates");
 
     public async Task HandleAsync(
-        FundingRateChangedIntegrationEvent integrationEvent,
+        HistoricalCollectionRequest request,
         CancellationToken cancellationToken)
     {
         if (await unitOfWork.HasProcessedAsync(
-                integrationEvent.EventId,
+                request.EventId,
                 ConsumerName,
                 cancellationToken))
         {
             DuplicateCounter.Add(1, new KeyValuePair<string, object?>(
-                "exchange", integrationEvent.Exchange.Value));
+                "exchange", request.Exchange.Value));
             return;
         }
 
         var now = timeProvider.GetUtcNow();
         var result = await exchangeMarketData.GetHistoricalRatesAsync(
             new HistoricalRatesRequest(
-                integrationEvent.Exchange,
-                integrationEvent.Symbol,
+                request.Exchange,
+                request.Symbol,
                 now.AddMonths(-options.Value.MaxHistoryMonths),
                 now,
                 options.Value.ApiPageSize),
@@ -53,7 +52,7 @@ public sealed class HistoricalEventHandler(
             point.CollectedOnUtc)).ToArray();
 
         await unitOfWork.StoreHistoryAndMarkProcessedAsync(
-            integrationEvent.EventId,
+            request.EventId,
             ConsumerName,
             rates,
             cancellationToken);

@@ -21,6 +21,10 @@ public sealed class CompiledBoundaryTests
     [InlineData("FundingMonitor.ApiHost", "public class Program { private class RatesRepository { } }", "host surface")]
     [InlineData("FundingMonitor.CurrentRates.Contracts", "public class Leak { public FundingMonitor.CurrentRates.Domain.CurrentFundingRate Value = null!; }", "reverse layer")]
     [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.Messaging.Abstractions.IMessagePublisher Value = null!; }", "reverse layer")]
+    [InlineData("FundingMonitor.CurrentRates.Infrastructure", "public class Leak { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }", "foreign module")]
+    [InlineData("FundingMonitor.HistoricalRates.Presentation", "public class Leak { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }", "foreign module")]
+    [InlineData("FundingMonitor.ExchangeIntegration.Application", "public class Leak { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }", "foreign module")]
+    [InlineData("FundingMonitor.HistoricalRates.Application", "public class Leak { public FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent Value = null!; }", "foreign module")]
     public void Guard_RejectsCompiledViolationWithoutProjectReference(string assemblyName, string source, string expected)
     {
         var failures = ArchitectureGuard.CheckAssembly(Compile(assemblyName, source));
@@ -59,6 +63,9 @@ public sealed class CompiledBoundaryTests
 
     [Theory]
     [InlineData("FundingMonitor.CurrentRates.Application", "public class Port { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }")]
+    [InlineData("FundingMonitor.HistoricalRates.Application", "public class Port { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }")]
+    [InlineData("FundingMonitor.HistoricalRates.Infrastructure", "public class Port { public FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent Value = null!; }")]
+    [InlineData("FundingMonitor.Arbitrage.Application", "public class Port { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }")]
     [InlineData("FundingMonitor.CurrentRates.Infrastructure", "public class Port { public FundingMonitor.Messaging.Abstractions.IMessagePublisher Value = null!; }")]
     [InlineData("FundingMonitor.Messaging", "namespace FundingMonitor.Messaging.Abstractions; public interface IMessagePublisher { }")]
     [InlineData("FundingMonitor.ApiHost", "public class Program { public void Configure() { System.Action action = () => System.Console.WriteLine(1); action(); } }")]

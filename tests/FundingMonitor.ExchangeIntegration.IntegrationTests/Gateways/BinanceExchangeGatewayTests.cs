@@ -3,7 +3,9 @@ using Binance.Net;
 using Binance.Net.Clients;
 using Binance.Net.Objects.Options;
 using FundingMonitor.ExchangeIntegration.Domain;
+using FundingMonitor.ExchangeIntegration.Contracts;
 using FundingMonitor.ExchangeIntegration.Infrastructure.Gateways;
+using FundingMonitor.SharedKernel;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -50,6 +52,26 @@ public sealed class BinanceExchangeGatewayTests
         server.Respond("/fapi/v1/fundingInfo", "[]");
 
         await GatewayAssertions.RateLimitedAsync(CreateGateway(server));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized, "{\"code\":-2015,\"msg\":\"Invalid API-key\"}", "Exchange.Authentication")]
+    [InlineData(HttpStatusCode.Forbidden, "{\"code\":0,\"msg\":\"Service unavailable from a restricted location\"}", "Exchange.GeoRestricted")]
+    public async Task GetHistoricalRatesAsync_StableHttpFailure_PreservesCodeAndUnavailableType(
+        HttpStatusCode status, string payload, string expectedCode)
+    {
+        await using var server = CreateServer();
+        server.Respond("/fapi/v1/fundingRate", payload, status);
+        var gateway = CreateGateway(server);
+        var request = new HistoricalRatesRequest(gateway.Exchange, Symbol.Create("BTC-USDT"),
+            GatewayAssertions.FundingTime.AddDays(-1), GatewayAssertions.FundingTime.AddDays(1), 100);
+
+        var result = await gateway.GetHistoricalRatesAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(expectedCode, result.Error!.Code);
+        Assert.Equal(ErrorType.Unavailable, result.Error.Type);
+        Assert.True(server.ReceivedPath("/fapi/v1/fundingRate"));
     }
 
     private static StubHttpServer CreateServer()

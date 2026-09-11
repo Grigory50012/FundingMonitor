@@ -19,12 +19,18 @@ public sealed class HistoricalCollectionFailureClassifier : IHistoricalCollectio
         if (exception is HttpRequestException http)
             return ClassifyStatus(http.StatusCode);
         if (exception is HistoricalExchangeRequestException exchange)
+        {
+            // Repeating credentials or geographic restrictions cannot repair this delivery.
+            // Keep the public error type intact and send the first failure to confirmed DLQ.
+            if (exchange.Error.Code is "Exchange.Authentication" or "Exchange.GeoRestricted")
+                return HistoricalCollectionFailureDecision.DeadLetter;
             return exchange.Error.Type switch
             {
                 ErrorType.Validation or ErrorType.NotFound or ErrorType.Conflict =>
                     HistoricalCollectionFailureDecision.DeadLetter,
                 _ => HistoricalCollectionFailureDecision.Retry
             };
+        }
         return HistoricalCollectionFailureDecision.Retry;
     }
 

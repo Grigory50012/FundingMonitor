@@ -37,4 +37,17 @@ public sealed class HistoricalCollectionFailureClassifierTests
         { new HttpRequestException("busy", null, HttpStatusCode.TooManyRequests), HistoricalCollectionFailureDecision.Retry },
         { new HistoricalExchangeRequestException(new Error("Exchange.InvalidRequest", "bad", ErrorType.Validation)), HistoricalCollectionFailureDecision.DeadLetter }
     };
+
+    [Theory]
+    [InlineData("Exchange.Authentication", ErrorType.Unavailable, HistoricalCollectionFailureDecision.DeadLetter)]
+    [InlineData("Exchange.GeoRestricted", ErrorType.Unavailable, HistoricalCollectionFailureDecision.DeadLetter)]
+    [InlineData("Exchange.RateLimited", ErrorType.Unavailable, HistoricalCollectionFailureDecision.Retry)]
+    [InlineData("Exchange.UpstreamUnavailable", ErrorType.Unavailable, HistoricalCollectionFailureDecision.Retry)]
+    [InlineData("Exchange.Timeout", ErrorType.Timeout, HistoricalCollectionFailureDecision.Retry)]
+    public void Classify_GatewayError_UsesStableCodeForPermanentDisposition(
+        string code, ErrorType type, HistoricalCollectionFailureDecision expected)
+    {
+        var exception = new HistoricalExchangeRequestException(new Error(code, "Exchange request failed", type));
+        Assert.Equal(expected, new HistoricalCollectionFailureClassifier().Classify(exception, CancellationToken.None));
+    }
 }
