@@ -1,7 +1,6 @@
 using FundingMonitor.HistoricalRates.Application.Persistence;
 using FundingMonitor.HistoricalRates.Contracts;
 using FundingMonitor.HistoricalRates.Domain;
-using FundingMonitor.HistoricalRates.Infrastructure.Inbox;
 using FundingMonitor.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -10,48 +9,12 @@ using NpgsqlTypes;
 namespace FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 
 internal sealed class HistoricalRatesRepository(
-    HistoricalRatesDbContext dbContext,
-    TimeProvider timeProvider) : IHistoricalRatesRepository, IHistoricalRatesUnitOfWork
+    HistoricalRatesDbContext dbContext) : IHistoricalRatesRepository, IHistoricalRatesUnitOfWork
 {
-    public Task<bool> HasProcessedAsync(
-        Guid eventId,
-        string consumer,
-        CancellationToken cancellationToken) =>
-        dbContext.InboxMessages.AsNoTracking().AnyAsync(
-            item => item.EventId == eventId && item.Consumer == consumer,
-            cancellationToken);
-
-    public async Task StoreHistoryAndMarkProcessedAsync(
-        Guid eventId,
-        string consumer,
+    public Task StoreHistoryAsync(
         IReadOnlyCollection<HistoricalFundingRate> rates,
-        CancellationToken cancellationToken)
-    {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            if (rates.Count > 0)
-                await UpsertHistoryAsync(rates, cancellationToken);
-
-            dbContext.InboxMessages.Add(new InboxMessage
-            {
-                EventId = eventId,
-                Consumer = consumer,
-                ProcessedOnUtc = timeProvider.GetUtcNow()
-            });
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (
-            exception.InnerException is PostgresException
-            {
-                SqlState: PostgresErrorCodes.UniqueViolation,
-                ConstraintName: "PK_InboxMessages"
-            })
-        {
-            await transaction.RollbackAsync(cancellationToken);
-        }
-    }
+        CancellationToken cancellationToken) =>
+        rates.Count == 0 ? Task.CompletedTask : UpsertHistoryAsync(rates, cancellationToken);
 
     private Task UpsertHistoryAsync(
         IReadOnlyCollection<HistoricalFundingRate> rates,

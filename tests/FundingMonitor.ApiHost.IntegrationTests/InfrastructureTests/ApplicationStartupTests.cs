@@ -10,7 +10,7 @@ public sealed class ApplicationStartupTests(PostgreSqlFixture fixture)
     : IntegrationTestBase(fixture)
 {
     [Fact]
-    public async Task Start_PreMigratedDatabase_HasBothModuleBaselines()
+    public async Task Start_PreMigratedDatabase_HasAllModuleMigrations()
     {
         await using var scope = Fixture.Factory.Services.CreateAsyncScope();
         var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
@@ -19,9 +19,9 @@ public sealed class ApplicationStartupTests(PostgreSqlFixture fixture)
         var cancellationToken = TestContext.Current.CancellationToken;
         Assert.Empty(await current.Database.GetPendingMigrationsAsync(cancellationToken));
         Assert.Empty(await historical.Database.GetPendingMigrationsAsync(cancellationToken));
-        Assert.Equal(["20260906000100_InitialCurrentRates"],
+        Assert.Equal(current.Database.GetMigrations(),
             await current.Database.GetAppliedMigrationsAsync(cancellationToken));
-        Assert.Equal(["20260906000200_InitialHistoricalRates"],
+        Assert.Equal(historical.Database.GetMigrations(),
             await historical.Database.GetAppliedMigrationsAsync(cancellationToken));
     }
 

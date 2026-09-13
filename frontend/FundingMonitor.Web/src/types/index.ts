@@ -15,12 +15,6 @@ export type AprPeriodStatsDto = WithExchangeType<
   ApiSchemas["AprPeriodStatsDto"]
 >;
 
-export interface ApiErrorResponse {
-  error: string;
-  details?: string;
-  requestId?: string;
-}
-
 export type FundingArbitrageDto = ApiSchemas["FundingArbitrageDto"];
 
 export const PERIODS = [

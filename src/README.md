@@ -36,7 +36,7 @@ API использует встроенный `Microsoft.AspNetCore.OpenApi`; и
 - `FundingMonitor.Messaging` — транспортная механика без бизнес-контрактов.
 - `Modules/ExchangeIntegration` — адаптеры бирж, нормализация и health.
 - `Modules/CurrentRates` — текущие ставки, актуальность, схема `current_rates` и Outbox.
-- `Modules/HistoricalRates` — история, APR, схема `historical_rates`, Inbox и RabbitMQ consumers.
+- `Modules/HistoricalRates` — история, APR, схема `historical_rates`, идемпотентный upsert и RabbitMQ consumers.
 - `Modules/Arbitrage` — расчёт арбитража через `CurrentRates.Contracts`, без persistence.
 
 Каждый модуль содержит отдельные проекты `Contracts`, `Domain`, `Application`, `Infrastructure`, `Presentation`. Зависимость от другого модуля разрешена только через его `Contracts`; правила проверяют architecture tests. HTTP/OpenAPI-контракт сохранён.

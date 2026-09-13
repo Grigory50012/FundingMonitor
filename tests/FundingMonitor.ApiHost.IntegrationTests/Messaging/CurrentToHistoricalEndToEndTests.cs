@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -66,7 +65,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task HostedDelivery_CommitsHistoryAndInbox_AcksDuplicates_RetriesTransient_DeadLettersPermanent()
+    public async Task HostedDelivery_UpsertsHistory_AcksDuplicates_RetriesTransient_DeadLettersPermanent()
     {
         _market.Symbols = ["BTC-USDT", "ETH-USDT", "SOL-USDT"];
         _market.Failures["ETH-USDT"] = ErrorType.Timeout;
@@ -81,9 +80,8 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
             var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
             var history = scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>();
             return await current.OutboxMessages.CountAsync(row => row.ProcessedOnUtc != null, Ct) == 3
-                && await history.InboxMessages.CountAsync(Ct) == 2
                 && await history.HistoricalFundingRates.CountAsync(Ct) == 2;
-        }, "three outbox confirmations and two atomic history+Inbox commits");
+        }, "three outbox confirmations and two persisted history points");
 
         var connection = await _host.Services.GetRequiredService<RabbitMqConnection>().GetAsync(Ct);
         await using var channel = await connection.CreateChannelAsync(cancellationToken: Ct);
@@ -104,15 +102,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
         Assert.Equal(2, _market.Calls["ETH-USDT"]);
         Assert.Equal(1, _market.Calls["SOL-USDT"]);
 
-        // Republish the identical event through the real transport, then observe actual Inbox deduplication.
-        long duplicates = 0;
-        using var listener = new MeterListener();
-        listener.InstrumentPublished = (instrument, meterListener) =>
-        {
-            if (instrument.Name == "fundingmonitor.inbox.duplicates") meterListener.EnableMeasurementEvents(instrument);
-        };
-        listener.SetMeasurementEventCallback<long>((_, value, _, _) => Interlocked.Add(ref duplicates, value));
-        listener.Start();
+        // A repeated delivery fetches again; the history upsert prevents duplicate rows.
         await using (var scope = _host.Services.CreateAsyncScope())
         {
             var rows = await scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>()
@@ -126,15 +116,15 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
                         message.EventId, message.EventId, null, message.OccurredOnUtc, "funding-rate.changed", 1, message),
                     null, Ct));
         }
-        await EventuallyAsync(() => Task.FromResult(Interlocked.Read(ref duplicates) >= 1), "duplicate consumed via Inbox");
+        await EventuallyAsync(() => Task.FromResult(_market.Calls["BTC-USDT"] == 2), "duplicate fetched again");
         await AssertAcknowledgedAsync(5); // Three originals, one retry, one duplicate.
         await using var verification = _host.Services.CreateAsyncScope();
         var persisted = verification.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>();
-        Assert.Equal(2, await persisted.InboxMessages.CountAsync(Ct));
+        Assert.Equal(2, await persisted.HistoricalFundingRates.CountAsync(Ct));
         var points = await persisted.HistoricalFundingRates.AsNoTracking().ToListAsync(Ct);
         Assert.All(points, point => Assert.Equal(0.0003m, point.FundingRate));
         Assert.DoesNotContain(points, point => point.NormalizedSymbol == "SOL-USDT");
-        Assert.Equal(1, _market.Calls["BTC-USDT"]);
+        Assert.Equal(2, _market.Calls["BTC-USDT"]);
     }
 
     [Fact]
@@ -170,11 +160,9 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
             var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
             var history = scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>();
             var outbox = await current.OutboxMessages.AsNoTracking().SingleAsync(Ct);
-            var eventId = OutboxEventSerializer.Deserialize(outbox.Payload).EventId;
             return outbox.ProcessedOnUtc is not null
-                && await history.InboxMessages.CountAsync(row => row.EventId == eventId, Ct) == 1
                 && await history.HistoricalFundingRates.CountAsync(row => row.NormalizedSymbol == "BTC-USDT", Ct) == 1;
-        }, "subsequent event confirmed and committed to history plus Inbox");
+        }, "subsequent event confirmed and history persisted");
         await AssertAcknowledgedAsync(1);
         Assert.Equal(1, _market.Calls["BTC-USDT"]);
     }
@@ -182,7 +170,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task HostedPublisher_ProcessLostAroundConfirm_RecoversLeaseWithoutLosingOrDuplicatingHistory(bool afterConfirm)
+    public async Task HostedPublisher_ProcessLostAroundConfirm_RetriesPendingWithoutDuplicatingHistory(bool afterConfirm)
     {
         var fault = new ConfirmWindow(afterConfirm);
         _host = await CreateHostAsync(fault);
@@ -197,7 +185,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
             await EventuallyAsync(async () =>
             {
                 await using var scope = _host.Services.CreateAsyncScope();
-                return await scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>().InboxMessages.AnyAsync(Ct);
+                return await scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>().HistoricalFundingRates.AnyAsync(Ct);
             }, "confirmed first delivery committed before publisher loss");
 
         await _host.StopAsync(Ct);
@@ -206,11 +194,9 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
             var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
             var row = await current.OutboxMessages.AsNoTracking().SingleAsync(Ct);
             Assert.Null(row.ProcessedOnUtc);
-            Assert.NotNull(row.LockOwner);
-            Assert.NotNull(row.LockedUntilUtc);
-            Assert.Equal(attemptsBeforeLoss, row.Attempts); // Cancellation leaves the interrupted publisher lease intact.
+            Assert.Equal(attemptsBeforeLoss, row.Attempts); // Cancellation leaves the event pending without counting a failed attempt.
             var history = scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>();
-            Assert.Equal(afterConfirm ? 1 : 0, await history.InboxMessages.CountAsync(Ct));
+            Assert.Equal(afterConfirm ? 1 : 0, await history.HistoricalFundingRates.CountAsync(Ct));
         }
         _host.Dispose();
         _host = await CreateHostAsync();
@@ -219,14 +205,14 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
         {
             await using var scope = _host.Services.CreateAsyncScope();
             return await scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>()
-                       .OutboxMessages.AllAsync(row => row.ProcessedOnUtc != null && row.LockOwner == null, Ct)
-                   && await scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>().InboxMessages.CountAsync(Ct) == 1;
-        }, "restarted hosted publisher reclaimed lease and completed delivery");
+                       .OutboxMessages.AllAsync(row => row.ProcessedOnUtc != null, Ct)
+                   && await scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>().HistoricalFundingRates.CountAsync(Ct) == 1;
+        }, "restarted hosted publisher completed pending delivery");
         await AssertAcknowledgedAsync(afterConfirm ? 2 : 1);
         await using var verification = _host.Services.CreateAsyncScope();
         Assert.Single(await verification.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>()
             .HistoricalFundingRates.AsNoTracking().ToListAsync(Ct));
-        Assert.Equal(1, _market.Calls["BTC-USDT"]);
+        Assert.Equal(afterConfirm ? 2 : 1, _market.Calls["BTC-USDT"]);
     }
 
     private async Task<IHost> CreateHostAsync(ConfirmWindow? fault = null)
@@ -240,7 +226,6 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
             ["RabbitMq:Username"] = "guest", ["RabbitMq:Password"] = "guest",
             ["CurrentDataCollectionOptions:UpdateIntervalSeconds"] = "3600",
             ["CurrentRatesOutbox:PollIntervalSeconds"] = "1",
-            ["CurrentRatesOutbox:LeaseSeconds"] = "2",
             ["HistoricalDataCollectionOptions:DefaultConcurrencyPerExchange"] = "1",
             ["HistoricalDataCollectionOptions:ExchangeConcurrency:Binance"] = "1",
             ["HistoricalDataCollectionOptions:ExchangeConcurrency:Bybit"] = "1",
@@ -274,7 +259,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
         var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
         Assert.Equal(expected, await current.CurrentFundingRates.CountAsync(Ct));
         Assert.Equal(expected, await current.OutboxMessages.CountAsync(row => row.ProcessedOnUtc == null, Ct));
-        Assert.Empty(await scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>().InboxMessages.ToListAsync(Ct));
+        Assert.Empty(await scope.ServiceProvider.GetRequiredService<HistoricalRatesDbContext>().HistoricalFundingRates.ToListAsync(Ct));
     }
 
     private Task AssertAcknowledgedAsync(int expectedAcks) => EventuallyAsync(async () =>

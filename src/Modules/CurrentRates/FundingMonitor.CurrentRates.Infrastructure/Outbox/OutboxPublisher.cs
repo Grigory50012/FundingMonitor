@@ -16,46 +16,27 @@ internal sealed class OutboxPublisher(
     OutboxMetrics metrics,
     ILogger<OutboxPublisher> logger)
 {
-    private readonly string _owner = $"{Environment.MachineName}:{Environment.ProcessId}:{Guid.NewGuid():N}";
-
     public async Task<int> ProcessPendingAsync(CancellationToken cancellationToken)
     {
-        var claimed = await ClaimAsync(cancellationToken);
-        foreach (var message in claimed)
+        var pending = await ReadPendingAsync(cancellationToken);
+        foreach (var message in pending)
             await PublishAsync(message, cancellationToken);
 
         await metrics.RefreshAsync(cancellationToken);
-        return claimed.Count;
+        return pending.Count;
     }
 
-    private async Task<IReadOnlyList<OutboxMessage>> ClaimAsync(CancellationToken cancellationToken)
+    // One backend instance runs one sequential publisher loop; no distributed claiming is needed.
+    private async Task<IReadOnlyList<OutboxMessage>> ReadPendingAsync(CancellationToken cancellationToken)
     {
         await using var dbContext = await contextFactory.CreateDbContextAsync(cancellationToken);
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        var now = timeProvider.GetUtcNow();
-        var batchSize = Math.Clamp(options.Value.BatchSize, 1, 1000);
-        var messages = await dbContext.OutboxMessages
-            .FromSqlInterpolated($$"""
-                SELECT *
-                FROM current_rates."OutboxMessages"
-                WHERE "ProcessedOnUtc" IS NULL
-                  AND ("LockedUntilUtc" IS NULL OR "LockedUntilUtc" < {{now}})
-                ORDER BY "OccurredOnUtc"
-                LIMIT {{batchSize}}
-                FOR UPDATE SKIP LOCKED
-                """)
+        return await dbContext.OutboxMessages
+            .AsNoTracking()
+            .Where(item => item.ProcessedOnUtc == null)
+            .OrderBy(item => item.OccurredOnUtc)
+            .ThenBy(item => item.Id)
+            .Take(Math.Clamp(options.Value.BatchSize, 1, 1000))
             .ToListAsync(cancellationToken);
-
-        var lockedUntil = now.AddSeconds(Math.Max(1, options.Value.LeaseSeconds));
-        foreach (var message in messages)
-        {
-            message.LockOwner = _owner;
-            message.LockedUntilUtc = lockedUntil;
-        }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return messages;
     }
 
     private async Task PublishAsync(OutboxMessage message, CancellationToken cancellationToken)
@@ -102,12 +83,10 @@ internal sealed class OutboxPublisher(
     {
         await using var dbContext = await contextFactory.CreateDbContextAsync(cancellationToken);
         await dbContext.OutboxMessages
-            .Where(item => item.Id == id && item.LockOwner == _owner)
+            .Where(item => item.Id == id)
             .ExecuteUpdateAsync(
                 updates => updates
                     .SetProperty(item => item.ProcessedOnUtc, timeProvider.GetUtcNow())
-                    .SetProperty(item => item.LockedUntilUtc, (DateTimeOffset?)null)
-                    .SetProperty(item => item.LockOwner, (string?)null)
                     .SetProperty(item => item.Error, (string?)null),
                 cancellationToken);
     }
@@ -122,13 +101,11 @@ internal sealed class OutboxPublisher(
             : error[..Math.Min(error.Length, 1000)];
         await using var dbContext = await contextFactory.CreateDbContextAsync(cancellationToken);
         await dbContext.OutboxMessages
-            .Where(item => item.Id == id && item.LockOwner == _owner)
+            .Where(item => item.Id == id)
             .ExecuteUpdateAsync(
                 updates => updates
                     .SetProperty(item => item.Attempts, item => item.Attempts + 1)
-                    .SetProperty(item => item.Error, boundedError)
-                    .SetProperty(item => item.LockedUntilUtc, (DateTimeOffset?)null)
-                    .SetProperty(item => item.LockOwner, (string?)null),
+                    .SetProperty(item => item.Error, boundedError),
                 cancellationToken);
     }
 }

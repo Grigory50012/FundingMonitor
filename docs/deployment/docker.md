@@ -44,7 +44,7 @@ docker exec funding_monitor_rabbitmq rabbitmqctl list_queues name consumers mess
 
 При работающем ApiHost каждая collection queue имеет по умолчанию 10 consumers: три независимых worker pool с `prefetch=1` и manual ACK. `historical-rates.dead` не имеет автоматического consumer. Просмотр и replay выполняются оператором вручную после устранения причины ошибки.
 
-CurrentRates отправляет события через PostgreSQL Outbox и publisher confirms. HistoricalRates сохраняет историю и Inbox в одной транзакции до ACK. Retry/DLQ также подтверждаются брокером перед ACK исходного сообщения. После остановки ApiHost число consumers становится нулевым; ошибки внешних бирж и географические ограничения диагностируются отдельно от topology брокера.
+CurrentRates отправляет события через PostgreSQL Outbox и publisher confirms. HistoricalRates сохраняет историю одним атомарным upsert до ACK. Inbox отсутствует; повторная доставка повторяет API-запрос, но не создаёт дубли строк. Retry/DLQ также подтверждаются брокером перед ACK исходного сообщения. После остановки ApiHost число consumers становится нулевым; ошибки внешних бирж и географические ограничения диагностируются отдельно от topology брокера.
 
 ## Consumer acknowledgement timeout
 
@@ -118,3 +118,13 @@ curl --noproxy "*" http://127.0.0.1:5000/health
 - ограничить доступ к `5432`, `5672` и `15672`;
 - настроить backup PostgreSQL и RabbitMQ volume;
 - не считать single-node classic queues защитой от физической потери диска.
+
+## Обновление упрощённого Outbox
+
+Запускается ровно один экземпляр ApiHost: Outbox dispatcher не использует распределённый захват записей. При обновлении остановить старый ApiHost, выполнить DatabaseMigrator и запустить новую версию. Миграции удаляют лишние поля Outbox и таблицу Inbox, сохраняя события и историю. Не запускать старую версию одновременно с миграцией или новой версией. См. [ADR 0013](../adr/0013-simple-outbox-without-inbox.md).
+
+## Восстановление схем и доступ к frontend
+
+ApiHost не применяет миграции. После удаления схем остановите backend, запустите DatabaseMigrator, затем ApiHost. Мигратор создаёт актуальные таблицы, но не восстанавливает удалённые данные.
+
+Frontend запускается командой npm run dev из frontend/FundingMonitor.Web. Открывайте http://127.0.0.1:5173 — Vite привязан к IPv4. При отказе подключения проверьте адрес и порт в выводе Vite.

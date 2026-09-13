@@ -31,7 +31,7 @@ dotnet run --project src/FundingMonitor.DatabaseMigrator
 dotnet run --project src/FundingMonitor.ApiHost
 ```
 
-Сначала `DatabaseMigrator` применяет миграции модулей; `ApiHost` запускается только после его успешного завершения и не меняет схему БД.
+Сначала `DatabaseMigrator` применяет миграции модулей; `ApiHost` запускается только после его успешного завершения и не меняет схему БД. После удаления схем их нужно заново создать запуском `DatabaseMigrator`; одного запуска `ApiHost` недостаточно.
 
 Документация API в Development (Scalar):
 
@@ -56,7 +56,7 @@ npm run dev
 Frontend dev server:
 
 ```text
-http://localhost:5173
+http://127.0.0.1:5173
 ```
 
 После изменения backend DTO обновите generated frontend types при запущенном API:
@@ -74,7 +74,7 @@ npm run generate:api-types
 - React/Vite dashboard с фильтрами по символу и биржам.
 - APR analytics по периодам 1, 2, 3, 7, 14, 21 и 30 дней.
 - Строгий модульный монолит: `ExchangeIntegration`, `CurrentRates`, `HistoricalRates`, `Arbitrage`; каждый модуль содержит пять отдельных слоёв, внешние зависимости разрешены только через `Contracts`.
-- Надёжная доставка изменений ставок: PostgreSQL Outbox → RabbitMQ → Inbox.
+- Надёжная доставка изменений ставок: PostgreSQL Outbox → RabbitMQ → идемпотентный upsert истории (один экземпляр backend).
 
 ## Технологии
 

@@ -7,4 +7,4 @@ public sealed record FundingRateChangedIntegrationEvent(
     DateTimeOffset OccurredOnUtc,
     ExchangeId Exchange,
     Symbol Symbol,
-    DateTimeOffset? NextFundingTime) : IIntegrationEvent;
+    DateTimeOffset? NextFundingTime);

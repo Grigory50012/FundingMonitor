@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using FundingMonitor.ExchangeIntegration.Contracts;
 using FundingMonitor.HistoricalRates.Application.Persistence;
 using FundingMonitor.HistoricalRates.Domain;
@@ -12,26 +11,10 @@ public sealed class HistoricalEventHandler(
     IOptions<HistoricalDataCollectionOptions> options,
     TimeProvider timeProvider) : IHistoricalEventHandler
 {
-    public const string ConsumerName = "HistoricalRates.FundingRateChanged.v1";
-
-    private static readonly Meter Meter = new("FundingMonitor.HistoricalRates");
-    private static readonly Counter<long> DuplicateCounter =
-        Meter.CreateCounter<long>("fundingmonitor.inbox.duplicates");
-
     public async Task HandleAsync(
         HistoricalCollectionRequest request,
         CancellationToken cancellationToken)
     {
-        if (await unitOfWork.HasProcessedAsync(
-                request.EventId,
-                ConsumerName,
-                cancellationToken))
-        {
-            DuplicateCounter.Add(1, new KeyValuePair<string, object?>(
-                "exchange", request.Exchange.Value));
-            return;
-        }
-
         var now = timeProvider.GetUtcNow();
         var result = await exchangeMarketData.GetHistoricalRatesAsync(
             new HistoricalRatesRequest(
@@ -51,9 +34,7 @@ public sealed class HistoricalEventHandler(
             point.FundingTime,
             point.CollectedOnUtc)).ToArray();
 
-        await unitOfWork.StoreHistoryAndMarkProcessedAsync(
-            request.EventId,
-            ConsumerName,
+        await unitOfWork.StoreHistoryAsync(
             rates,
             cancellationToken);
     }

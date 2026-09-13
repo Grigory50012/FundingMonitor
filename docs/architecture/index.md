@@ -8,7 +8,7 @@ Backend — строгий модульный монолит: один HTTP host
 | --- | --- | --- |
 | `ExchangeIntegration` | SDK бирж, нормализация, rate limits, health | Без persistence |
 | `CurrentRates` | Сбор, актуальность и выдача текущих ставок | `current_rates`, Outbox |
-| `HistoricalRates` | Исторический сбор, retry/DLQ, история и APR | `historical_rates`, Inbox |
+| `HistoricalRates` | Исторический сбор, retry/DLQ, история и APR | `historical_rates`, upsert истории |
 | `Arbitrage` | Расчёт арбитражных возможностей | Без persistence |
 
 Каждый модуль содержит пять проектов `FundingMonitor.<Module>.<Layer>`:
@@ -35,11 +35,13 @@ CurrentRates: сбор → текущие ставки + integration event в о
 → Outbox dispatcher → RabbitMQ publisher confirm
 → current-rates.events
 → historical-rates.collect.binance / .bybit / .okx
-→ проверка Inbox → сбор истории через ExchangeIntegration.Contracts
-→ история + Inbox в одной транзакции → manual ACK
+→ сбор истории через ExchangeIntegration.Contracts
+→ атомарный upsert истории → manual ACK
 ```
 
-Outbox сохраняет событие вместе с текущими ставками и закрывает окно потери между commit БД и публикацией. Dispatcher отмечает отправку после publisher confirm; повторная доставка допустима. Inbox подавляет повторную обработку одного `EventId` для consumer. Разные события одной пары не дедуплицируются: время выплаты на бирже может измениться.
+Outbox сохраняет событие вместе с текущими ставками и закрывает окно потери между commit БД и публикацией. Dispatcher отмечает отправку после publisher confirm; повторная доставка допустима. Inbox отсутствует: каждая доставка, включая повтор одного `EventId`, запрашивает историю у биржи. Upsert по `(Exchange, NormalizedSymbol, FundingTime)` предотвращает дубли строк. Разные события одной пары также обрабатываются: время выплаты на бирже может измениться.
+
+Развёртывание поддерживает один экземпляр backend с одним последовательным Outbox dispatcher. Распределённый захват событий отсутствует; перед запуском нескольких экземпляров потребуется вернуть координацию отправителей. См. [ADR 0013](../adr/0013-simple-outbox-without-inbox.md).
 
 У каждой биржи независимый worker pool, по умолчанию по 10 consumers; manual ACK и `prefetch=1`. Временная ошибка повторяется после задержки с увеличенным retry count. Original message подтверждается после confirmed-публикации retry или DLQ; permanent error и исчерпанные retries направляются в `historical-rates.dead`. Это доставка `at-least-once` с идемпотентным сохранением истории.
 
@@ -62,7 +64,7 @@ Outbox сохраняет событие вместе с текущими ста
 
 ## Frontend и запуск
 
-`app` и `widgets/dashboard` собирают features `current-rates`, `historical-rates`, `arbitrage`, `exchange-health` и `filters`. Каждый feature владеет API-функциями, hooks и UI; feature internals не импортируют друг друга. Общие Axios client, форматирование и UI находятся в `shared`, exchange primitives — в `entities`. APR, spread и freshness рассчитывает backend; frontend отображает данные, фильтрует и сортирует.
+`app` и `widgets/dashboard` собирают features `current-rates`, `historical-rates`, `arbitrage` и `filters`. Каждый feature владеет API-функциями, hooks и UI; feature internals не импортируют друг друга. Общие Axios client, форматирование и UI находятся в `shared`, exchange primitives — в `entities`. APR, spread и freshness рассчитывает backend; frontend отображает данные, фильтрует и сортирует.
 
 ```bash
 docker compose up -d --remove-orphans

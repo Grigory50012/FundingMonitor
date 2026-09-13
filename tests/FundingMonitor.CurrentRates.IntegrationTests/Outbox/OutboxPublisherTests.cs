@@ -27,12 +27,14 @@ public sealed class OutboxPublisherTests(CurrentRatesPostgreSqlFixture fixture)
         Assert.Equal(0, message.Attempts);
     }
 
-    [Fact]
-    public async Task DatabaseCommitAndUnconfirmedPublish_LeavesPending()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task UnconfirmedOrReturnedPublish_LeavesPending(bool confirmed, bool returned)
     {
         await fixture.ResetAsync();
         await fixture.SeedOutboxAsync(CreateMessage());
-        var publisher = new StubPublisher(_ => new MessagePublishResult(false, false, "not confirmed"));
+        var publisher = new StubPublisher(_ => new MessagePublishResult(confirmed, returned, "not delivered"));
         await using var scope = await fixture.CreatePublisherScopeAsync(publisher, Now);
 
         await scope.Publisher.ProcessPendingAsync(TestContext.Current.CancellationToken);
@@ -40,7 +42,7 @@ public sealed class OutboxPublisherTests(CurrentRatesPostgreSqlFixture fixture)
         var message = await ReadSingleAsync();
         Assert.Null(message.ProcessedOnUtc);
         Assert.Equal(1, message.Attempts);
-        Assert.Null(message.LockOwner);
+        Assert.Equal("not delivered", message.Error);
     }
 
     [Fact]
@@ -60,27 +62,31 @@ public sealed class OutboxPublisherTests(CurrentRatesPostgreSqlFixture fixture)
     }
 
     [Fact]
-    public async Task ExpiredLease_AnotherPublisherCanClaimTheRow()
+    public async Task FailedPublish_NewPublisherRetriesPendingRow()
     {
         await fixture.ResetAsync();
-        await fixture.SeedOutboxAsync(CreateMessage(
-            lockedUntilUtc: Now.AddMinutes(-1),
-            lockOwner: "dead-instance"));
+        await fixture.SeedOutboxAsync(CreateMessage());
+        await using (var failed = await fixture.CreatePublisherScopeAsync(
+            new StubPublisher(_ => new MessagePublishResult(false, false, "offline")), Now))
+            await failed.Publisher.ProcessPendingAsync(TestContext.Current.CancellationToken);
         var publisher = new StubPublisher(_ => MessagePublishResult.Success);
         await using var scope = await fixture.CreatePublisherScopeAsync(publisher, Now);
 
         await scope.Publisher.ProcessPendingAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, publisher.Calls);
-        Assert.NotNull((await ReadSingleAsync()).ProcessedOnUtc);
+        var row = await ReadSingleAsync();
+        Assert.NotNull(row.ProcessedOnUtc);
+        Assert.Equal(1, row.Attempts);
+        Assert.Null(row.Error);
+        await scope.Publisher.ProcessPendingAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(1, publisher.Calls);
     }
 
     private static readonly DateTimeOffset Now =
         new(2026, 9, 6, 12, 0, 0, TimeSpan.Zero);
 
-    private static OutboxMessage CreateMessage(
-        DateTimeOffset? lockedUntilUtc = null,
-        string? lockOwner = null)
+    private static OutboxMessage CreateMessage()
     {
         var integrationEvent = new FundingRateChangedIntegrationEvent(
             Guid.Parse("20000000-0000-0000-0000-000000000001"),
@@ -91,11 +97,8 @@ public sealed class OutboxPublisherTests(CurrentRatesPostgreSqlFixture fixture)
         return new OutboxMessage
         {
             Id = integrationEvent.EventId,
-            Type = typeof(FundingRateChangedIntegrationEvent).FullName!,
             Payload = OutboxEventSerializer.Serialize(integrationEvent),
-            OccurredOnUtc = integrationEvent.OccurredOnUtc,
-            LockedUntilUtc = lockedUntilUtc,
-            LockOwner = lockOwner
+            OccurredOnUtc = integrationEvent.OccurredOnUtc
         };
     }
 

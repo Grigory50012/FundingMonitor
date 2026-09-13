@@ -36,13 +36,6 @@ namespace FundingMonitor.CurrentRates.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<string>("LockOwner")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTimeOffset?>("LockedUntilUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTimeOffset>("OccurredOnUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -53,14 +46,7 @@ namespace FundingMonitor.CurrentRates.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ProcessedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("ProcessedOnUtc", "LockedUntilUtc");
 
                     b.HasIndex("ProcessedOnUtc", "OccurredOnUtc");
 

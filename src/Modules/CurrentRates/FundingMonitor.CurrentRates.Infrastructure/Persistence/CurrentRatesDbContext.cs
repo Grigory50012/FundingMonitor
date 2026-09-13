@@ -34,10 +34,7 @@ public sealed class CurrentRatesDbContext(
             entity.ToTable("OutboxMessages");
             entity.HasKey(item => item.Id);
             entity.HasIndex(item => new { item.ProcessedOnUtc, item.OccurredOnUtc });
-            entity.HasIndex(item => new { item.ProcessedOnUtc, item.LockedUntilUtc });
-            entity.Property(item => item.Type).HasMaxLength(512);
             entity.Property(item => item.Error).HasMaxLength(1000);
-            entity.Property(item => item.LockOwner).HasMaxLength(128);
             entity.Property(item => item.Payload).HasColumnType("jsonb");
         });
     }

@@ -94,7 +94,6 @@ public sealed class CurrentRatesPostgreSqlFixture : IAsyncLifetime
         services.Configure<OutboxOptions>(options =>
         {
             options.BatchSize = 10;
-            options.LeaseSeconds = 30;
         });
         services.AddDbContextFactory<CurrentRatesDbContext>(options =>
             options.UseNpgsql(ConnectionString));

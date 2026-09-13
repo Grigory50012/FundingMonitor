@@ -3,7 +3,6 @@ using FundingMonitor.HistoricalRates.Application;
 using FundingMonitor.HistoricalRates.Application.Persistence;
 using FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Testcontainers.PostgreSql;
@@ -32,7 +31,7 @@ public sealed class HistoricalRatesPostgreSqlFixture : IAsyncLifetime
     {
         await using var context = await CreateDbContextAsync();
         await context.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE historical_rates.\"HistoricalFundingRates\", historical_rates.\"InboxMessages\" CASCADE",
+            "TRUNCATE TABLE historical_rates.\"HistoricalFundingRates\" CASCADE",
             TestContext.Current.CancellationToken);
     }
 
@@ -45,8 +44,7 @@ public sealed class HistoricalRatesPostgreSqlFixture : IAsyncLifetime
     }
 
     public ValueTask<AsyncServiceScope> CreateScopeAsync(
-        IExchangeMarketDataModule exchangeModule,
-        SaveChangesInterceptor? interceptor = null)
+        IExchangeMarketDataModule exchangeModule)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -57,8 +55,6 @@ public sealed class HistoricalRatesPostgreSqlFixture : IAsyncLifetime
         services.AddDbContext<HistoricalRatesDbContext>(options =>
         {
             options.UseNpgsql(_container.GetConnectionString());
-            if (interceptor is not null)
-                options.AddInterceptors(interceptor);
         });
         services.AddScoped<HistoricalRatesRepository>();
         services.AddScoped<IHistoricalRatesRepository>(provider => provider.GetRequiredService<HistoricalRatesRepository>());

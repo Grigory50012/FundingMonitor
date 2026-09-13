@@ -11,7 +11,6 @@
 | Features | `src/features/current-rates` | Таблица текущих funding rates |
 | Features | `src/features/historical-rates` | History API, график и APR table |
 | Features | `src/features/arbitrage` | Funding arbitrage table |
-| Features | `src/features/exchange-health` | Exchange health API и state |
 | Features | `src/features/filters` | Активный фильтр символа и бирж |
 | Entities | `src/entities/exchange` | Exchange constants и badge |
 | Shared UI | `src/shared/ui` | `Panel`, `Spinner`, `EmptyState`, `SortIcon` |

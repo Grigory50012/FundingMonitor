@@ -23,23 +23,6 @@ namespace FundingMonitor.HistoricalRates.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("FundingMonitor.HistoricalRates.Infrastructure.Inbox.InboxMessage", b =>
-                {
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Consumer")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<DateTimeOffset>("ProcessedOnUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("EventId", "Consumer");
-
-                    b.ToTable("InboxMessages", "historical_rates");
-                });
-
             modelBuilder.Entity("FundingMonitor.HistoricalRates.Infrastructure.Persistence.HistoricalFundingRateDb", b =>
                 {
                     b.Property<string>("Exchange")

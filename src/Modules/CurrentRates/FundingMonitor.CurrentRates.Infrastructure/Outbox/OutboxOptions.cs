@@ -6,5 +6,4 @@ internal sealed class OutboxOptions
 
     public int PollIntervalSeconds { get; set; } = 2;
     public int BatchSize { get; set; } = 100;
-    public int LeaseSeconds { get; set; } = 30;
 }

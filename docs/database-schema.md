@@ -26,11 +26,11 @@
 
 ## Outbox
 
-`current_rates."OutboxMessages"` записывается в одной транзакции с текущими ставками. Поля: `Id` (UUID, PK и идентификатор события), `Type`, `Payload` (`jsonb`), `OccurredOnUtc`, nullable `ProcessedOnUtc`, `Attempts`, nullable `Error`, `LockedUntilUtc`, `LockOwner`.
+`current_rates."OutboxMessages"` записывается в одной транзакции с текущими ставками. Поля: `Id` (UUID, PK и идентификатор события), `Payload` (`jsonb`), `OccurredOnUtc`, nullable `ProcessedOnUtc`, `Attempts`, nullable `Error`.
 
-Индексы `(ProcessedOnUtc, OccurredOnUtc)` и `(ProcessedOnUtc, LockedUntilUtc)` обслуживают выборку и lease отправки. Dispatcher публикует событие в RabbitMQ и отмечает `ProcessedOnUtc` после publisher confirm. Сбой между confirm и отметкой может дать повторную доставку, которую обработает Inbox.
+Индекс `(ProcessedOnUtc, OccurredOnUtc)` обслуживает выборку ожидающих событий. Один последовательный dispatcher читает их без lease, публикует в RabbitMQ и отмечает `ProcessedOnUtc` только после publisher confirm без returned message. `Attempts` считает неудачные попытки, `Error` содержит последнюю ошибку и очищается при успехе. Сбой между confirm и отметкой допускает повторную доставку и повторный API-запрос; upsert истории предотвращает дубли строк.
 
-## Исторические ставки и Inbox
+## Исторические ставки
 
 Таблица `historical_rates."HistoricalFundingRates"`:
 
@@ -44,7 +44,7 @@
 
 Composite PK `(Exchange, NormalizedSymbol, FundingTime)` делает сохранение идемпотентным. Дополнительные индексы: `(Exchange, NormalizedSymbol)` и `FundingTime`. Пакетная запись использует параметризованный PostgreSQL `INSERT ... ON CONFLICT ... DO UPDATE`; повторная выплата обновляет `FundingRate` и `CollectedOnUtc` без создания дубля.
 
-Таблица `historical_rates."InboxMessages"` хранит `EventId` (UUID), `Consumer` (`varchar(256)`) и `ProcessedOnUtc`. PK `(EventId, Consumer)` подавляет redelivery одного события для конкретного обработчика. История и Inbox фиксируются в одной транзакции, затем consumer отправляет manual ACK. Разные `EventId` одной пары обрабатываются независимо.
+Inbox отсутствует. Каждая доставка вызывает сбор истории; один SQL upsert атомарно сохраняет пакет, затем consumer отправляет manual ACK. При ошибке записи используется штатный retry/DLQ workflow. Пустой успешный результат не требует записи в БД.
 
 ## Миграции
 
@@ -60,6 +60,8 @@ dotnet run --project src/FundingMonitor.DatabaseMigrator
 dotnet run --project src/FundingMonitor.ApiHost
 ```
 
-Вторая команда допустима только после успешного завершения первой. ApiHost не применяет миграции. Переход использует новые baseline migrations и не переносит прежние development-данные; повторный запуск migrator безопасен для уже актуальной схемы. При изменении модели новая миграция и snapshot коммитятся вместе с кодом владельца.
+Вторая команда допустима только после успешного завершения первой. ApiHost не применяет миграции. Первоначальный переход на модульную схему (ADR 0012) использовал baseline migrations без переноса прежних development-данных; повторный запуск migrator безопасен для уже актуальной схемы. При изменении модели новая миграция и snapshot коммитятся вместе с кодом владельца.
+
+Миграции `SimplifyOutbox` и `RemoveHistoricalInbox` обновляют существующую модульную схему без потери Outbox payload и истории. Они удаляют `Type`, `LockOwner`, `LockedUntilUtc`, lease-индекс и таблицу Inbox. Откат восстанавливает структуру, но не прежний журнал Inbox. Перед обновлением остановить ApiHost, выполнить DatabaseMigrator, затем запустить ровно один экземпляр новой версии. Подробнее: [ADR 0013](adr/0013-simple-outbox-without-inbox.md).
 
 Правила изоляции и миграций закреплены в [ADR 0012](adr/0012-strict-modular-monolith.md). Команды проверки БД и брокера: [Docker](deployment/docker.md).

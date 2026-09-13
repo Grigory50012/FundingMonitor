@@ -4,14 +4,7 @@ namespace FundingMonitor.HistoricalRates.Application.Persistence;
 
 public interface IHistoricalRatesUnitOfWork
 {
-    Task<bool> HasProcessedAsync(
-        Guid eventId,
-        string consumer,
-        CancellationToken cancellationToken);
-
-    Task StoreHistoryAndMarkProcessedAsync(
-        Guid eventId,
-        string consumer,
+    Task StoreHistoryAsync(
         IReadOnlyCollection<HistoricalFundingRate> rates,
         CancellationToken cancellationToken);
 }

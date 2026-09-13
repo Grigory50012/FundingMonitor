@@ -34,3 +34,4 @@ ADR — это документ, фиксирующий значимое арх�
 | [0010](0010-rabbitmq-for-parallel-historical-collection.md) | RabbitMQ для параллельного исторического сбора | Принято | 2026-07-26 |
 | [0011](0011-module-first-modular-monolith.md) | Module-first организация модульного монолита | Заменено ADR 0012 | 2026-08-05 |
 | [0012](0012-strict-modular-monolith.md) | Строгий модульный монолит с изолированными слоями и данными | Принято | 2026-09-06 |
+| [0013](0013-simple-outbox-without-inbox.md) | Простой Outbox без Inbox, один экземпляр backend | Принято | 2026-09-12 |

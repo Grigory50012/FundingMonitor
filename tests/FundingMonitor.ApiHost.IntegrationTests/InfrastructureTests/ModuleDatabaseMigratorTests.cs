@@ -77,7 +77,6 @@ public sealed class ModuleDatabaseMigratorTests
             "current_rates.OutboxMessages",
             "current_rates.__EFMigrationsHistory",
             "historical_rates.HistoricalFundingRates",
-            "historical_rates.InboxMessages",
             "historical_rates.__EFMigrationsHistory"
         }.Order(StringComparer.Ordinal), tables.Order(StringComparer.Ordinal));
 
