@@ -1,84 +1,82 @@
 # Архитектура FundingMonitor
 
-Backend — строгий модульный монолит: один HTTP host и четыре изолированных модуля. Решение закреплено в [ADR 0012](../adr/0012-strict-modular-monolith.md), заменившем подход [ADR 0011](../adr/0011-module-first-modular-monolith.md).
+FundingMonitor — строгий модульный монолит: один `FundingMonitor.ApiHost` собирает четыре изолированных бизнес-модуля. Каждый модуль разделён на `Contracts`, `Domain`, `Application`, `Infrastructure` и `Presentation`; другой модуль может использовать только его `Contracts`.
 
-## Модули и слои
+## Общая карта
 
-| Каталог под `src/Modules` | Ответственность | Владение данными |
+```mermaid
+flowchart LR
+    UI[React frontend] --> Host[ApiHost]
+    Host --> EP[ExchangeIntegration.Presentation]
+    Host --> CP[CurrentRates.Presentation]
+    Host --> HP[HistoricalRates.Presentation]
+    Host --> AP[Arbitrage.Presentation]
+    CR[CurrentRates] -->|sync via Contracts| EI[ExchangeIntegration]
+    HR[HistoricalRates] -->|sync via Contracts| EI
+    AR[Arbitrage] -->|sync via Contracts| CR
+    CR -->|Outbox event via RabbitMQ| HR
+    CR --> CRS[(current_rates schema)]
+    HR --> HRS[(historical_rates schema)]
+    EI --> EX[Binance / Bybit / OKX]
+    Migrator[DatabaseMigrator] --> CRS
+    Migrator --> HRS
+```
+
+| Модуль | Ответственность | Состояние |
 | --- | --- | --- |
-| `ExchangeIntegration` | SDK бирж, нормализация, rate limits, health | Без persistence |
-| `CurrentRates` | Сбор, актуальность и выдача текущих ставок | `current_rates`, Outbox |
-| `HistoricalRates` | Исторический сбор, retry/DLQ, история и APR | `historical_rates`, upsert истории |
-| `Arbitrage` | Расчёт арбитражных возможностей | Без persistence |
+| `ExchangeIntegration` | SDK бирж, нормализация, rate limits и health | Без persistence |
+| `CurrentRates` | Сбор, актуальность и выдача текущих ставок | schema `current_rates`, Outbox |
+| `HistoricalRates` | Исторический сбор, retry/DLQ, история и APR | schema `historical_rates` |
+| `Arbitrage` | Расчёт арбитражных возможностей | Только память |
 
-Каждый модуль содержит пять проектов `FundingMonitor.<Module>.<Layer>`:
+Подробная карта и статус проверки: [модули](modules/index.md). Межмодульные потоки: [сквозные сценарии](scenarios.md).
+
+## Слои модуля
+
+```mermaid
+flowchart BT
+    Presentation --> Application
+    Presentation --> Infrastructure
+    Infrastructure --> Application
+    Application --> Domain
+    Application --> Contracts
+    Domain --> SharedKernel
+    Contracts --> SharedKernel
+    Infrastructure --> SharedKernel
+```
 
 - `Contracts` — публичные DTO, интерфейсы и integration events.
-- `Domain` — бизнес-модель и правила модуля.
+- `Domain` — бизнес-модель и правила без framework dependencies.
 - `Application` — сценарии использования и внутренние порты.
-- `Infrastructure` — реализация портов, persistence и фоновые сервисы.
-- `Presentation` — HTTP controllers, mapping и регистрация модуля.
+- `Infrastructure` — persistence, внешние SDK, messaging и фоновые процессы.
+- `Presentation` — HTTP controllers, DTO mapping и регистрация модуля.
 
-Модуль может зависеть от другого модуля только через его `Contracts`. Внутри модуля зависимости направлены к `Domain` и `Contracts`; `Application` не ссылается на `Infrastructure` или `Presentation`. Architecture tests проверяют проекты, сборки, видимость типов и отсутствие общих EF-моделей.
+`FundingMonitor.SharedKernel` содержит стабильные общие примитивы без бизнес-логики. `FundingMonitor.Messaging` содержит только транспортные RabbitMQ abstractions и envelope. Architecture tests проверяют project references, compiled dependencies, публичные поверхности и изоляцию database schemas.
 
-`FundingMonitor.SharedKernel` содержит стабильные примитивы без бизнес-логики. `FundingMonitor.Messaging` содержит транспортную механику RabbitMQ, сериализацию и envelope; бизнес-контракты принадлежат модулям.
+## Данные и доставка
 
-`FundingMonitor.ApiHost` — composition root: регистрирует четыре модуля через `Presentation`, настраивает HTTP pipeline и единый OpenAPI. `FundingMonitor.DatabaseMigrator` отдельно применяет обе группы миграций; ApiHost не мигрирует БД при старте.
+`CurrentRates` и `HistoricalRates` используют одну PostgreSQL database, но владеют разными schemas и `DbContext`. Cross-schema queries, foreign keys и EF navigation properties запрещены. Миграции применяет отдельный `FundingMonitor.DatabaseMigrator`; `ApiHost` не изменяет schema при запуске.
 
-## Потоки данных
+`CurrentRates` сохраняет ставки и Outbox event в одной транзакции. Один последовательный dispatcher публикует событие в RabbitMQ и отмечает его обработанным после publisher confirm. `HistoricalRates` повторно запрашивает биржу при каждой доставке и атомарно выполняет history upsert по `(Exchange, NormalizedSymbol, FundingTime)` перед manual ACK. Inbox отсутствует. Гарантия — `at-least-once` с идемпотентным сохранением истории; текущая конфигурация поддерживает один экземпляр backend.
 
-`CurrentRates` и `HistoricalRates` получают данные бирж через `ExchangeIntegration.Contracts`. `Arbitrage` читает ставки через `CurrentRates.Contracts`, рассчитывает результат в памяти и не обращается к чужой схеме БД.
+## HTTP
 
-```text
-CurrentRates: сбор → текущие ставки + integration event в одной транзакции
-→ current_rates.OutboxMessages
-→ Outbox dispatcher → RabbitMQ publisher confirm
-→ current-rates.events
-→ historical-rates.collect.binance / .bybit / .okx
-→ сбор истории через ExchangeIntegration.Contracts
-→ атомарный upsert истории → manual ACK
-```
-
-Outbox сохраняет событие вместе с текущими ставками и закрывает окно потери между commit БД и публикацией. Dispatcher отмечает отправку после publisher confirm; повторная доставка допустима. Inbox отсутствует: каждая доставка, включая повтор одного `EventId`, запрашивает историю у биржи. Upsert по `(Exchange, NormalizedSymbol, FundingTime)` предотвращает дубли строк. Разные события одной пары также обрабатываются: время выплаты на бирже может измениться.
-
-Развёртывание поддерживает один экземпляр backend с одним последовательным Outbox dispatcher. Распределённый захват событий отсутствует; перед запуском нескольких экземпляров потребуется вернуть координацию отправителей. См. [ADR 0013](../adr/0013-simple-outbox-without-inbox.md).
-
-У каждой биржи независимый worker pool, по умолчанию по 10 consumers; manual ACK и `prefetch=1`. Временная ошибка повторяется после задержки с увеличенным retry count. Original message подтверждается после confirmed-публикации retry или DLQ; permanent error и исчерпанные retries направляются в `historical-rates.dead`. Это доставка `at-least-once` с идемпотентным сохранением истории.
-
-Интервал текущего сбора задаёт `CurrentDataCollectionOptions.UpdateIntervalSeconds` (10 секунд). Порог актуальности — `DeactivateMissingAfterMinutes` (5 минут). При каждом чтении CurrentRates выдаёт только активные пары с `LastSeenOnUtc >= now - threshold`; после истечения порога ставка исчезает из текущей выдачи и расчёта Arbitrage даже при недоступной бирже. Последние значения остаются в БД. Успешный snapshot дополнительно деактивирует отсутствующие просроченные пары, а повторное появление пары обновляет timestamp и активирует её. Детали таблиц и транзакций: [схема БД](../database-schema.md).
-
-## HTTP и OpenAPI
-
-Маршруты и JSON-контракт при переходе сохранены:
-
-| Метод | Маршрут | Назначение |
+| Метод | Маршрут | Модуль |
 | --- | --- | --- |
-| GET | `/api/v1/FundingRates` | Текущие ставки |
-| GET | `/api/v1/History` | История |
-| GET | `/api/v1/History/apr-stats` | APR по периодам |
-| GET | `/api/v1/Arbitrage` | Арбитражные возможности |
-| GET | `/api/v1/exchanges/health` | Состояние бирж |
-| GET | `/health` | Состояние зарегистрированных health checks |
+| GET | `/api/v1/FundingRates` | CurrentRates |
+| GET | `/api/v1/History` | HistoricalRates |
+| GET | `/api/v1/History/apr-stats` | HistoricalRates |
+| GET | `/api/v1/Arbitrage` | Arbitrage |
+| GET | `/api/v1/exchanges/health` | ExchangeIntegration |
+| GET | `/health` | ApiHost health checks |
 
-`/health` включает `rabbitmq-topology`: при каждом запросе выполняется passive probe exchange и четырёх очередей через AMQP с бюджетом отмены 5 секунд. Недоступный брокер или отсутствующая topology дают `Degraded`; восстановление доступности возвращает `Healthy`. Проверка не пересоздаёт topology, не проверяет bindings или число consumers и не обращается к биржам. При стандартном mapping ASP.NET Core статус `Degraded` также возвращается с HTTP 200, поэтому нужно учитывать тело ответа; consumers проверяются отдельно. В Development `Microsoft.AspNetCore.OpenApi` публикует `/openapi/v1.json`, Scalar — `/scalar`. `JsonNumberHandling.Strict` сохраняет числовой JSON-контракт. Команда `npm run generate:api-types` при запущенном API обновляет `frontend/FundingMonitor.Web/src/types/generated/api.ts`; Axios client остаётся ручным.
+В Development доступны `/openapi/v1.json` и `/scalar`. Frontend отображает рассчитанные backend значения APR, spread и freshness, а также выполняет клиентские фильтрацию и сортировку.
 
-## Frontend и запуск
+## Связанные документы
 
-`app` и `widgets/dashboard` собирают features `current-rates`, `historical-rates`, `arbitrage` и `filters`. Каждый feature владеет API-функциями, hooks и UI; feature internals не импортируют друг друга. Общие Axios client, форматирование и UI находятся в `shared`, exchange primitives — в `entities`. APR, spread и freshness рассчитывает backend; frontend отображает данные, фильтрует и сортирует.
-
-```bash
-docker compose up -d --remove-orphans
-dotnet run --project src/FundingMonitor.DatabaseMigrator
-dotnet run --project src/FundingMonitor.ApiHost
-```
-
-Compose запускает PostgreSQL на `5432`, RabbitMQ на `5672` и Management UI на `15672`. Frontend запускается из `frontend/FundingMonitor.Web` командой `npm run dev`; Vite перенаправляет `/api` на backend.
-
-## Связанная документация
-
-- [Вход в документацию](../index.md)
-- [ADR](../adr/index.md)
-- [Сценарии использования](USE_CASE_DIAGRAM.md)
+- [Модули](modules/index.md)
+- [Сквозные сценарии](scenarios.md)
+- [ADR 0012: строгий модульный монолит](../adr/0012-strict-modular-monolith.md)
+- [ADR 0013: простой Outbox без Inbox](../adr/0013-simple-outbox-without-inbox.md)
 - [Схема БД](../database-schema.md)
-- [Frontend-компоненты](../frontend/components/index.md)
 - [Развёртывание](../deployment/docker.md)

@@ -4,6 +4,8 @@
 **Дата**: 2026-07-26
 **Заменяет**: [ADR 0003](0003-redis-queue-for-historical-collection.md)
 
+Имена topology и producer guarantee уточнены [ADR 0012](0012-strict-modular-monolith.md) и [ADR 0013](0013-simple-outbox-without-inbox.md). Текущая реализация использует direct exchange `current-rates.events`, очереди `historical-rates.collect.*`, DLQ `historical-rates.dead` и PostgreSQL Outbox. Ниже сохранено исходное решение о выборе RabbitMQ и независимых worker pools.
+
 ## Контекст
 
 Одна Redis List и общий `SemaphoreSlim` не обеспечивали независимый прогресс бирж и удаляли задачу до успешной обработки. Binance может остановить свои запросы встроенным limiter на несколько минут; это не должно блокировать Bybit и OKX.

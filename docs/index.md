@@ -14,6 +14,8 @@
 | Раздел | Для чего |
 | --- | --- |
 | [Architecture](architecture/index.md) | Архитектура backend/frontend, data flow, deployment view |
+| [Modules](architecture/modules/index.md) | Границы и внутренние сценарии бизнес-модулей |
+| [Cross-module scenarios](architecture/scenarios.md) | Потоки между модулями, PostgreSQL, RabbitMQ и биржами |
 | [ADR](adr/index.md) | Architecture Decision Records |
 | [Database Schema](database-schema.md) | Таблицы, индексы, миграции, performance notes |
 | [Docker Deployment](deployment/docker.md) | PostgreSQL и RabbitMQ через Docker Compose |
