@@ -32,6 +32,11 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         var outbox = Assert.Single(await verification.OutboxMessages.AsNoTracking().ToListAsync(
             TestContext.Current.CancellationToken));
         Assert.Null(outbox.ProcessedOnUtc);
+        Assert.Equal(TestEvent.EventId, outbox.Id);
+        Assert.Equal(TestEvent.OccurredOnUtc, outbox.OccurredOnUtc);
+        Assert.Equal(TestEvent.Exchange.Value, outbox.Exchange);
+        Assert.Equal(TestEvent.Symbol.Value, outbox.Symbol);
+        Assert.Equal(TestEvent.NextFundingTime, outbox.NextFundingTime);
     }
 
     [Fact]

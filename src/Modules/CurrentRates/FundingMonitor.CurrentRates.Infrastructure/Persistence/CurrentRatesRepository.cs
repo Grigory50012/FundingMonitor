@@ -96,7 +96,9 @@ internal sealed class CurrentRatesRepository(
             dbContext.OutboxMessages.Add(new OutboxMessage
             {
                 Id = integrationEvent.EventId,
-                Payload = OutboxEventSerializer.Serialize(integrationEvent),
+                Exchange = integrationEvent.Exchange.Value,
+                Symbol = integrationEvent.Symbol.Value,
+                NextFundingTime = integrationEvent.NextFundingTime,
                 OccurredOnUtc = integrationEvent.OccurredOnUtc
             });
         }

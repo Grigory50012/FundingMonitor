@@ -26,7 +26,7 @@
 
 ## Outbox
 
-`current_rates."OutboxMessages"` записывается в одной транзакции с текущими ставками. Поля: `Id` (UUID, PK и идентификатор события), `Payload` (`jsonb`), `OccurredOnUtc`, nullable `ProcessedOnUtc`, `Attempts`, nullable `Error`.
+`current_rates."OutboxMessages"` записывается в одной транзакции с текущими ставками. Поля: `Id` (UUID, PK и идентификатор события), `OccurredOnUtc`, `Exchange` (`varchar(32)`), `Symbol` (`varchar(64)`), nullable `NextFundingTime` (`timestamptz`), nullable `ProcessedOnUtc`, `Attempts`, nullable `Error`. `Exchange`, `Symbol` и `NextFundingTime` — снимок события на момент записи, а не ссылка на изменяемую текущую ставку. При публикации событие собирается из этих колонок.
 
 Индекс `(ProcessedOnUtc, OccurredOnUtc)` обслуживает выборку ожидающих событий. Один последовательный dispatcher читает их без lease, публикует в RabbitMQ и отмечает `ProcessedOnUtc` только после publisher confirm без returned message. `Attempts` считает неудачные попытки, `Error` содержит последнюю ошибку и очищается при успехе. Сбой между confirm и отметкой допускает повторную доставку и повторный API-запрос; upsert истории предотвращает дубли строк.
 
@@ -62,6 +62,8 @@ dotnet run --project src/FundingMonitor.ApiHost
 
 Вторая команда допустима только после успешного завершения первой. ApiHost не применяет миграции. Первоначальный переход на модульную схему (ADR 0012) использовал baseline migrations без переноса прежних development-данных; повторный запуск migrator безопасен для уже актуальной схемы. При изменении модели новая миграция и snapshot коммитятся вместе с кодом владельца.
 
-Миграции `SimplifyOutbox` и `RemoveHistoricalInbox` обновляют существующую модульную схему без потери Outbox payload и истории. Они удаляют `Type`, `LockOwner`, `LockedUntilUtc`, lease-индекс и таблицу Inbox. Откат восстанавливает структуру, но не прежний журнал Inbox. Перед обновлением остановить ApiHost, выполнить DatabaseMigrator, затем запустить ровно один экземпляр новой версии. Подробнее: [ADR 0013](adr/0013-simple-outbox-without-inbox.md).
+Миграции `SimplifyOutbox` и `RemoveHistoricalInbox` обновляют существующую модульную схему без потери Outbox events и истории. Они удаляют `Type`, `LockOwner`, `LockedUntilUtc`, lease-индекс и таблицу Inbox. Откат восстанавливает структуру, но не прежний журнал Inbox. Перед обновлением остановить ApiHost, выполнить DatabaseMigrator, затем запустить ровно один экземпляр новой версии. Подробнее: [ADR 0013](adr/0013-simple-outbox-without-inbox.md).
+
+Миграция `FlattenOutboxEvent` переносит `Exchange`, `Symbol` и `NextFundingTime` из прежнего `Payload` (`jsonb`) в типизированные колонки, затем удаляет `Payload`. Ожидающие события, `Attempts` и `Error` сохраняются. Откат восстанавливает JSON из колонок и метаданных события. Перед применением миграции остановить ApiHost и выполнить DatabaseMigrator; миграция не запускается при старте ApiHost.
 
 Правила изоляции и миграций закреплены в [ADR 0012](adr/0012-strict-modular-monolith.md). Команды проверки БД и брокера: [Docker](deployment/docker.md).

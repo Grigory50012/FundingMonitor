@@ -107,8 +107,10 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
         {
             var rows = await scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>()
                 .OutboxMessages.AsNoTracking().ToListAsync(Ct);
-            var row = Assert.Single(rows, item => OutboxEventSerializer.Deserialize(item.Payload).Symbol.Value == "BTC-USDT");
-            var message = OutboxEventSerializer.Deserialize(row.Payload);
+            var row = Assert.Single(rows, item => item.Symbol == "BTC-USDT");
+            var message = new FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent(
+                row.Id, row.OccurredOnUtc, ExchangeId.Parse(row.Exchange),
+                Symbol.Create(row.Symbol), row.NextFundingTime);
             Assert.Equal(MessagePublishResult.Success,
                 await _host.Services.GetRequiredService<IMessagePublisher>().PublishAsync(
                     RabbitMqTopology.ExchangeName, RabbitMqTopology.GetRoutingKey(message.Exchange),

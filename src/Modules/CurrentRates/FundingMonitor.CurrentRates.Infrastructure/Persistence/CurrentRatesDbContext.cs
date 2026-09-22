@@ -35,7 +35,8 @@ public sealed class CurrentRatesDbContext(
             entity.HasKey(item => item.Id);
             entity.HasIndex(item => new { item.ProcessedOnUtc, item.OccurredOnUtc });
             entity.Property(item => item.Error).HasMaxLength(1000);
-            entity.Property(item => item.Payload).HasColumnType("jsonb");
+            entity.Property(item => item.Exchange).HasMaxLength(32);
+            entity.Property(item => item.Symbol).HasMaxLength(64);
         });
     }
 }

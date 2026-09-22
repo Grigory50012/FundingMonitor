@@ -2,6 +2,7 @@ using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
 using FundingMonitor.Messaging;
 using FundingMonitor.Messaging.Abstractions;
+using FundingMonitor.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -44,7 +45,12 @@ internal sealed class OutboxPublisher(
         string? failure = null;
         try
         {
-            var integrationEvent = OutboxEventSerializer.Deserialize(message.Payload);
+            var integrationEvent = new FundingRateChangedIntegrationEvent(
+                message.Id,
+                message.OccurredOnUtc,
+                ExchangeId.Parse(message.Exchange),
+                Symbol.Create(message.Symbol),
+                message.NextFundingTime);
             var envelope = new MessageEnvelope<FundingRateChangedIntegrationEvent>(
                 message.Id,
                 message.Id,

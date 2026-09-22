@@ -17,7 +17,13 @@ public sealed class OutboxPublisherTests(CurrentRatesPostgreSqlFixture fixture)
     {
         await fixture.ResetAsync();
         await fixture.SeedOutboxAsync(CreateMessage());
-        var publisher = new StubPublisher(_ => MessagePublishResult.Success);
+        var publisher = new StubPublisher(integrationEvent =>
+        {
+            Assert.Equal("Binance", integrationEvent.Exchange.Value);
+            Assert.Equal("BTC-USDT", integrationEvent.Symbol.Value);
+            Assert.Equal(Now.AddHours(4), integrationEvent.NextFundingTime);
+            return MessagePublishResult.Success;
+        });
         await using var scope = await fixture.CreatePublisherScopeAsync(publisher, Now);
 
         await scope.Publisher.ProcessPendingAsync(TestContext.Current.CancellationToken);
@@ -97,7 +103,9 @@ public sealed class OutboxPublisherTests(CurrentRatesPostgreSqlFixture fixture)
         return new OutboxMessage
         {
             Id = integrationEvent.EventId,
-            Payload = OutboxEventSerializer.Serialize(integrationEvent),
+            Exchange = integrationEvent.Exchange.Value,
+            Symbol = integrationEvent.Symbol.Value,
+            NextFundingTime = integrationEvent.NextFundingTime,
             OccurredOnUtc = integrationEvent.OccurredOnUtc
         };
     }

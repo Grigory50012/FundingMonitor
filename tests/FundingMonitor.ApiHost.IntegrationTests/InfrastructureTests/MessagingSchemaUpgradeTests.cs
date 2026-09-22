@@ -49,10 +49,18 @@ public sealed class MessagingSchemaUpgradeTests
         Assert.Null(message.ProcessedOnUtc);
         Assert.Equal(2, message.Attempts);
         Assert.Equal("offline", message.Error);
-        using var originalJson = System.Text.Json.JsonDocument.Parse(payload);
-        using var storedJson = System.Text.Json.JsonDocument.Parse(message.Payload);
-        Assert.Equal(originalJson.RootElement.GetProperty("eventId").GetString(), storedJson.RootElement.GetProperty("eventId").GetString());
-        Assert.Equal("BTC-USDT", storedJson.RootElement.GetProperty("symbol").GetString());
+        await using var columns = new NpgsqlCommand("""
+            SELECT "Exchange", "Symbol", "NextFundingTime"
+            FROM current_rates."OutboxMessages"
+            WHERE "Id" = '20000000-0000-0000-0000-000000000001';
+            """, connection);
+        await using (var migrated = await columns.ExecuteReaderAsync(ct))
+        {
+            Assert.True(await migrated.ReadAsync(ct));
+            Assert.Equal("Binance", migrated.GetString(0));
+            Assert.Equal("BTC-USDT", migrated.GetString(1));
+            Assert.True(await migrated.IsDBNullAsync(2, ct));
+        }
         Assert.Equal(0.0003m, Assert.Single(await history.HistoricalFundingRates.AsNoTracking().ToListAsync(ct)).FundingRate);
         Assert.False(current.Database.HasPendingModelChanges());
         Assert.False(history.Database.HasPendingModelChanges());
@@ -63,5 +71,17 @@ public sealed class MessagingSchemaUpgradeTests
                 + (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'historical_rates' AND table_name = 'InboxMessages');
             """, connection);
         Assert.Equal(0L, await retiredSchema.ExecuteScalarAsync(ct));
+
+        await current.GetService<IMigrator>().MigrateAsync("20260912145113_SimplifyOutbox", ct);
+        await using var restored = new NpgsqlCommand("""
+            SELECT "Payload" FROM current_rates."OutboxMessages"
+            WHERE "Id" = '20000000-0000-0000-0000-000000000001';
+            """, connection);
+        using var restoredJson = System.Text.Json.JsonDocument.Parse(
+            Assert.IsType<string>(await restored.ExecuteScalarAsync(ct)));
+        Assert.Equal("Binance", restoredJson.RootElement.GetProperty("exchange").GetString());
+        Assert.Equal("BTC-USDT", restoredJson.RootElement.GetProperty("symbol").GetString());
+        Assert.Equal("20000000-0000-0000-0000-000000000001",
+            restoredJson.RootElement.GetProperty("eventId").GetString());
     }
 }

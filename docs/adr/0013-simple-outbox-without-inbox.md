@@ -11,12 +11,14 @@ Backend работает одним экземпляром. Нужна надё�
 
 - Сохранять текущие ставки и событие Outbox в одной транзакции PostgreSQL.
 - Оставить один последовательный фоновый отправитель. Читать ожидающие события без lease и блокировок между экземплярами. Удалить `Type`, `LockOwner`, `LockedUntilUtc`, `LeaseSeconds` и индекс lease.
-- Сохранить `Id`, `Payload`, `OccurredOnUtc`, `ProcessedOnUtc`, `Attempts`, `Error`. Отмечать отправку только после publisher confirm без returned message.
+- Сохранить `Id`, `OccurredOnUtc`, `ProcessedOnUtc`, `Attempts`, `Error` и снимок события (`Exchange`, `Symbol`, `NextFundingTime`). Отмечать отправку только после publisher confirm без returned message.
 - Удалить Inbox и метрику `fundingmonitor.inbox.duplicates`. Повтор одного EventId повторно обращается к API биржи.
 - Сохранять историю одним атомарным `INSERT ... ON CONFLICT ... DO UPDATE` по `(Exchange, NormalizedSymbol, FundingTime)`; ACK выполняется после успешного сохранения. Пустой успешный результат допускает ACK без записи.
 - Сохранить RabbitMQ, независимые пулы бирж, retry/DLQ и подтверждение повторной публикации до ACK исходного сообщения.
 
 ## Последствия
+
+С 2026-09-15 миграция `FlattenOutboxEvent` заменила `Payload` (`jsonb`) для единственного события на колонки `Exchange`, `Symbol` и `NextFundingTime`. `Id` и `OccurredOnUtc` остаются единственными источниками идентификатора и времени события; остальные гарантии этого решения не меняются. Текущая схема описана в [схеме базы данных](../database-schema.md).
 
 Меньше состояния, SQL и кода восстановления. Гарантия остаётся at-least-once с идемпотентным сохранением истории. Сбой после confirm до отметки Outbox и сбой после upsert до ACK могут повторить API-запрос; дополнительных строк истории не возникает. Разные события одной пары также выполняются независимо.
 
