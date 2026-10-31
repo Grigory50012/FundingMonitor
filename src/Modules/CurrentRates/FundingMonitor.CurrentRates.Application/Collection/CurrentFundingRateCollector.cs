@@ -80,7 +80,7 @@ public sealed class CurrentFundingRateCollector(
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(exception, "[{Exchange}] Current-rate collection failed", exchange);
+            logger.LogWarning(exception, "[{Exchange}] Current-rate collection failed; next cycle will retry", exchange);
             return ExchangeCollectionResult.Failure(exchange);
         }
     }

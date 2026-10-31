@@ -12,13 +12,15 @@ public class ExceptionHandlingMiddleware
 {
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
     private readonly RequestDelegate _next;
+    private readonly IHostApplicationLifetime? _lifetime;
 
     public ExceptionHandlingMiddleware(
         RequestDelegate next,
-        ILogger<ExceptionHandlingMiddleware> logger)
+        ILogger<ExceptionHandlingMiddleware> logger, IHostApplicationLifetime? lifetime = null)
     {
         _next = next;
         _logger = logger;
+        _lifetime = lifetime;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -38,14 +40,6 @@ public class ExceptionHandlingMiddleware
         var requestId = Activity.Current?.Id ?? context.TraceIdentifier;
         var path = context.Request.Path;
         var method = context.Request.Method;
-
-        // Логируем исключение с деталями
-        _logger.LogError(
-            exception,
-            "Unhandled exception: {Method} {Path} [RequestId={RequestId}]",
-            method,
-            path,
-            requestId);
 
         // Определяем тип ошибки и статус код
         int statusCode;
@@ -89,6 +83,17 @@ public class ExceptionHandlingMiddleware
                 problemDetails = CreateServerProblemDetails(path, requestId);
                 break;
         }
+
+        var cancelled = exception is OperationCanceledException &&
+            (context.RequestAborted.IsCancellationRequested || _lifetime?.ApplicationStopping.IsCancellationRequested == true);
+        var level = cancelled ? LogLevel.Information
+            : statusCode < 500 ? LogLevel.Warning : LogLevel.Error;
+        context.Items[RequestLoggingMiddleware.ExceptionKey] = exception;
+        if (!context.Items.ContainsKey(RequestLoggingMiddleware.ActiveKey))
+            _logger.Log(level, cancelled ? null : exception,
+                "Request failed: {Method} {Path} [RequestId={RequestId}]", method, path, requestId);
+        if (cancelled)
+            context.Items["FundingMonitor.RequestCancelled"] = true;
 
         // Формируем ответ
         context.Response.ContentType = "application/problem+json";

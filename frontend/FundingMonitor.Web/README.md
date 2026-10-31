@@ -20,7 +20,7 @@ Dev server:
 http://127.0.0.1:5173
 ```
 
-Vite привязан к IPv4 `127.0.0.1` через `server.host` в `vite.config.ts`. При `ERR_CONNECTION_REFUSED` проверьте вывод `npm run dev` и фактический порт; запросы `/api` проксируются на backend `http://localhost:5000`.
+Vite привязан к IPv4 `127.0.0.1` через `server.host` в `vite.config.ts`. При `ERR_CONNECTION_REFUSED` проверьте вывод `npm run dev` и фактический порт; запросы `/api` проксируются напрямую на backend `https://localhost:5001`, без перенаправления с HTTP. Запускайте ApiHost с HTTPS launch profile. `secure: false` применяется только к локальному dev-прокси, чтобы Node принимал сертификат разработки ASP.NET Core.
 
 ## Структура
 

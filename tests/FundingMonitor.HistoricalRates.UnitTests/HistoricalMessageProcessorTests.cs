@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.HistoricalRates.Application;
@@ -127,6 +128,44 @@ public sealed class HistoricalMessageProcessorTests
         }),
         metrics,
         NullLogger<HistoricalMessageProcessor>.Instance);
+
+    [Theory]
+    [InlineData(0, LogLevel.Warning)]
+    [InlineData(3, LogLevel.Error)]
+    public async Task Processing_failure_logs_retry_or_confirmed_dead_letter(int retries, LogLevel expected)
+    {
+        using var metrics = new HistoricalTransportMetrics();
+        var logger = new CapturingLogger();
+        var processor = new HistoricalMessageProcessor(new ThrowingHandler(new TimeoutException()),
+            new HistoricalCollectionFailureClassifier(), new RecordingPublisher(), new RecordingDelay(),
+            Options.Create(new HistoricalDataCollectionOptions { MaxRetries = 3 }), metrics, logger);
+        await processor.ProcessAsync(Event, retries, TestContext.Current.CancellationToken);
+        Assert.Contains(expected, logger.Levels);
+    }
+
+    [Fact]
+    public async Task Malformed_unconfirmed_publication_is_visible_without_payload()
+    {
+        using var metrics = new HistoricalTransportMetrics();
+        var logger = new CapturingLogger();
+        var processor = new HistoricalMessageProcessor(new ThrowingHandler(new TimeoutException()),
+            new HistoricalCollectionFailureClassifier(),
+            new RecordingPublisher { Result = new MessagePublishResult(false, false, "nack") },
+            new RecordingDelay(), Options.Create(new HistoricalDataCollectionOptions()), metrics, logger);
+        var disposition = await processor.ProcessMalformedAsync(Event.Exchange, "secret-body"u8.ToArray(),
+            Event.EventId.ToString(), new JsonException("invalid"), TestContext.Current.CancellationToken);
+        Assert.Equal(HistoricalMessageDisposition.LeaveUnacked, disposition);
+        Assert.Contains(LogLevel.Warning, logger.Levels);
+        Assert.DoesNotContain(LogLevel.Error, logger.Levels);
+    }
+
+    private sealed class CapturingLogger : ILogger<HistoricalMessageProcessor>
+    {
+        public List<LogLevel> Levels { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => Levels.Add(level);
+    }
 
     private static FundingRateChangedIntegrationEvent Event => new(
         Guid.Parse("40000000-0000-0000-0000-000000000001"),

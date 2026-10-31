@@ -18,7 +18,7 @@ public abstract class BaseExchangeGateway : IExchangeGateway
     private static readonly Counter<long> RequestErrors = Meter.CreateCounter<long>(
         "fundingmonitor.exchange.request.errors");
 
-    private readonly ILogger _logger;
+    protected readonly ILogger Logger;
 
     protected BaseExchangeGateway(
         SymbolNormalizer symbolNormalizer,
@@ -27,7 +27,7 @@ public abstract class BaseExchangeGateway : IExchangeGateway
     {
         SymbolNormalizer = symbolNormalizer;
         TimeProvider = timeProvider;
-        _logger = logger;
+        Logger = logger;
     }
 
     public abstract ExchangeId Exchange { get; }
@@ -54,6 +54,8 @@ public abstract class BaseExchangeGateway : IExchangeGateway
         try
         {
             var value = await action(cancellationToken);
+            Logger.LogDebug("Exchange {Exchange} operation {Operation} completed in {DurationMs} ms",
+                Exchange.Value, operation, stopwatch.Elapsed.TotalMilliseconds);
             return Result<T>.Success(value);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -69,7 +71,7 @@ public abstract class BaseExchangeGateway : IExchangeGateway
                 { "error.code", error.Code }
             };
             RequestErrors.Add(1, tags);
-            _logger.LogWarning(
+            Logger.LogDebug(
                 exception,
                 "[{Exchange}] {Operation} failed with {ErrorCode}",
                 Exchange,
@@ -162,7 +164,7 @@ public abstract class BaseExchangeGateway : IExchangeGateway
         if (statusCode == HttpStatusCode.BadRequest || Contains(text, "400", "invalid request", "invalid symbol"))
             return CreateError("Exchange.InvalidRequest", ErrorType.Validation);
 
-        return CreateError("Exchange.UpstreamUnavailable", ErrorType.Unavailable);
+        return CreateError($"Exchange.UpstreamUnavailable", ErrorType.Unavailable);
     }
 
     private static bool Contains(string value, params string[] candidates) =>

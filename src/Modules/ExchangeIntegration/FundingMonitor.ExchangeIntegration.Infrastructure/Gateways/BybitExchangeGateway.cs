@@ -61,6 +61,8 @@ public sealed class BybitExchangeGateway : BaseExchangeGateway
             "GetHistoricalRates",
             async token =>
             {
+                Logger.LogDebug("Requesting funding history page for {Exchange} {Symbol}: {From} to {To}, limit {Limit}",
+                    Exchange.Value, request.Symbol.Value, request.From, request.To, request.Limit);
                 var exchangeSymbol = SymbolNormalizer.ToExchangeSymbol(request.Symbol, Exchange);
                 var result = await _client.V5Api.ExchangeData.GetFundingRateHistoryAsync(
                     Category.Linear,

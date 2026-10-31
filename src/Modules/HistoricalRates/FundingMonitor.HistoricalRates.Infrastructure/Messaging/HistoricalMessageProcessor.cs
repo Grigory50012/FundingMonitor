@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.HistoricalRates.Application;
 using FundingMonitor.Messaging;
@@ -23,6 +24,10 @@ internal sealed class HistoricalMessageProcessor(
         Exception exception,
         CancellationToken cancellationToken)
     {
+        using var logScope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["EventId"] = originalMessageId, ["Exchange"] = exchange.Value
+        });
         var messageId = Guid.TryParse(originalMessageId, out var parsedMessageId)
             ? parsedMessageId
             : Guid.NewGuid();
@@ -55,14 +60,18 @@ internal sealed class HistoricalMessageProcessor(
                 headers,
                 cancellationToken);
             if (!result.Confirmed || result.Returned)
+            {
+                logger.LogWarning("Malformed message DLQ publication was not confirmed; original remains unacked");
                 return HistoricalMessageDisposition.LeaveUnacked;
+            }
 
             metrics.DeadLetter(exchange);
+            logger.LogError("Malformed historical message sent to DLQ; reason {ErrorType}", exception.GetType().Name);
             return HistoricalMessageDisposition.Ack;
         }
         catch (Exception publishException) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(
+            logger.LogWarning(
                 publishException,
                 "Malformed historical message {MessageId} was not dead-lettered",
                 originalMessageId);
@@ -79,10 +88,17 @@ internal sealed class HistoricalMessageProcessor(
         int retryCount,
         CancellationToken stoppingToken)
     {
+        using var logScope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["EventId"] = integrationEvent.EventId, ["Exchange"] = integrationEvent.Exchange.Value,
+            ["Symbol"] = integrationEvent.Symbol.Value, ["Attempt"] = retryCount + 1
+        });
+        var started = Stopwatch.GetTimestamp();
         try
         {
             await handler.HandleAsync(new HistoricalCollectionRequest(
                 integrationEvent.EventId, integrationEvent.Exchange, integrationEvent.Symbol), stoppingToken);
+            logger.LogInformation("Historical collection completed in {DurationMs} ms", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             return HistoricalMessageDisposition.Ack;
         }
         catch (Exception exception)
@@ -95,6 +111,7 @@ internal sealed class HistoricalMessageProcessor(
                 return await PublishCopyAsync(
                     integrationEvent, retryCount, true, exception, stoppingToken);
 
+            logger.LogWarning(exception, "Historical collection failed; retry {NextAttempt} scheduled", retryCount + 2);
             try
             {
                 await retryDelay.WaitAsync(
@@ -144,7 +161,7 @@ internal sealed class HistoricalMessageProcessor(
         }
         catch (Exception publishException) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(publishException, "Replacement for event {EventId} was not published", integrationEvent.EventId);
+            logger.LogWarning(publishException, "Replacement for event {EventId} was not published; original remains unacked", integrationEvent.EventId);
             return HistoricalMessageDisposition.LeaveUnacked;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -153,9 +170,15 @@ internal sealed class HistoricalMessageProcessor(
         }
 
         if (!result.Confirmed || result.Returned)
+        {
+            logger.LogWarning("Replacement publication was not confirmed; original message remains unacked");
             return HistoricalMessageDisposition.LeaveUnacked;
+        }
         if (deadLetter)
+        {
             metrics.DeadLetter(integrationEvent.Exchange);
+            logger.LogError(exception, "Historical collection failed; event sent to DLQ");
+        }
         else
             metrics.Retry(integrationEvent.Exchange);
         return HistoricalMessageDisposition.Ack;

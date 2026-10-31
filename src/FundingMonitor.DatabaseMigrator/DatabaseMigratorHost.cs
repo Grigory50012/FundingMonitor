@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using FundingMonitor.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +16,9 @@ public static class DatabaseMigratorHost
         });
 
         builder.Logging.ClearProviders();
-        builder.Logging.AddConsole();
+        var factory = LocalLogging.Create(builder.Configuration, "database-migrator", "nlog.migrator.config");
+        LocalLogging.Add(builder.Logging, factory);
+        builder.Services.AddSingleton(factory);
 
         return builder;
     }

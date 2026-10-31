@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates.Infrastructure.Outbox;
 using FundingMonitor.CurrentRates.IntegrationTests.Infrastructure;
@@ -87,6 +88,35 @@ public sealed class OutboxPublisherTests(CurrentRatesPostgreSqlFixture fixture)
         Assert.Null(row.Error);
         await scope.Publisher.ProcessPendingAsync(TestContext.Current.CancellationToken);
         Assert.Equal(1, publisher.Calls);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Batch_summary_reports_confirmed_and_retained_counts(bool success)
+    {
+        await fixture.ResetAsync();
+        await fixture.SeedOutboxAsync(CreateMessage());
+        var logger = new BatchLogger();
+        await using var scope = await fixture.CreatePublisherScopeAsync(
+            new StubPublisher(_ => new MessagePublishResult(success, false, success ? null : "nack")), Now, logger);
+        await scope.Publisher.ProcessPendingAsync(TestContext.Current.CancellationToken);
+        var summary = Assert.Single(logger.Summaries);
+        Assert.Equal(1, summary["Attempted"]);
+        Assert.Equal(success ? 1 : 0, summary["Published"]);
+        Assert.Equal(success ? 0 : 1, summary["Failed"]);
+    }
+
+    private sealed class BatchLogger : ILogger<OutboxPublisher>
+    {
+        public List<Dictionary<string, object?>> Summaries { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (level == LogLevel.Information)
+                Summaries.Add(((IEnumerable<KeyValuePair<string, object?>>)state!).ToDictionary(p => p.Key, p => p.Value));
+        }
     }
 
     private static readonly DateTimeOffset Now =

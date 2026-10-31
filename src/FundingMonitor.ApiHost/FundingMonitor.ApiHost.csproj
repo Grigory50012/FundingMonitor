@@ -19,4 +19,8 @@
         <ProjectReference Include="..\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Presentation\FundingMonitor.HistoricalRates.Presentation.csproj"/>
         <ProjectReference Include="..\Modules\Arbitrage\FundingMonitor.Arbitrage.Presentation\FundingMonitor.Arbitrage.Presentation.csproj"/>
     </ItemGroup>
+    <ItemGroup>
+        <Compile Include="../Logging/LocalLogging.cs" Link="Logging/LocalLogging.cs" />
+        <None Update="nlog.config" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
 </Project>

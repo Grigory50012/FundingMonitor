@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="NLog.Extensions.Logging" Version="6.1.4" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
             <PrivateAssets>all</PrivateAssets>
@@ -16,5 +17,9 @@
     <ItemGroup>
         <ProjectReference Include="..\Modules\CurrentRates\FundingMonitor.CurrentRates.Infrastructure\FundingMonitor.CurrentRates.Infrastructure.csproj"/>
         <ProjectReference Include="..\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Infrastructure\FundingMonitor.HistoricalRates.Infrastructure.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="../Logging/LocalLogging.cs" Link="Logging/LocalLogging.cs" />
+        <None Update="nlog.migrator.config" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
 </Project>

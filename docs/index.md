@@ -18,6 +18,7 @@
 | [Cross-module scenarios](architecture/scenarios.md) | Потоки между модулями, PostgreSQL, RabbitMQ и биржами |
 | [ADR](adr/index.md) | Architecture Decision Records |
 | [Database Schema](database-schema.md) | Таблицы, индексы, миграции, performance notes |
+| [Logging](deployment/logging.md) | Локальные JSONL-журналы, хранение и диагностика |
 | [Docker Deployment](deployment/docker.md) | PostgreSQL и RabbitMQ через Docker Compose |
 | [Frontend Components](frontend/components/index.md) | Frontend-структура и component map |
 

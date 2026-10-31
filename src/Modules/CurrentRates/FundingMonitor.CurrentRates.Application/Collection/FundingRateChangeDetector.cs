@@ -29,12 +29,12 @@ public sealed class FundingRateChangeDetector(
                 rate.Symbol,
                 rate.NextFundingTime));
 
-            logger.LogInformation(
+            logger.LogDebug(
                 previous.ContainsKey(rate.Symbol)
-                    ? "Funding time changed: {Exchange}:{Symbol}"
-                    : "New symbol detected: {Exchange}:{Symbol}",
+                    ? "Funding time changed: {Exchange}:{Symbol}; event {EventId}"
+                    : "New symbol detected: {Exchange}:{Symbol}; event {EventId}",
                 exchange,
-                rate.Symbol);
+                rate.Symbol, events[^1].EventId);
         }
 
         return events;

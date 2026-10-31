@@ -77,6 +77,8 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
             "GetHistoricalRates",
             async token =>
             {
+                Logger.LogDebug("Requesting funding history page for {Exchange} {Symbol}: {From} to {To}, limit {Limit}",
+                    Exchange.Value, request.Symbol.Value, request.From, request.To, request.Limit);
                 var exchangeSymbol = SymbolNormalizer.ToExchangeSymbol(request.Symbol, Exchange);
                 var result = await _client.UsdFuturesApi.ExchangeData.GetFundingRatesAsync(
                     exchangeSymbol,
@@ -132,11 +134,17 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
         {
             var result = await _client.UsdFuturesApi.ExchangeData.GetFundingInfoAsync(cancellationToken);
             if (!result.Success)
+            {
+                _logger.LogWarning("Funding intervals unavailable for {Exchange}; current snapshot may be incomplete: {ErrorCode}", Exchange.Value, result.Error?.ErrorCode);
                 return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
 
             var data = result.Data;
             if (data is null)
+            {
+                _logger.LogWarning("Funding intervals missing for {Exchange}; current snapshot may be incomplete", Exchange.Value);
                 return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
 
             return data
                 .Where(info => SymbolNormalizer.IsValid(info.Symbol, Exchange) && info.FundingIntervalHours > 0)
@@ -147,7 +155,7 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogDebug(exception, "[Binance] Funding intervals are unavailable");
+            _logger.LogWarning(exception, "Funding intervals unavailable for {Exchange}; current snapshot may be incomplete", Exchange.Value);
             return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         }
     }

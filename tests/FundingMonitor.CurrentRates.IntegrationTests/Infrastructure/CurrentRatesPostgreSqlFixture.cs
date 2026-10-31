@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using FundingMonitor.CurrentRates.Application.Collection;
 using FundingMonitor.CurrentRates.Application.Persistence;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
@@ -56,6 +57,7 @@ public sealed class CurrentRatesPostgreSqlFixture : IAsyncLifetime
     {
         var services = new ServiceCollection();
         services.AddLogging();
+
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(Options.Create(new CurrentDataCollectionOptions
         {
@@ -85,10 +87,11 @@ public sealed class CurrentRatesPostgreSqlFixture : IAsyncLifetime
 
     internal ValueTask<OutboxPublisherTestScope> CreatePublisherScopeAsync(
         IMessagePublisher publisher,
-        DateTimeOffset now)
+        DateTimeOffset now, ILogger<OutboxPublisher>? logger = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        if (logger is not null) services.AddSingleton(logger);
         services.AddSingleton<IMessagePublisher>(publisher);
         services.AddSingleton<TimeProvider>(new FixedTimeProvider(now));
         services.Configure<OutboxOptions>(options =>

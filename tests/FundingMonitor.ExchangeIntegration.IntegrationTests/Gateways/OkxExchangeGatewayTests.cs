@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Net;
 using FundingMonitor.ExchangeIntegration.Domain;
 using FundingMonitor.ExchangeIntegration.Infrastructure.Gateways;
@@ -52,6 +53,16 @@ public sealed class OkxExchangeGatewayTests
         await GatewayAssertions.RateLimitedAsync(CreateGateway(server));
     }
 
+    [Fact]
+    public async Task Partial_current_failure_emits_one_warning()
+    {
+        await using var server = CreateServer();
+        ConfigureCurrent(server);
+        server.Respond("/api/v5/public/funding-rate", "{}", HttpStatusCode.ServiceUnavailable);
+        var logger = new TestLogger<OkxExchangeGateway>();
+        await CreateGateway(server, logger).GetCurrentRatesAsync(TestContext.Current.CancellationToken);
+        Assert.Single(logger.Levels, level => level == LogLevel.Warning);
+    }
     private static StubHttpServer CreateServer()
     {
         var server = new StubHttpServer();
@@ -75,7 +86,7 @@ public sealed class OkxExchangeGatewayTests
             """);
     }
 
-    private static OkxExchangeGateway CreateGateway(StubHttpServer server)
+    private static OkxExchangeGateway CreateGateway(StubHttpServer server, ILogger<OkxExchangeGateway>? logger = null)
     {
         var address = server.BaseAddress.ToString().TrimEnd('/');
         var environment = OKXEnvironment.CreateCustom("test", address, address);
@@ -92,6 +103,6 @@ public sealed class OkxExchangeGatewayTests
             client,
             new SymbolNormalizer(),
             new FixedTimeProvider(GatewayAssertions.ObservedOnUtc),
-            new TestLogger<OkxExchangeGateway>());
+            logger ?? new TestLogger<OkxExchangeGateway>());
     }
 }

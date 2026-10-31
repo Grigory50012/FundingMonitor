@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
 using FundingMonitor.Messaging;
@@ -19,11 +20,16 @@ internal sealed class OutboxPublisher(
 {
     public async Task<int> ProcessPendingAsync(CancellationToken cancellationToken)
     {
+        var started = Stopwatch.GetTimestamp();
         var pending = await ReadPendingAsync(cancellationToken);
+        var published = 0;
         foreach (var message in pending)
-            await PublishAsync(message, cancellationToken);
+            if (await PublishAsync(message, cancellationToken)) published++;
 
         await metrics.RefreshAsync(cancellationToken);
+        if (pending.Count > 0)
+            logger.LogInformation("Outbox batch completed: {Attempted} attempted, {Published} published, {Failed} retained in {DurationMs} ms",
+                pending.Count, published, pending.Count - published, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         return pending.Count;
     }
 
@@ -40,9 +46,15 @@ internal sealed class OutboxPublisher(
             .ToListAsync(cancellationToken);
     }
 
-    private async Task PublishAsync(OutboxMessage message, CancellationToken cancellationToken)
+    private async Task<bool> PublishAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
+        using var logScope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["EventId"] = message.Id, ["Exchange"] = message.Exchange,
+            ["Symbol"] = message.Symbol, ["Attempt"] = message.Attempts + 1
+        });
         string? failure = null;
+        Exception? failureException = null;
         try
         {
             var integrationEvent = new FundingRateChangedIntegrationEvent(
@@ -69,7 +81,8 @@ internal sealed class OutboxPublisher(
             if (result.Confirmed && !result.Returned)
             {
                 await MarkProcessedAsync(message.Id, cancellationToken);
-                return;
+                logger.LogDebug("Outbox event published");
+                return true;
             }
 
             failure = result.Error ?? (result.Returned
@@ -79,10 +92,12 @@ internal sealed class OutboxPublisher(
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             failure = exception.Message;
-            logger.LogError(exception, "Outbox publication failed for {MessageId}", message.Id);
+            failureException = exception;
         }
 
         await MarkFailedAsync(message.Id, failure, cancellationToken);
+        logger.LogWarning(failureException, "Outbox publication failed; event retained for retry: {Reason}", failure);
+        return false;
     }
 
     private async Task MarkProcessedAsync(Guid id, CancellationToken cancellationToken)

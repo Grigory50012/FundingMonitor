@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Net;
 using Binance.Net;
 using Binance.Net.Clients;
@@ -74,6 +75,16 @@ public sealed class BinanceExchangeGatewayTests
         Assert.True(server.ReceivedPath("/fapi/v1/fundingRate"));
     }
 
+    [Fact]
+    public async Task Partial_current_failure_emits_one_warning()
+    {
+        await using var server = CreateServer();
+        ConfigureCurrent(server);
+        server.Respond("/fapi/v1/fundingInfo", "[]", HttpStatusCode.ServiceUnavailable);
+        var logger = new TestLogger<BinanceExchangeGateway>();
+        await CreateGateway(server, logger).GetCurrentRatesAsync(TestContext.Current.CancellationToken);
+        Assert.Single(logger.Levels, level => level == LogLevel.Warning);
+    }
     private static StubHttpServer CreateServer()
     {
         var server = new StubHttpServer();
@@ -91,7 +102,7 @@ public sealed class BinanceExchangeGatewayTests
             """);
     }
 
-    private static BinanceExchangeGateway CreateGateway(StubHttpServer server)
+    private static BinanceExchangeGateway CreateGateway(StubHttpServer server, ILogger<BinanceExchangeGateway>? logger = null)
     {
         var address = server.BaseAddress.ToString().TrimEnd('/');
         var environment = BinanceEnvironment.CreateCustom(
@@ -110,6 +121,6 @@ public sealed class BinanceExchangeGatewayTests
             client,
             new SymbolNormalizer(),
             new FixedTimeProvider(GatewayAssertions.ObservedOnUtc),
-            NullLogger<BinanceExchangeGateway>.Instance);
+            logger ?? NullLogger<BinanceExchangeGateway>.Instance);
     }
 }

@@ -10,16 +10,19 @@ internal static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        using var bootstrapLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
+        var builder = DatabaseMigratorHost.CreateBuilder(args);
+        using var logFactory = (NLog.LogFactory)builder.Services.Single(d => d.ServiceType == typeof(NLog.LogFactory)).ImplementationInstance!;
+        using var bootstrapLoggerFactory = LoggerFactory.Create(logging => FundingMonitor.Hosting.LocalLogging.Add(logging, logFactory));
         var logger = bootstrapLoggerFactory.CreateLogger("DatabaseMigrator");
         try
         {
-            var builder = DatabaseMigratorHost.CreateBuilder(args);
+
             builder.Services.AddCurrentRatesPersistence(builder.Configuration);
             builder.Services.AddHistoricalRatesPersistence(builder.Configuration);
             builder.Services.AddScoped<ModuleDatabaseMigrator>();
             using var host = builder.Build();
             await using var scope = host.Services.CreateAsyncScope();
+            logger.LogInformation("Applying module database migrations");
             await scope.ServiceProvider.GetRequiredService<ModuleDatabaseMigrator>().MigrateAsync();
             logger.LogInformation("All module database migrations applied successfully.");
             return 0;
@@ -33,5 +36,6 @@ internal static class Program
             logger.LogError(exception, "Module database migration failed.");
             return 1;
         }
+        finally { logFactory.Flush(TimeSpan.FromSeconds(5)); }
     }
 }

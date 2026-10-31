@@ -9,8 +9,10 @@ export default defineConfig({
     host: "127.0.0.1",
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://localhost:5001",
         changeOrigin: true,
+        // ASP.NET Core's local development certificate is not trusted by Node.
+        secure: false,
       },
     },
   },

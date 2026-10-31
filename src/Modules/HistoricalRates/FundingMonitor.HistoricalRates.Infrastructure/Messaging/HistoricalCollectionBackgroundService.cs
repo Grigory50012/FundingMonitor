@@ -44,7 +44,7 @@ internal sealed class HistoricalCollectionBackgroundService(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Historical worker {WorkerId} disconnected", workerId);
+                logger.LogWarning(exception, "Historical worker {WorkerId} disconnected from {Exchange}; reconnecting in 5 seconds", workerId, exchange.Value);
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
@@ -65,6 +65,11 @@ internal sealed class HistoricalCollectionBackgroundService(
         consumer.UnregisteredAsync += (_, _) => { restart.TrySetResult(); return Task.CompletedTask; };
         consumer.ReceivedAsync += async (_, delivery) =>
         {
+            using var logScope = logger.BeginScope(new Dictionary<string, object?>
+            {
+                ["WorkerId"] = workerId, ["Exchange"] = exchange.Value,
+                ["EventId"] = delivery.BasicProperties.MessageId
+            });
             try
             {
                 MessageEnvelope<FundingRateChangedIntegrationEvent> envelope;
@@ -113,14 +118,17 @@ internal sealed class HistoricalCollectionBackgroundService(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Historical worker {WorkerId} left message unacked", workerId);
+                logger.LogWarning(exception, "Historical worker {WorkerId} left message unacked; restarting consumer", workerId);
                 restart.TrySetResult();
             }
         };
         await channel.BasicConsumeAsync(
             RabbitMqTopology.GetQueueName(exchange), false, workerId, false, false,
             null, consumer, stoppingToken);
+        logger.LogDebug("Historical worker {WorkerId} subscribed to {Exchange}", workerId, exchange.Value);
         await restart.Task.WaitAsync(stoppingToken);
+        if (!stoppingToken.IsCancellationRequested)
+            logger.LogWarning("Historical worker {WorkerId} on {Exchange} restarting after channel or consumer interruption", workerId, exchange.Value);
     }
 
     private static int ReadRetryCount(IDictionary<string, object?>? headers)

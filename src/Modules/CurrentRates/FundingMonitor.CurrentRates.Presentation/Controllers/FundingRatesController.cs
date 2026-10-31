@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates.Presentation.Dtos;
 using FundingMonitor.CurrentRates.Presentation.Mapping;
@@ -25,19 +24,10 @@ public sealed class FundingRatesController(
         [FromQuery] string? exchanges)
     {
         var exchangeList = ParseExchanges(exchanges);
-        logger.LogDebug(
-            "GetFundingRates: symbol={Symbol}, exchanges={Exchanges}",
-            symbol,
-            exchanges ?? "all");
-        var stopwatch = Stopwatch.StartNew();
         var rates = await module.GetCurrentRatesAsync(
             new CurrentRatesQuery(symbol, exchangeList),
             HttpContext.RequestAborted);
-        stopwatch.Stop();
-        logger.LogInformation(
-            "GetFundingRates completed: {Count} rates in {Elapsed}ms",
-            rates.Count,
-            stopwatch.ElapsedMilliseconds);
+        logger.LogDebug("Current rates selected: {Count}", rates.Count);
         return Ok(rates.ToDtoList());
     }
 

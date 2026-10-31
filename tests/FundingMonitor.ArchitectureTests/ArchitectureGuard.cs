@@ -35,6 +35,9 @@ internal static class ArchitectureGuard
     ];
     private static readonly HashSet<string> HostTypes =
     [
+        // Host-only logging configuration and request diagnostics; no business dependencies.
+        "FundingMonitor.Hosting.LocalLogging",
+        "FundingMonitor.ApiHost.Shared.Middleware.RequestLoggingMiddleware",
         "Program", "FundingMonitor.ApiHost.Shared.Middleware.ExceptionHandlingMiddleware",
         "FundingMonitor.ApiHost.Shared.ProblemDetails.ApiProblemDetails",
         "FundingMonitor.ApiHost.Shared.ProblemDetails.ApiNotFoundProblemDetails",

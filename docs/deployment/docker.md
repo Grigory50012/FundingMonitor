@@ -98,7 +98,7 @@ dotnet run --project src/FundingMonitor.DatabaseMigrator
 dotnet run --project src/FundingMonitor.ApiHost --no-launch-profile -- --urls http://127.0.0.1:5000 --environment Development
 ```
 
-ApiHost запускается только после успешного завершения migrator. Эта команда выбирает HTTP на IPv4 без HTTPS launch profile. В Development доступны Scalar `/scalar` и OpenAPI `/openapi/v1.json`. Во втором терминале проверьте реальные ответы:
+ApiHost запускается только после успешного завершения migrator. Эта команда выбирает HTTP на IPv4 без HTTPS launch profile и подходит для проверки backend отдельно. Для работы с frontend запускайте `dotnet run --project src/FundingMonitor.ApiHost` со стандартным launch profile: dev-прокси Vite обращается напрямую к `https://localhost:5001`. В Development доступны Scalar `/scalar` и OpenAPI `/openapi/v1.json`. Во втором терминале проверьте реальные ответы HTTP-only запуска:
 
 ```bash
 curl --noproxy "*" http://127.0.0.1:5000/openapi/v1.json

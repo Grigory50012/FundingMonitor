@@ -60,6 +60,8 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
             "GetHistoricalRates",
             async token =>
             {
+                Logger.LogDebug("Requesting funding history page for {Exchange} {Symbol}: {From} to {To}, limit {Limit}",
+                    Exchange.Value, request.Symbol.Value, request.From, request.To, Math.Min(request.Limit, 100));
                 var exchangeSymbol = SymbolNormalizer.ToExchangeSymbol(request.Symbol, Exchange);
                 var result = await _client.UnifiedApi.ExchangeData.GetFundingRateHistoryAsync(
                     exchangeSymbol,
@@ -173,19 +175,33 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
         IReadOnlyList<OKXInstrument> instruments,
         CancellationToken cancellationToken)
     {
+        var failed = 0;
+        var missing = 0;
         var tasks = instruments.Select(async instrument =>
         {
             var result = await _client.UnifiedApi.ExchangeData.GetFundingRatesAsync(
                 instrument.Symbol,
                 cancellationToken);
-            if (!result.Success || result.Data is not { Length: > 0 } data)
+            if (!result.Success)
+            {
+                Interlocked.Increment(ref failed);
+                Logger.LogDebug("Funding request failed for {Exchange} {Symbol}: {ErrorCode}", Exchange.Value, instrument.Symbol, result.Error?.ErrorCode);
                 return null;
+            }
+            if (result.Data is not { Length: > 0 } data)
+            {
+                Interlocked.Increment(ref missing);
+                return null;
+            }
 
             var rate = data[0];
             return rate.FundingRate == 0 && rate.NextFundingTime == default ? null : rate;
         });
 
         var results = await Task.WhenAll(tasks);
+        if (failed > 0 || missing > 0)
+            Logger.LogWarning("Partial funding snapshot for {Exchange}: {Requested} requested, {Failed} failed, {Missing} empty responses",
+                Exchange.Value, instruments.Count, failed, missing);
         return results.Where(rate => rate is not null).Select(rate => rate!).ToList();
     }
 

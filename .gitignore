@@ -53,3 +53,6 @@ logs/*.log
 .agents/skills/
 private-docs/
 .superpowers/
+
+# Structured application journals
+**/logs/
