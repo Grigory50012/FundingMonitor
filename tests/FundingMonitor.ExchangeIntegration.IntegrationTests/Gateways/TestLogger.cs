@@ -5,6 +5,7 @@ namespace FundingMonitor.ExchangeIntegration.IntegrationTests.Gateways;
 
 internal sealed class TestLogger<T> : ILogger<T>
 {
+    public ConcurrentQueue<Dictionary<string, object?>> Events { get; } = new();
     public ConcurrentQueue<LogLevel> Levels { get; } = new();
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
     public bool IsEnabled(LogLevel logLevel) => true;
@@ -12,6 +13,7 @@ internal sealed class TestLogger<T> : ILogger<T>
         Exception? exception, Func<TState, Exception?, string> formatter)
     {
         Levels.Enqueue(logLevel);
+        Events.Enqueue(((IEnumerable<KeyValuePair<string, object?>>)state!).ToDictionary(p => p.Key, p => p.Value));
         Console.WriteLine($"{logLevel}: {formatter(state, exception)} | {exception}");
     }
 }

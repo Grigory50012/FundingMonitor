@@ -32,12 +32,7 @@ public sealed class BybitExchangeGateway : BaseExchangeGateway
                 var result = await _client.V5Api.ExchangeData.GetLinearInverseTickersAsync(
                     Category.Linear,
                     ct: token);
-                EnsureSuccess(
-                    result.Success,
-                    result.Error?.Message,
-                    result.Error?.ErrorCode,
-                    result.Error?.ErrorType,
-                    result.Error?.Exception);
+                EnsureSuccess(result);
 
                 var data = result.Data
                            ?? throw new InvalidOperationException("Bybit returned no ticker data.");
@@ -71,12 +66,7 @@ public sealed class BybitExchangeGateway : BaseExchangeGateway
                     request.To.UtcDateTime,
                     request.Limit,
                     token);
-                EnsureSuccess(
-                    result.Success,
-                    result.Error?.Message,
-                    result.Error?.ErrorCode,
-                    result.Error?.ErrorType,
-                    result.Error?.Exception);
+                EnsureSuccess(result);
 
                 var data = result.Data
                            ?? throw new InvalidOperationException("Bybit returned no funding history.");
@@ -97,12 +87,7 @@ public sealed class BybitExchangeGateway : BaseExchangeGateway
             async token =>
             {
                 var response = await _client.V5Api.ExchangeData.GetServerTimeAsync(token);
-                EnsureSuccess(
-                    response.Success,
-                    response.Error?.Message,
-                    response.Error?.ErrorCode,
-                    response.Error?.ErrorType,
-                    response.Error?.Exception);
+                EnsureSuccess(response);
                 return true;
             },
             cancellationToken);

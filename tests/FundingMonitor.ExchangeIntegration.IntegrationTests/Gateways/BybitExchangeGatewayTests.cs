@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Net;
 using Bybit.Net;
 using Bybit.Net.Clients;
@@ -54,6 +55,31 @@ public sealed class BybitExchangeGatewayTests
         await GatewayAssertions.RateLimitedAsync(CreateGateway(server));
     }
 
+    [Theory]
+    [InlineData(200, "{error:The Amazon CloudFront distribution is configured to block access from your country}", "Exchange.GeoRestricted")]
+    [InlineData(403, "{error:The Amazon CloudFront distribution is configured to block access from your country}", "Exchange.GeoRestricted")]
+    [InlineData(403, "Access denied", "Exchange.AccessDenied")]
+    [InlineData(403, "access too frequent", "Exchange.RateLimited")]
+    [InlineData(200, "{\"retCode\":10006,\"retMsg\":\"Limit reached\",\"result\":{}}", "Exchange.RateLimited")]
+    [InlineData(200, "not-json-private-body", "Exchange.InvalidResponse")]
+    [InlineData(503, "Service unavailable", "Exchange.UpstreamUnavailable")]
+    public async Task Failure_preserves_diagnostics_without_exposing_response_body(int status, string body, string expected)
+    {
+        await using var server = CreateServer();
+        server.Respond("/v5/market/tickers", body, (HttpStatusCode)status);
+        var logger = new TestLogger<BybitExchangeGateway>();
+        var result = await CreateGateway(server, logger).GetCurrentRatesAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(expected, result.Error?.Code);
+        Assert.Equal("The exchange request could not be completed.", result.Error?.Description);
+        Assert.Single(logger.Levels, level => level == LogLevel.Warning);
+        var entry = Assert.Single(logger.Events, e => e.ContainsKey("HttpStatusCode"));
+        Assert.Equal(status, entry["HttpStatusCode"]);
+        Assert.False(string.IsNullOrWhiteSpace(entry["Reason"]?.ToString()));
+        Assert.DoesNotContain("not-json-private-body", entry["Reason"]?.ToString() ?? "");
+        if (expected == "Exchange.GeoRestricted")
+            Assert.Equal("Access blocked for the request's country or region", entry["Reason"]);
+    }
+
     private static StubHttpServer CreateServer()
     {
         var server = new StubHttpServer();
@@ -61,7 +87,7 @@ public sealed class BybitExchangeGatewayTests
         return server;
     }
 
-    private static BybitExchangeGateway CreateGateway(StubHttpServer server)
+    private static BybitExchangeGateway CreateGateway(StubHttpServer server, ILogger<BybitExchangeGateway>? logger = null)
     {
         var address = server.BaseAddress.ToString().TrimEnd('/');
         var environment = BybitEnvironment.CreateCustom("test", address, address);
@@ -71,13 +97,14 @@ public sealed class BybitExchangeGatewayTests
             Options.Create(new BybitRestOptions
             {
                 Environment = environment,
-                RateLimiterEnabled = false
+                RateLimiterEnabled = false,
+                OutputOriginalData = true
             }));
 
         return new BybitExchangeGateway(
             client,
             new SymbolNormalizer(),
             new FixedTimeProvider(GatewayAssertions.ObservedOnUtc),
-            new TestLogger<BybitExchangeGateway>());
+            logger ?? new TestLogger<BybitExchangeGateway>());
     }
 }

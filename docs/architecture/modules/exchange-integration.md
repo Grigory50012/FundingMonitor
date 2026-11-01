@@ -105,7 +105,7 @@ Binance использует ping, Bybit и OKX — server time. Контрак�
 
 ## Ошибки и гарантии
 
-`BaseExchangeGateway` переводит большинство сбоев в `Result.Failure` с кодами `Exchange.Timeout`, `Exchange.RateLimited`, `Exchange.GeoRestricted`, `Exchange.Authentication`, `Exchange.InvalidRequest` или `Exchange.UpstreamUnavailable`. Запрошенная вызывающей стороной отмена (`CancellationToken`) пробрасывается как `OperationCanceledException`. Gateway регистрирует длительность и ошибки запросов в метриках. В SDK включён собственный rate limiter; orchestration модуля не содержит самостоятельного retry — решение о повторе исторической задачи принимает `HistoricalRates`.
+`BaseExchangeGateway` переводит большинство сбоев в `Result.Failure` с кодами `Exchange.Timeout`, `Exchange.RateLimited`, `Exchange.GeoRestricted`, `Exchange.Authentication`, `Exchange.InvalidRequest`, `Exchange.AccessDenied`, `Exchange.InvalidResponse`, `Exchange.Network` или `Exchange.UpstreamUnavailable`. Запрошенная вызывающей стороной отмена (`CancellationToken`) пробрасывается как `OperationCanceledException`. Gateway регистрирует длительность и ошибки запросов в метриках. В SDK включён собственный rate limiter; orchestration модуля не содержит самостоятельного retry — решение о повторе исторической задачи принимает `HistoricalRates`.
 
 Health checks выполняются параллельно для всех зарегистрированных gateways и сортируются по имени биржи. Для текущих и исторических ставок выбирается только gateway запрошенной биржи.
 

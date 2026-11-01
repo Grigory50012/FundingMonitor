@@ -71,12 +71,13 @@ public abstract class BaseExchangeGateway : IExchangeGateway
                 { "error.code", error.Code }
             };
             RequestErrors.Add(1, tags);
-            Logger.LogDebug(
-                exception,
-                "[{Exchange}] {Operation} failed with {ErrorCode}",
-                Exchange,
-                operation,
-                error.Code);
+            var upstream = EnumerateExceptionChain(exception).OfType<ExchangeGatewayFailureException>().FirstOrDefault();
+            var statusCode = upstream?.StatusCode ?? EnumerateExceptionChain(exception)
+                .OfType<HttpRequestException>().Select(item => item.StatusCode).FirstOrDefault(item => item.HasValue);
+            Logger.LogWarning(
+                "Exchange {Exchange} {Operation} failed: {ErrorCode}; HTTP {HttpStatusCode}; {Reason}",
+                Exchange.Value, operation, error.Code, statusCode is { } status ? (int)status : null,
+                DiagnosticMessage(error.Code, upstream?.Message ?? exception.Message));
             return Result<T>.Failure(error);
         }
         finally
@@ -87,18 +88,34 @@ public abstract class BaseExchangeGateway : IExchangeGateway
         }
     }
 
-    protected static void EnsureSuccess(
-        bool success,
-        string? message,
-        object? code = null,
-        object? errorType = null,
-        Exception? innerException = null)
+    protected static void EnsureSuccess<T>(CryptoExchange.Net.Objects.HttpResult<T> result)
     {
-        if (!success)
-            throw new ExchangeGatewayFailureException(
-                $"{errorType}: {message ?? "Unknown upstream error"}",
-                code?.ToString(),
-                innerException);
+        if (result.Success) return;
+        var message = result.Error?.Message ?? "Unknown upstream error";
+        // Use the captured response only to identify a known CDN denial; never log the body.
+        if (Contains(result.OriginalData ?? "", "block access from your country", "restricted location"))
+            message = "CloudFront or exchange blocked access from your country";
+        throw new ExchangeGatewayFailureException(message,
+            result.Error?.ErrorCode?.ToString() ?? ReadBybitCode(result.OriginalData), result.Error?.Exception)
+        {
+            StatusCode = result.ResponseStatusCode,
+            SourceErrorType = result.Error?.ErrorType.ToString()
+        };
+    }
+
+    private static string? ReadBybitCode(string? body)
+    {
+        if (string.IsNullOrEmpty(body)) return null;
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(body);
+            if (document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("retCode", out var code) &&
+                code.ValueKind is System.Text.Json.JsonValueKind.Number or System.Text.Json.JsonValueKind.String)
+                return code.ToString();
+        }
+        catch (System.Text.Json.JsonException) { }
+        return null;
     }
 
     protected CurrentRateSnapshot CreateCurrentRate(
@@ -141,10 +158,11 @@ public abstract class BaseExchangeGateway : IExchangeGateway
         return new DateTimeOffset(utc);
     }
 
-    private static Error Classify(Exception exception)
+    private Error Classify(Exception exception)
     {
         var chain = EnumerateExceptionChain(exception).ToArray();
-        var statusCode = chain.OfType<HttpRequestException>()
+        var upstream = chain.OfType<ExchangeGatewayFailureException>().FirstOrDefault();
+        var statusCode = upstream?.StatusCode ?? chain.OfType<HttpRequestException>()
             .Select(item => item.StatusCode)
             .FirstOrDefault(item => item.HasValue);
         var text = string.Join(
@@ -152,19 +170,44 @@ public abstract class BaseExchangeGateway : IExchangeGateway
             chain.Select(item =>
                 $"{(item as ExchangeGatewayFailureException)?.UpstreamCode} {item.Message}"));
 
-        if (exception is TimeoutException or TaskCanceledException)
+        if (chain.Any(item => item is TimeoutException or TaskCanceledException))
             return CreateError("Exchange.Timeout", ErrorType.Timeout);
         if (statusCode == HttpStatusCode.TooManyRequests ||
-            Contains(text, "429", "rate limit", "ratelimit", "too many"))
+            (Exchange.Value == "Bybit" && upstream?.UpstreamCode == "10006") ||
+            Contains(upstream?.SourceErrorType ?? "", "RateLimit") ||
+            Contains(text, "rate limit", "ratelimit", "too many", "access too frequent"))
             return CreateError("Exchange.RateLimited", ErrorType.Unavailable);
-        if (statusCode == HttpStatusCode.Forbidden || Contains(text, "403", "restricted location", "geo"))
+        if (Contains(text, "restricted location", "block access from your country", "blocked access from your country", "country is restricted", "geographical restriction"))
             return CreateError("Exchange.GeoRestricted", ErrorType.Unavailable);
-        if (statusCode == HttpStatusCode.Unauthorized || Contains(text, "401", "authentication", "unauthorized"))
+        if (statusCode == HttpStatusCode.Forbidden)
+            return CreateError("Exchange.AccessDenied", ErrorType.Unavailable);
+        if (statusCode == HttpStatusCode.Unauthorized || Contains(text, "authentication", "unauthorized"))
             return CreateError("Exchange.Authentication", ErrorType.Unavailable);
-        if (statusCode == HttpStatusCode.BadRequest || Contains(text, "400", "invalid request", "invalid symbol"))
+        if (statusCode == HttpStatusCode.BadRequest || Contains(text, "invalid request", "invalid symbol"))
             return CreateError("Exchange.InvalidRequest", ErrorType.Validation);
 
-        return CreateError($"Exchange.UpstreamUnavailable", ErrorType.Unavailable);
+        if (statusCode is >= HttpStatusCode.InternalServerError)
+            return CreateError("Exchange.UpstreamUnavailable", ErrorType.Unavailable);
+        if (Contains(upstream?.SourceErrorType ?? text, "deserializ") || chain.Any(item => item is System.Text.Json.JsonException))
+            return CreateError("Exchange.InvalidResponse", ErrorType.Unavailable);
+        if (chain.Any(item => item is HttpRequestException or System.Net.Sockets.SocketException))
+            return CreateError("Exchange.Network", ErrorType.Unavailable);
+        return CreateError("Exchange.UpstreamUnavailable", ErrorType.Unavailable);
+    }
+
+    private static string ShortMessage(string value) =>
+        value.Replace('\r', ' ').Replace('\n', ' ')[..Math.Min(value.Length, 400)];
+
+    private static string DiagnosticMessage(string code, string message)
+    {
+        if (code == "Exchange.GeoRestricted") return "Access blocked for the request's country or region";
+        if (code == "Exchange.InvalidResponse") return "Upstream response could not be deserialized (body omitted)";
+        // SDK deserialization messages can contain the complete upstream response.
+        var bodyStart = message.IndexOf("invalid JSON", StringComparison.OrdinalIgnoreCase);
+        if (bodyStart >= 0) message = message[..bodyStart] + "invalid JSON (body omitted)";
+        if (message.Contains("<html", StringComparison.OrdinalIgnoreCase) || message.Contains("<!doctype", StringComparison.OrdinalIgnoreCase))
+            return "Upstream returned an HTML error page (body omitted)";
+        return ShortMessage(message);
     }
 
     private static bool Contains(string value, params string[] candidates) =>
@@ -186,5 +229,7 @@ public abstract class BaseExchangeGateway : IExchangeGateway
         : Exception(message, innerException)
     {
         internal string? UpstreamCode { get; } = upstreamCode;
+        internal HttpStatusCode? StatusCode { get; init; }
+        internal string? SourceErrorType { get; init; }
     }
 }

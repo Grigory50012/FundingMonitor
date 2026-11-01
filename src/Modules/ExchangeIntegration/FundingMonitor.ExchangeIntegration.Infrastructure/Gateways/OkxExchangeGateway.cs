@@ -69,12 +69,7 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
                     request.To.UtcDateTime,
                     Math.Min(request.Limit, 100),
                     token);
-                EnsureSuccess(
-                    result.Success,
-                    result.Error?.Message,
-                    result.Error?.ErrorCode,
-                    result.Error?.ErrorType,
-                    result.Error?.Exception);
+                EnsureSuccess(result);
 
                 var data = result.Data
                            ?? throw new InvalidOperationException("OKX returned no funding history.");
@@ -95,12 +90,7 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
             async token =>
             {
                 var response = await _client.UnifiedApi.ExchangeData.GetServerTimeAsync(token);
-                EnsureSuccess(
-                    response.Success,
-                    response.Error?.Message,
-                    response.Error?.ErrorCode,
-                    response.Error?.ErrorType,
-                    response.Error?.Exception);
+                EnsureSuccess(response);
                 return true;
             },
             cancellationToken);
@@ -116,12 +106,7 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
         var result = await _client.UnifiedApi.ExchangeData.GetSymbolsAsync(
             InstrumentType.Swap,
             ct: cancellationToken);
-        EnsureSuccess(
-            result.Success,
-            result.Error?.Message,
-            result.Error?.ErrorCode,
-            result.Error?.ErrorType,
-            result.Error?.Exception);
+        EnsureSuccess(result);
         var data = result.Data
                    ?? throw new InvalidOperationException("OKX returned no instruments.");
         return data.Where(item => SymbolNormalizer.IsValid(item.Symbol, Exchange)).ToList();
@@ -133,12 +118,7 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
         var result = await _client.UnifiedApi.ExchangeData.GetMarkPricesAsync(
             InstrumentType.Swap,
             ct: cancellationToken);
-        EnsureSuccess(
-            result.Success,
-            result.Error?.Message,
-            result.Error?.ErrorCode,
-            result.Error?.ErrorType,
-            result.Error?.Exception);
+        EnsureSuccess(result);
         var data = result.Data
                    ?? throw new InvalidOperationException("OKX returned no mark prices.");
         return data
@@ -155,12 +135,7 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
         var result = await _client.UnifiedApi.ExchangeData.GetIndexTickersAsync(
             "USDT",
             ct: cancellationToken);
-        EnsureSuccess(
-            result.Success,
-            result.Error?.Message,
-            result.Error?.ErrorCode,
-            result.Error?.ErrorType,
-            result.Error?.Exception);
+        EnsureSuccess(result);
         var data = result.Data
                    ?? throw new InvalidOperationException("OKX returned no index prices.");
         return data.ToDictionary(

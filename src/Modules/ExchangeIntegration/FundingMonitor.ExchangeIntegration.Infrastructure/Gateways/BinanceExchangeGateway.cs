@@ -35,12 +35,7 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
                 await Task.WhenAll(markPricesTask, intervalsTask);
 
                 var markPrices = await markPricesTask;
-                EnsureSuccess(
-                    markPrices.Success,
-                    markPrices.Error?.Message,
-                    markPrices.Error?.ErrorCode,
-                    markPrices.Error?.ErrorType,
-                    markPrices.Error?.Exception);
+                EnsureSuccess(markPrices);
                 var intervals = await intervalsTask;
                 var data = markPrices.Data
                            ?? throw new InvalidOperationException("Binance returned no mark-price data.");
@@ -86,12 +81,7 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
                     request.To.UtcDateTime,
                     request.Limit,
                     token);
-                EnsureSuccess(
-                    result.Success,
-                    result.Error?.Message,
-                    result.Error?.ErrorCode,
-                    result.Error?.ErrorType,
-                    result.Error?.Exception);
+                EnsureSuccess(result);
 
                 var data = result.Data
                            ?? throw new InvalidOperationException("Binance returned no funding history.");
@@ -112,12 +102,7 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
             async token =>
             {
                 var response = await _client.UsdFuturesApi.ExchangeData.PingAsync(token);
-                EnsureSuccess(
-                    response.Success,
-                    response.Error?.Message,
-                    response.Error?.ErrorCode,
-                    response.Error?.ErrorType,
-                    response.Error?.Exception);
+                EnsureSuccess(response);
                 return true;
             },
             cancellationToken);

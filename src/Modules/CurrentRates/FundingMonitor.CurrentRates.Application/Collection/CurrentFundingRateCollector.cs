@@ -65,9 +65,9 @@ public sealed class CurrentFundingRateCollector(
             var response = await exchangeMarketData.GetCurrentRatesAsync(exchange, cancellationToken);
             if (!response.IsSuccess || response.Value is null)
             {
-                logger.LogWarning(
+                logger.LogDebug(
                     "[{Exchange}] Current-rate collection failed: {ErrorCode}",
-                    exchange,
+                    exchange.Value,
                     response.Error?.Code);
                 return ExchangeCollectionResult.Failure(exchange);
             }
