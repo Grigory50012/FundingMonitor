@@ -12,7 +12,7 @@ interface ArbitrageTableProps {
 }
 
 type SortColumn =
-  | "profitabilityPercent"
+  | "aprSpread"
   | "priceSpreadPercent"
   | "fundingRateSpread"
   | "symbol";
@@ -36,7 +36,7 @@ const renderRow = (
   onArbitrageClick?: (symbol: string, exchanges: string[]) => void,
 ): React.ReactNode => {
   const isLongA = item.longExchange === item.exchangeA;
-  const fundingRateSpread = calcFundingSpread(item);
+  const hasDirection = item.longExchange != null;
   const fundingRateA = calcFundingRate(item.fundingRateA);
   const fundingRateB = calcFundingRate(item.fundingRateB);
 
@@ -83,6 +83,14 @@ const renderRow = (
         >
           <div className="flex items-center gap-2">
             <span
+              className="w-8 shrink-0 text-left text-xs"
+              style={{
+                color: isLongA ? "var(--tg-positive)" : "var(--tg-negative)",
+              }}
+            >
+              {hasDirection ? (isLongA ? "Long" : "Short") : "—"}
+            </span>
+            <span
               className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(item.exchangeA)}`}
             >
               {item.exchangeA}
@@ -110,14 +118,6 @@ const renderRow = (
                 />
               </svg>
             </a>
-            <span
-              className="text-xs"
-              style={{
-                color: isLongA ? "var(--tg-positive)" : "var(--tg-negative)",
-              }}
-            >
-              {isLongA ? "L" : "S"}
-            </span>
           </div>
         </td>
         {/* Цена A */}
@@ -142,19 +142,7 @@ const renderRow = (
           rowSpan={2}
           style={{ borderColor: "var(--tg-border)" }}
         >
-          <p
-            className="font-semibold text-sm"
-            style={{ color: "var(--tg-text)" }}
-          >
-            {item.priceSpreadPercent.toFixed(4)}%
-          </p>
-          <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
-            $
-            {item.priceSpread.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 4,
-            })}
-          </p>
+          <PriceSpread item={item} />
         </td>
         {/* Funding Rate A */}
         <td
@@ -179,7 +167,7 @@ const renderRow = (
             %
           </p>
           <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
-            {item.paymentsA} вып./день
+            {formatInterval(item.fundingIntervalHoursA, item.paymentsA)}
           </p>
         </td>
         {/* Спред фандинга — на две строки */}
@@ -188,23 +176,14 @@ const renderRow = (
           rowSpan={2}
           style={{ borderColor: "var(--tg-border)" }}
         >
-          <p
-            className="text-sm font-bold"
-            style={{
-              color:
-                fundingRateSpread > 0
-                  ? "var(--tg-positive)"
-                  : fundingRateSpread < 0
-                    ? "var(--tg-negative)"
-                    : "var(--tg-text-tertiary)",
-            }}
-          >
-            {fundingRateSpread.toLocaleString(undefined, {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 4,
-            })}
-            %
-          </p>
+          {formatFundingSpread(item)}
+        </td>
+        <td
+          className="px-4 py-3 text-center text-sm font-semibold tabular-nums border-l align-middle"
+          rowSpan={2}
+          style={{ borderColor: "var(--tg-border)" }}
+        >
+          {formatApr(item.aprSpread)}
         </td>
       </tr>
       <tr
@@ -218,6 +197,14 @@ const renderRow = (
           style={{ borderColor: "var(--tg-border)" }}
         >
           <div className="flex items-center gap-2">
+            <span
+              className="w-8 shrink-0 text-left text-xs"
+              style={{
+                color: !isLongA ? "var(--tg-positive)" : "var(--tg-negative)",
+              }}
+            >
+              {hasDirection ? (isLongA ? "Short" : "Long") : "—"}
+            </span>
             <span
               className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(item.exchangeB)}`}
             >
@@ -246,14 +233,6 @@ const renderRow = (
                 />
               </svg>
             </a>
-            <span
-              className="text-xs"
-              style={{
-                color: !isLongA ? "var(--tg-positive)" : "var(--tg-negative)",
-              }}
-            >
-              {!isLongA ? "L" : "S"}
-            </span>
           </div>
         </td>
         {/* Цена B */}
@@ -295,7 +274,7 @@ const renderRow = (
             %
           </p>
           <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
-            {item.paymentsB} вып./день
+            {formatInterval(item.fundingIntervalHoursB, item.paymentsB)}
           </p>
         </td>
       </tr>
@@ -311,12 +290,46 @@ const getExchangeColorClass = (exchange: string): string => {
       : "bg-[var(--tg-bg-tertiary)] text-[var(--tg-text-secondary)]";
 };
 
+function formatInterval(hours: number | null, paymentsPerDay: number) {
+  return hours !== null && hours > 0 ? `${hours} ч · ${paymentsPerDay} вып./день` : "—";
+}
+
+function formatFundingSpread(item: FundingArbitrageDto) {
+  return `${calcFundingSpread(item).toLocaleString(undefined, { maximumFractionDigits: 4 })}%`;
+}
+
+function formatApr(apr: number | null) {
+  return apr === null ? "—" : `${apr.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+}
+
+function PriceSpread({ item }: { item: FundingArbitrageDto }) {
+  const percent = item.priceSpreadPercent;
+  if (percent === null || item.shortExchange === null) return <>—</>;
+
+  const amount = item.shortExchange === item.exchangeA ? item.priceSpread : -item.priceSpread;
+  const sign = percent > 0 ? "+" : percent < 0 ? "-" : "";
+  const color = percent > 0
+    ? "var(--tg-positive)"
+    : percent < 0 ? "var(--tg-negative)" : "var(--tg-text)";
+
+  return (
+    <>
+      <p className="font-semibold text-sm" style={{ color }}>
+        {sign}{Math.abs(percent).toFixed(4)}%
+      </p>
+      <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
+        {sign}${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
+      </p>
+    </>
+  );
+}
+
 export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
   data,
   onArbitrageClick,
 }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({
-    column: "profitabilityPercent",
+    column: "aprSpread",
     direction: "desc",
   });
   const [expandedSymbols, setExpandedSymbols] = useState<Set<string>>(
@@ -343,40 +356,37 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
     });
   }, []);
 
-  // Сортировка всех записей
-  const sortedData = useMemo(() => {
-    if (!data.length || !sortConfig.direction) return data;
+  const compareRows = useCallback((a: FundingArbitrageDto, b: FundingArbitrageDto) => {
+    if (!sortConfig.direction) return 0;
 
     const { column, direction } = sortConfig;
     const multiplier = direction === "asc" ? 1 : -1;
 
-    return [...data].sort((a, b) => {
-      let valueA: number;
-      let valueB: number;
+    let valueA: number | null;
+    let valueB: number | null;
 
-      if (column === "fundingRateSpread") {
-        valueA = calcFundingSpread(a);
-        valueB = calcFundingSpread(b);
-      } else if (column === "profitabilityPercent") {
-        valueA = getProfitability(a);
-        valueB = getProfitability(b);
-      } else if (column === "priceSpreadPercent") {
-        valueA = a.priceSpreadPercent;
-        valueB = b.priceSpreadPercent;
-      } else {
-        return direction === "asc"
-          ? a.symbol.localeCompare(b.symbol)
-          : b.symbol.localeCompare(a.symbol);
-      }
+    if (column === "fundingRateSpread") {
+      valueA = calcFundingSpread(a);
+      valueB = calcFundingSpread(b);
+    } else if (column === "aprSpread") {
+      valueA = getProfitability(a);
+      valueB = getProfitability(b);
+    } else if (column === "priceSpreadPercent") {
+      valueA = a.priceSpreadPercent;
+      valueB = b.priceSpreadPercent;
+    } else {
+      return a.symbol.localeCompare(b.symbol) * multiplier;
+    }
 
-      return (valueA - valueB) * multiplier;
-    });
-  }, [data, sortConfig]);
+    if (valueA === null) return valueB === null ? 0 : 1;
+    if (valueB === null) return -1;
+    return (valueA - valueB) * multiplier;
+  }, [sortConfig]);
 
-  // Группировка по символу (данные уже отсортированы, поэтому лучший — первый)
+  // Лучший APR определяет основную пару независимо от сортировки таблицы.
   const groupedData = useMemo(() => {
     const groups = new Map<string, FundingArbitrageDto[]>();
-    for (const item of sortedData) {
+    for (const item of data) {
       const existing = groups.get(item.symbol);
       if (existing) existing.push(item);
       else groups.set(item.symbol, [item]);
@@ -384,14 +394,17 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
 
     const result: SymbolGroup[] = [];
     for (const [symbol, items] of groups) {
+      const best = items.reduce((current, item) =>
+        (item.aprSpread ?? -Infinity) > (current.aprSpread ?? -Infinity) ? item : current,
+      );
       result.push({
         symbol,
-        best: items[0],
-        others: items.slice(1),
+        best,
+        others: items.filter((item) => item !== best).sort(compareRows),
       });
     }
-    return result;
-  }, [sortedData]);
+    return result.sort((a, b) => compareRows(a.best, b.best));
+  }, [data, compareRows]);
 
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortConfig.column !== column || !sortConfig.direction) {
@@ -510,7 +523,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                 }}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span>Спред цены</span>
+                  <span title="По ценам маркировки">Спред цены</span>
                   <SortIcon column="priceSpreadPercent" />
                 </div>
               </th>
@@ -524,7 +537,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                   borderColor: "var(--tg-border)",
                 }}
               >
-                Funding Rate
+                Ставка финансирования
               </th>
               <th
                 className="px-4 py-3 text-center font-medium min-w-[140px] border-b cursor-pointer transition-colors sticky top-0 z-20"
@@ -541,6 +554,27 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                   <span>Спред фандинга</span>
                   <SortIcon column="fundingRateSpread" />
                 </div>
+              </th>
+              <th
+                scope="col"
+                aria-sort={sortConfig.column === "aprSpread"
+                  ? sortConfig.direction === "desc" ? "descending"
+                    : sortConfig.direction === "asc" ? "ascending" : "none"
+                  : undefined}
+                className="px-4 py-3 text-center font-semibold min-w-[110px] border-b sticky top-0 z-20"
+                style={{
+                  backgroundColor: "var(--tg-bg-secondary)",
+                  borderColor: "var(--tg-border)",
+                }}
+              >
+                <button
+                  type="button"
+                  className="mx-auto flex items-center gap-2"
+                  onClick={() => handleSort("aprSpread")}
+                >
+                  APR
+                  <SortIcon column="aprSpread" />
+                </button>
               </th>
             </tr>
           </thead>
@@ -628,6 +662,18 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                       >
                         <div className="flex items-center gap-2">
                           <span
+                            className="w-8 shrink-0 text-left text-xs font-semibold"
+                            style={{
+                              color:
+                                group.best.longExchange === group.best.exchangeA
+                                  ? "var(--tg-positive)"
+                                  : "var(--tg-negative)",
+                            }}
+                          >
+                            {group.best.longExchange == null ? "—" :
+                              group.best.longExchange === group.best.exchangeA ? "Long" : "Short"}
+                          </span>
+                          <span
                             className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(group.best.exchangeA)}`}
                           >
                             {group.best.exchangeA}
@@ -655,19 +701,6 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                               />
                             </svg>
                           </a>
-                          <span
-                            className="text-xs font-semibold"
-                            style={{
-                              color:
-                                group.best.longExchange === group.best.exchangeA
-                                  ? "var(--tg-positive)"
-                                  : "var(--tg-negative)",
-                            }}
-                          >
-                            {group.best.longExchange === group.best.exchangeA
-                              ? "L"
-                              : "S"}
-                          </span>
                         </div>
                       </td>
                       {/* Цена A */}
@@ -692,22 +725,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                         rowSpan={2}
                         style={{ borderColor: "var(--tg-border)" }}
                       >
-                        <p
-                          className="font-semibold text-sm"
-                          style={{ color: "var(--tg-text)" }}
-                        >
-                          {group.best.priceSpreadPercent.toFixed(4)}%
-                        </p>
-                        <p
-                          className="text-xs"
-                          style={{ color: "var(--tg-text-tertiary)" }}
-                        >
-                          $
-                          {group.best.priceSpread.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 8,
-                          })}
-                        </p>
+                        <PriceSpread item={group.best} />
                       </td>
                       {/* Funding Rate A */}
                       <td
@@ -737,7 +755,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                           className="text-xs"
                           style={{ color: "var(--tg-text-tertiary)" }}
                         >
-                          {group.best.paymentsA} вып./день
+                          {formatInterval(group.best.fundingIntervalHoursA, group.best.paymentsA)}
                         </p>
                       </td>
                       {/* Спред фандинга */}
@@ -746,26 +764,14 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                         rowSpan={2}
                         style={{ borderColor: "var(--tg-border)" }}
                       >
-                        <p
-                          className="text-sm font-bold"
-                          style={{
-                            color:
-                              calcFundingSpread(group.best) > 0
-                                ? "var(--tg-positive)"
-                                : calcFundingSpread(group.best) < 0
-                                  ? "var(--tg-negative)"
-                                  : "var(--tg-text-tertiary)",
-                          }}
-                        >
-                          {calcFundingSpread(group.best).toLocaleString(
-                            undefined,
-                            {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 4,
-                            },
-                          )}
-                          %
-                        </p>
+                        {formatFundingSpread(group.best)}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-center text-sm font-semibold tabular-nums border-l align-middle"
+                        rowSpan={2}
+                        style={{ borderColor: "var(--tg-border)" }}
+                      >
+                        {formatApr(group.best.aprSpread)}
                       </td>
                     </tr>
                     <tr
@@ -787,6 +793,18 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                         style={{ borderColor: "var(--tg-border)" }}
                       >
                         <div className="flex items-center gap-2">
+                          <span
+                            className="w-8 shrink-0 text-left text-xs font-semibold"
+                            style={{
+                              color:
+                                group.best.longExchange === group.best.exchangeA
+                                  ? "var(--tg-negative)"
+                                  : "var(--tg-positive)",
+                            }}
+                          >
+                            {group.best.longExchange == null ? "—" :
+                              group.best.longExchange === group.best.exchangeA ? "Short" : "Long"}
+                          </span>
                           <span
                             className={`px-2 py-1 rounded-md text-xs font-semibold ${getExchangeColorClass(group.best.exchangeB)}`}
                           >
@@ -815,19 +833,6 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                               />
                             </svg>
                           </a>
-                          <span
-                            className="text-xs font-semibold"
-                            style={{
-                              color:
-                                group.best.longExchange === group.best.exchangeA
-                                  ? "var(--tg-negative)"
-                                  : "var(--tg-positive)",
-                            }}
-                          >
-                            {group.best.longExchange === group.best.exchangeA
-                              ? "S"
-                              : "L"}
-                          </span>
                         </div>
                       </td>
                       {/* Цена B */}
@@ -874,7 +879,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                           className="text-xs"
                           style={{ color: "var(--tg-text-tertiary)" }}
                         >
-                          {group.best.paymentsB} вып./день
+                          {formatInterval(group.best.fundingIntervalHoursB, group.best.paymentsB)}
                         </p>
                       </td>
                     </tr>
@@ -897,33 +902,6 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
         </table>
       </div>
 
-      {/* Пояснение */}
-      <div
-        className="mt-4 pt-4 border-t"
-        style={{ borderColor: "var(--tg-border)" }}
-      >
-        <p className="text-xs" style={{ color: "var(--tg-text-tertiary)" }}>
-          <span className="font-medium" style={{ color: "var(--tg-positive)" }}>
-            L
-          </span>{" "}
-          — биржа для лонга.
-          <span className="mx-2">|</span>
-          <span className="font-medium" style={{ color: "var(--tg-negative)" }}>
-            S
-          </span>{" "}
-          — биржа для шорта.
-          <span className="mx-2">|</span>
-          <span className="font-medium" style={{ color: "var(--tg-positive)" }}>
-            Спред фандинга
-          </span>{" "}
-          — разница funding rate за период.
-          <span className="mx-2">|</span>
-          <span className="font-medium" style={{ color: "var(--tg-text)" }}>
-            Спред цены
-          </span>{" "}
-          — разница цен между биржами (% и $).
-        </p>
-      </div>
     </div>
   );
 };

@@ -23,10 +23,12 @@ public static class ArbitrageMapper
         opportunity.AprA,
         opportunity.AprB,
         opportunity.AprSpread,
+        opportunity.FundingIntervalHoursA,
+        opportunity.FundingIntervalHoursB,
         opportunity.PaymentsA,
         opportunity.PaymentsB,
-        opportunity.ShortExchange.Value,
-        opportunity.LongExchange.Value,
+        opportunity.ShortExchange?.Value,
+        opportunity.LongExchange?.Value,
         opportunity.ExchangeA.ToTradeUrl(opportunity.Symbol.Value),
         opportunity.ExchangeB.ToTradeUrl(opportunity.Symbol.Value));
 }

@@ -16,6 +16,9 @@ export interface paths {
                 query?: {
                     symbol?: string;
                     exchanges?: string;
+                    minAprPercent?: number;
+                    maxAdversePriceSpreadPercent?: number;
+                    sameFundingIntervalOnly?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -277,7 +280,7 @@ export interface components {
             /** Format: double */
             priceSpread: number;
             /** Format: double */
-            priceSpreadPercent: number;
+            priceSpreadPercent: null | number;
             /** Format: double */
             fundingRateA: number;
             /** Format: double */
@@ -289,13 +292,17 @@ export interface components {
             /** Format: double */
             aprB: number;
             /** Format: double */
-            aprSpread: number;
+            aprSpread: null | number;
+            /** Format: int32 */
+            fundingIntervalHoursA: null | number;
+            /** Format: int32 */
+            fundingIntervalHoursB: null | number;
             /** Format: int32 */
             paymentsA: number;
             /** Format: int32 */
             paymentsB: number;
-            shortExchange: string;
-            longExchange: string;
+            shortExchange: null | string;
+            longExchange: null | string;
             exchangeAUrl: string;
             exchangeBUrl: string;
         };

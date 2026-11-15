@@ -1,43 +1,46 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getApiErrorMessage } from "../../shared/api/errors";
-import type { ExchangeType, FundingArbitrageDto } from "../../types";
-import { getArbitrage } from "./api/getArbitrage";
+import type { FundingArbitrageDto } from "../../types";
+import { getArbitrage, type GetArbitrageParams } from "./api/getArbitrage";
 
-type ArbitrageParams = {
-  symbol?: string;
-  exchanges?: ExchangeType[];
-};
-
-export function useArbitrageRates(params?: ArbitrageParams) {
+export function useArbitrageRates(params: GetArbitrageParams, enabled: boolean) {
   const [data, setData] = useState<FundingArbitrageDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const exchangesKey = params?.exchanges?.join(",") ?? "";
+  const activeRequest = useRef<AbortController | null>(null);
+  const { symbol, minAprPercent, maxAdversePriceSpreadPercent, sameFundingIntervalOnly } = params;
+  const exchangesKey = params.exchanges?.join(",") ?? "";
 
   const load = useCallback(async () => {
+    if (!enabled) return;
+    activeRequest.current?.abort();
+    const request = new AbortController();
+    activeRequest.current = request;
     setIsLoading(true);
     setError(null);
     try {
       const response = await getArbitrage({
-        symbol: params?.symbol || undefined,
+        symbol,
         exchanges: exchangesKey ? exchangesKey.split(",") : undefined,
-      });
-      setData(response);
+        minAprPercent,
+        maxAdversePriceSpreadPercent,
+        sameFundingIntervalOnly,
+      }, request.signal);
+      if (!request.signal.aborted) setData(response);
     } catch (err: unknown) {
-      const message = getApiErrorMessage(
-        err,
-        "Не удалось загрузить арбитражные данные",
-      );
-      console.error("Failed to load arbitrage data:", err);
-      setError(message);
+      if (!request.signal.aborted) {
+        setData([]);
+        setError(getApiErrorMessage(err, "Не удалось загрузить арбитражные данные"));
+      }
     } finally {
-      setIsLoading(false);
+      if (!request.signal.aborted) setIsLoading(false);
     }
-  }, [params?.symbol, exchangesKey]);
+  }, [enabled, symbol, exchangesKey, minAprPercent, maxAdversePriceSpreadPercent, sameFundingIntervalOnly]);
 
   useEffect(() => {
-    load();
+    void load();
+    return () => activeRequest.current?.abort();
   }, [load]);
 
-  return { data, isLoading, error, refresh: load };
+  return { data, isLoading: enabled && isLoading, error, refresh: load };
 }

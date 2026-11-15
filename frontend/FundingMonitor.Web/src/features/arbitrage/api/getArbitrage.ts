@@ -3,13 +3,17 @@ import type { components } from "../../../types/generated/api";
 
 type FundingArbitrageDto = components["schemas"]["FundingArbitrageDto"];
 
-type GetArbitrageParams = {
+export type GetArbitrageParams = {
   symbol?: string;
   exchanges?: string[];
+  minAprPercent?: number;
+  maxAdversePriceSpreadPercent?: number;
+  sameFundingIntervalOnly?: boolean;
 };
 
 export async function getArbitrage(
   params?: GetArbitrageParams,
+  signal?: AbortSignal,
 ): Promise<FundingArbitrageDto[]> {
   const queryParams = new URLSearchParams();
 
@@ -18,8 +22,17 @@ export async function getArbitrage(
     queryParams.append("exchanges", params.exchanges.join(","));
   }
 
+  if (params?.minAprPercent !== undefined)
+    queryParams.set("minAprPercent", String(params.minAprPercent));
+  if (params?.maxAdversePriceSpreadPercent !== undefined)
+    queryParams.set("maxAdversePriceSpreadPercent", String(params.maxAdversePriceSpreadPercent));
+  if (params?.sameFundingIntervalOnly)
+    queryParams.set("sameFundingIntervalOnly", "true");
+
+  const query = queryParams.toString();
   const response = await apiClient.get<FundingArbitrageDto[]>(
-    `/Arbitrage?${queryParams.toString()}`,
+    query ? `/Arbitrage?${query}` : "/Arbitrage",
+    { signal },
   );
   return Array.isArray(response.data) ? response.data : [];
 }

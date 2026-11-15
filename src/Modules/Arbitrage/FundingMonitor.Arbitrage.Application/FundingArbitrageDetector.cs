@@ -50,9 +50,6 @@ public sealed class FundingArbitrageDetector
                 if (rateA.Exchange == rateB.Exchange)
                     continue;
 
-                if (Math.Abs(rateA.Apr - rateB.Apr) < _options.MinSpreadPercent)
-                    continue;
-
                 opportunities.Add(new FundingArbitrageOpportunity
                 {
                     Symbol = rateA.Symbol,
@@ -64,6 +61,8 @@ public sealed class FundingArbitrageDetector
                     FundingRateB = rateB.FundingRate,
                     AprA = rateA.Apr,
                     AprB = rateB.Apr,
+                    FundingIntervalHoursA = rateA.FundingIntervalHours,
+                    FundingIntervalHoursB = rateB.FundingIntervalHours,
                     PaymentsA = PaymentsPerDay(rateA.FundingIntervalHours),
                     PaymentsB = PaymentsPerDay(rateB.FundingIntervalHours)
                 });

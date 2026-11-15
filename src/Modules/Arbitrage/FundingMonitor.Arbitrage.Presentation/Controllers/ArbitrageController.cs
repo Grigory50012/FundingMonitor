@@ -16,10 +16,21 @@ public sealed class ArbitrageController(IArbitrageModule module) : ControllerBas
     [ProducesResponseType(typeof(List<FundingArbitrageDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<FundingArbitrageDto>>> GetArbitrageOpportunities(
         [FromQuery] string? symbol = null,
-        [FromQuery] string? exchanges = null)
+        [FromQuery] string? exchanges = null,
+        [FromQuery] decimal? minAprPercent = null,
+        [FromQuery] decimal? maxAdversePriceSpreadPercent = null,
+        [FromQuery] bool sameFundingIntervalOnly = false)
     {
+        if (minAprPercent < 0)
+            ModelState.AddModelError(nameof(minAprPercent), "Minimum APR must be non-negative.");
+        if (maxAdversePriceSpreadPercent < 0)
+            ModelState.AddModelError(nameof(maxAdversePriceSpreadPercent), "Maximum adverse price spread must be non-negative.");
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         var opportunities = await module.GetOpportunitiesAsync(
-            new ArbitrageQuery(symbol, ParseExchanges(exchanges)),
+            new ArbitrageQuery(symbol, ParseExchanges(exchanges), minAprPercent,
+                maxAdversePriceSpreadPercent, sameFundingIntervalOnly),
             HttpContext.RequestAborted);
         return Ok(opportunities.ToDtoList());
     }

@@ -18,12 +18,12 @@ APR (Annual Percentage Rate) — ключевая метрика для арби
 
 ```csharp
 // CurrentFundingRate entity
-public int NumberOfPaymentsPerDay => FundingIntervalHours > 0 ? 24 / FundingIntervalHours : 3;
-
 public decimal APR => FundingIntervalHours > 0
     ? FundingRate * 100m * (365m * 24m / FundingIntervalHours)
     : 0m;
 ```
+
+Для отображения числа выплат в сутки `FundingRateMapper` рассчитывает `24 / FundingIntervalHours` и подставляет `3` при неизвестном интервале.
 
 Формула: `FundingRate * (365 * 24 / IntervalHours) * 100%`
 

@@ -35,10 +35,7 @@ public sealed class ArbitrageModuleTests
             TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0.001m, 109.5m, true),
             TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true)
         ]);
-        var sut = CreateSut(current, new FundingArbitrageOptions
-        {
-            MinSpreadPercent = 10m
-        });
+        var sut = CreateSut(current, new FundingArbitrageOptions());
 
         var result = await sut.GetOpportunitiesAsync(
             new ArbitrageQuery("BTC", null), TestContext.Current.CancellationToken);
@@ -108,6 +105,69 @@ public sealed class ArbitrageModuleTests
         Assert.Throws<NotSupportedException>(() => list[0] = list[0]);
     }
 
+    [Fact]
+    public async Task GetOpportunitiesAsync_AppliesAllFiltersAndInclusiveBoundaries()
+    {
+        var current = new StubCurrentRatesModule(
+        [
+            TestCurrentRate.Create("Binance", "BTC-USDT", 99m, 0.00002m, 3m, true),
+            TestCurrentRate.Create("Bybit", "BTC-USDT", 101m, 0.00001m, 1m, true),
+            TestCurrentRate.Create("OKX", "BTC-USDT", 101m, 0.00001m, 1m, true, intervalHours: 4),
+            TestCurrentRate.Create("Binance", "ETH-USDT", 99m, 0.00002m, 3m, true),
+            TestCurrentRate.Create("Bybit", "ETH-USDT", 101m, 0.00001m, 1m, true)
+        ]);
+        var sut = CreateSut(current, new FundingArbitrageOptions());
+        var query = new ArbitrageQuery("btc", [ExchangeId.Parse("Binance"), ExchangeId.Parse("Bybit")],
+            MinAprPercent: 2m, MaxAdversePriceSpreadPercent: 2m, SameFundingIntervalOnly: true);
+        var token = TestContext.Current.CancellationToken;
+
+        Assert.Equal(-2m, Assert.Single(await sut.GetOpportunitiesAsync(query, token)).PriceSpreadPercent);
+        Assert.Empty(await sut.GetOpportunitiesAsync(query with { MinAprPercent = 2.1m }, token));
+        Assert.Empty(await sut.GetOpportunitiesAsync(query with { MaxAdversePriceSpreadPercent = 1.9m }, token));
+        var mixed = query with { Exchanges = [ExchangeId.Parse("Binance"), ExchangeId.Parse("OKX")] };
+        Assert.Empty(await sut.GetOpportunitiesAsync(mixed, token));
+        Assert.Single(await sut.GetOpportunitiesAsync(mixed with { SameFundingIntervalOnly = false }, token));
+        Assert.Equal(4, (await sut.GetOpportunitiesAsync(new ArbitrageQuery(null, null), token)).Count);
+    }
+
+    [Fact]
+    public async Task GetOpportunitiesAsync_ZeroPriceLimitKeepsFavorableSpreads()
+    {
+        var current = new StubCurrentRatesModule(
+        [
+            TestCurrentRate.Create("Binance", "BTC-USDT", 99m, 0.00001m, 1m, true),
+            TestCurrentRate.Create("Bybit", "BTC-USDT", 101m, 0.00002m, 3m, true),
+            TestCurrentRate.Create("OKX", "BTC-USDT", 0m, 0.00003m, 4m, true)
+        ]);
+        var sut = CreateSut(current, new FundingArbitrageOptions());
+        var query = new ArbitrageQuery(null, null, MaxAdversePriceSpreadPercent: 0m);
+
+        var match = Assert.Single(await sut.GetOpportunitiesAsync(query, TestContext.Current.CancellationToken));
+        Assert.Equal(2m, match.PriceSpreadPercent);
+    }
+
+    [Fact]
+    public async Task GetOpportunitiesAsync_UnknownIntervalOnlyPassesWithoutDependentFilters()
+    {
+        var current = new StubCurrentRatesModule(
+        [
+            TestCurrentRate.Create("Binance", "BTC-USDT", 101m, 0.00002m, 3m, true),
+            TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, 0.00001m, 0m, true, intervalHours: null)
+        ]);
+        var sut = CreateSut(current, new FundingArbitrageOptions());
+        var token = TestContext.Current.CancellationToken;
+        var query = new ArbitrageQuery(null, null);
+
+        var opportunity = Assert.Single(await sut.GetOpportunitiesAsync(query, token));
+        Assert.Null(opportunity.AprSpread);
+        Assert.Null(opportunity.ShortExchange);
+        Assert.Null(opportunity.LongExchange);
+        Assert.Null(opportunity.PriceSpreadPercent);
+        Assert.Empty(await sut.GetOpportunitiesAsync(query with { MinAprPercent = 0m }, token));
+        Assert.Empty(await sut.GetOpportunitiesAsync(query with { MaxAdversePriceSpreadPercent = 0m }, token));
+        Assert.Empty(await sut.GetOpportunitiesAsync(query with { SameFundingIntervalOnly = true }, token));
+    }
+
     private sealed class StubCurrentRatesModule(IReadOnlyList<CurrentRateView> rates) : ICurrentRatesModule
     {
         public Task<IReadOnlyList<CurrentRateView>> GetCurrentRatesAsync(
@@ -131,13 +191,14 @@ public sealed class ArbitrageModuleTests
             decimal fundingRate,
             decimal apr,
             bool isActive,
-            DateTimeOffset? lastSeenOnUtc = null) => new(
+            DateTimeOffset? lastSeenOnUtc = null,
+            int? intervalHours = 8) => new(
             ExchangeId.Parse(exchange),
             Symbol.Create(symbol),
             markPrice,
             markPrice,
             fundingRate,
-            8,
+            intervalHours,
             DateTimeOffset.UtcNow.AddHours(1),
             null,
             lastSeenOnUtc ?? DateTimeOffset.UtcNow,

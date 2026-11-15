@@ -18,6 +18,21 @@ export type FilterState = {
   symbol: string;
 };
 
+export const EMPTY_ARBITRAGE_FILTERS = {
+  exchanges: [] as ExchangeType[],
+  symbol: "",
+  minAprPercent: "",
+  maxAdversePriceSpreadPercent: "",
+  sameFundingIntervalOnly: false,
+};
+
+export function parsePercent(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!/^(\d+([.,]\d*)?|[.,]\d+)$/.test(trimmed)) return undefined;
+  const parsed = Number(trimmed.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 export function useDashboardData() {
   const [mainFilters, setMainFilters] = useLocalStorage<FilterState>(
     STORAGE_KEYS.mainFilters,
@@ -26,11 +41,7 @@ export function useDashboardData() {
       symbol: "BTC",
     },
   );
-  const [arbitrageFilters, setArbitrageFilters] =
-    useLocalStorage<FilterState>(STORAGE_KEYS.arbitrageFilters, {
-      exchanges: [],
-      symbol: "",
-    });
+  const [arbitrageFilters, setArbitrageFilters] = useState(EMPTY_ARBITRAGE_FILTERS);
 
   const current = useCurrentRates({
     symbol: mainFilters.symbol,
@@ -45,13 +56,22 @@ export function useDashboardData() {
     limit: 1000,
   });
 
+  const minAprPercent = parsePercent(arbitrageFilters.minAprPercent);
+  const maxAdversePriceSpreadPercent = parsePercent(arbitrageFilters.maxAdversePriceSpreadPercent);
+  const arbitrageFiltersValid =
+    (!arbitrageFilters.minAprPercent.trim() || minAprPercent !== undefined) &&
+    (!arbitrageFilters.maxAdversePriceSpreadPercent.trim() || maxAdversePriceSpreadPercent !== undefined);
+
   const arbitrage = useArbitrageRates({
     symbol: arbitrageFilters.symbol || undefined,
+    minAprPercent,
+    maxAdversePriceSpreadPercent,
+    sameFundingIntervalOnly: arbitrageFilters.sameFundingIntervalOnly,
     exchanges:
       arbitrageFilters.exchanges.length > 0
         ? arbitrageFilters.exchanges
         : undefined,
-  });
+  }, arbitrageFiltersValid);
 
   const [allCoins, setAllCoins] = useState<string[]>([]);
   const [historyViewMode, setHistoryViewMode] =
@@ -84,6 +104,7 @@ export function useDashboardData() {
     setMainFilters,
     arbitrageFilters,
     setArbitrageFilters,
+    arbitrageFiltersValid,
     current,
     history,
     arbitrage,

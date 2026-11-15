@@ -5,18 +5,11 @@ namespace FundingMonitor.Arbitrage.Application;
 
 public sealed class FundingArbitrageService
 {
-    private FundingArbitrageOpportunity[] _snapshot = [];
-
-    public void ReplaceSnapshot(IEnumerable<FundingArbitrageOpportunity> opportunities)
+    public IReadOnlyList<FundingArbitrageOpportunity> Query(
+        IReadOnlyList<FundingArbitrageOpportunity> opportunities,
+        ArbitrageQuery query)
     {
-        var replacement = opportunities.ToArray();
-        Volatile.Write(ref _snapshot, replacement);
-    }
-
-    public IReadOnlyList<FundingArbitrageOpportunity> Query(ArbitrageQuery query)
-    {
-        var snapshot = Volatile.Read(ref _snapshot);
-        IEnumerable<FundingArbitrageOpportunity> filtered = snapshot;
+        IEnumerable<FundingArbitrageOpportunity> filtered = opportunities;
 
         if (!string.IsNullOrWhiteSpace(query.Symbol))
         {
@@ -36,6 +29,17 @@ public sealed class FundingArbitrageService
                 exchanges.Contains(opportunity.ExchangeA) &&
                 exchanges.Contains(opportunity.ExchangeB));
         }
+
+        if (query.MinAprPercent is { } minApr)
+            filtered = filtered.Where(opportunity => opportunity.AprSpread >= minApr);
+
+        if (query.MaxAdversePriceSpreadPercent is { } maxSpread)
+            filtered = filtered.Where(opportunity => opportunity.PriceSpreadPercent >= -maxSpread);
+
+        if (query.SameFundingIntervalOnly)
+            filtered = filtered.Where(opportunity =>
+                opportunity.FundingIntervalHoursA is > 0 &&
+                opportunity.FundingIntervalHoursA == opportunity.FundingIntervalHoursB);
 
         return filtered
             .OrderByDescending(opportunity => opportunity.AprSpread)

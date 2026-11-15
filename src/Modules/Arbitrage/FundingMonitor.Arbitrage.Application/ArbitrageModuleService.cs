@@ -6,14 +6,14 @@ namespace FundingMonitor.Arbitrage.Application;
 public sealed class ArbitrageModuleService : IArbitrageModule
 {
     private readonly FundingArbitrageDetector _detector;
-    private readonly FundingArbitrageService _snapshot;
+    private readonly FundingArbitrageService _service;
 
     public ArbitrageModuleService(
         FundingArbitrageDetector detector,
-        FundingArbitrageService snapshot)
+        FundingArbitrageService service)
     {
         _detector = detector;
-        _snapshot = snapshot;
+        _service = service;
     }
 
     public async Task<IReadOnlyList<ArbitrageOpportunityView>> GetOpportunitiesAsync(
@@ -21,8 +21,7 @@ public sealed class ArbitrageModuleService : IArbitrageModule
         CancellationToken cancellationToken)
     {
         var opportunities = await _detector.DetectAsync(cancellationToken);
-        _snapshot.ReplaceSnapshot(opportunities);
-        return _snapshot.Query(query).Select(Map).ToList().AsReadOnly();
+        return _service.Query(opportunities, query).Select(Map).ToList().AsReadOnly();
     }
 
     private static ArbitrageOpportunityView Map(FundingArbitrageOpportunity opportunity) => new(
@@ -39,6 +38,8 @@ public sealed class ArbitrageModuleService : IArbitrageModule
         opportunity.AprA,
         opportunity.AprB,
         opportunity.AprSpread,
+        opportunity.FundingIntervalHoursA,
+        opportunity.FundingIntervalHoursB,
         opportunity.PaymentsA,
         opportunity.PaymentsB,
         opportunity.ShortExchange,
