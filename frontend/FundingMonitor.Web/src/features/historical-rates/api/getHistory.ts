@@ -13,6 +13,7 @@ type GetHistoryParams = {
 
 export async function getHistory(
   params: GetHistoryParams,
+  signal?: AbortSignal,
 ): Promise<HistoricalFundingRateDto[]> {
   const queryParams = new URLSearchParams();
 
@@ -28,6 +29,7 @@ export async function getHistory(
 
   const response = await apiClient.get<HistoricalFundingRateDto[]>(
     `/History?${queryParams.toString()}`,
+    { signal },
   );
   return Array.isArray(response.data) ? response.data : [];
 }

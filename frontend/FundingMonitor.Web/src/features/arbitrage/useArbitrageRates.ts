@@ -1,46 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getApiErrorMessage } from "../../shared/api/errors";
 import type { FundingArbitrageDto } from "../../types";
 import { getArbitrage, type GetArbitrageParams } from "./api/getArbitrage";
+import { arbitrageRefreshOptions } from "./arbitrageRefreshOptions";
 
-export function useArbitrageRates(params: GetArbitrageParams, enabled: boolean) {
-  const [data, setData] = useState<FundingArbitrageDto[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const activeRequest = useRef<AbortController | null>(null);
-  const { symbol, minAprPercent, maxAdversePriceSpreadPercent, sameFundingIntervalOnly } = params;
-  const exchangesKey = params.exchanges?.join(",") ?? "";
+const EMPTY_ARBITRAGE: FundingArbitrageDto[] = [];
 
-  const load = useCallback(async () => {
-    if (!enabled) return;
-    activeRequest.current?.abort();
-    const request = new AbortController();
-    activeRequest.current = request;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await getArbitrage({
-        symbol,
-        exchanges: exchangesKey ? exchangesKey.split(",") : undefined,
-        minAprPercent,
-        maxAdversePriceSpreadPercent,
-        sameFundingIntervalOnly,
-      }, request.signal);
-      if (!request.signal.aborted) setData(response);
-    } catch (err: unknown) {
-      if (!request.signal.aborted) {
-        setData([]);
-        setError(getApiErrorMessage(err, "Не удалось загрузить арбитражные данные"));
-      }
-    } finally {
-      if (!request.signal.aborted) setIsLoading(false);
-    }
-  }, [enabled, symbol, exchangesKey, minAprPercent, maxAdversePriceSpreadPercent, sameFundingIntervalOnly]);
+export function useArbitrageRates(params: GetArbitrageParams, enabled: boolean, autoRefresh = true) {
+  const filters = { ...params, exchanges: [...(params.exchanges ?? [])].sort() };
+  const query = useQuery({
+    queryKey: ["arbitrage", filters],
+    queryFn: ({ signal }) => getArbitrage(filters, signal),
+    enabled,
+    ...arbitrageRefreshOptions(autoRefresh),
+  });
 
-  useEffect(() => {
-    void load();
-    return () => activeRequest.current?.abort();
-  }, [load]);
-
-  return { data, isLoading: enabled && isLoading, error, refresh: load };
+  return {
+    data: (query.data as FundingArbitrageDto[] | undefined) ?? EMPTY_ARBITRAGE,
+    isLoading: enabled && query.isLoading,
+    error: query.error ? getApiErrorMessage(query.error, "Не удалось обновить арбитражные данные") : null,
+    filtersKey: JSON.stringify(filters),
+    refresh: query.refetch,
+  };
 }

@@ -15,5 +15,5 @@ internal static class HistoricalRatesMapper
         new AprPeriodStatsDto(
             item.Exchange.Value, item.Period, item.Days, item.Apr,
             item.TotalFundingRatePercent, item.PaymentsCount,
-            item.AvgFundingRatePercent, item.StdDev)).ToList();
+            item.AvgFundingRatePercent)).ToList();
 }

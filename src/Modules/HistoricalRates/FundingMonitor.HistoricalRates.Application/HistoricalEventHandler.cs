@@ -9,7 +9,8 @@ public sealed class HistoricalEventHandler(
     IExchangeMarketDataModule exchangeMarketData,
     IHistoricalRatesUnitOfWork unitOfWork,
     IOptions<HistoricalDataCollectionOptions> options,
-    TimeProvider timeProvider) : IHistoricalEventHandler
+    TimeProvider timeProvider,
+    AprStatsCacheInvalidation cacheInvalidation) : IHistoricalEventHandler
 {
     public async Task HandleAsync(
         HistoricalCollectionRequest request,
@@ -37,5 +38,7 @@ public sealed class HistoricalEventHandler(
         await unitOfWork.StoreHistoryAsync(
             rates,
             cancellationToken);
+        if (rates.Length > 0)
+            cacheInvalidation.Invalidate(request.Symbol);
     }
 }

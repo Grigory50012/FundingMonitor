@@ -14,7 +14,7 @@ export function ExchangeBadge({
   return (
     <span
       className={`${
-        compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"
+        compact ? "px-1.5 py-0.5 panel-caption" : "px-2 py-1 panel-text"
       } rounded-md font-semibold inline-block text-center`}
       style={tone}
     >

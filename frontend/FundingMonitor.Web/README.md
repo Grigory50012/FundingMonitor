@@ -11,6 +11,7 @@ npm install
 npm run dev
 npm run build
 npm run lint
+npm test
 npm run preview
 ```
 
@@ -25,6 +26,8 @@ Vite привязан к IPv4 `127.0.0.1` через `server.host` в `vite.conf
 ## Структура
 
 - `src/app/providers/` — точка подключения application-level providers.
+- TanStack Query управляет кэшем истории и APR: обновление в `HH:01`, проверка устаревания при возврате во вкладку и восстановлении сети, три повторные попытки при ошибке. Фоновое обновление сохраняет текущие данные на экране.
+- Арбитраж использует TanStack Query с фоновым обновлением каждые 5 секунд и переключателем паузы. Страницы по 25/50/100 монет формируются на клиенте после группировки и сортировки.
 - `src/entities/` — доменные UI-сущности.
 - `src/features/` — feature-owned API, hooks, компоненты и модели: `current-rates`, `historical-rates`, `arbitrage`, `filters`.
 - `src/shared/` — переиспользуемые UI, API client, hooks и helper-функции.

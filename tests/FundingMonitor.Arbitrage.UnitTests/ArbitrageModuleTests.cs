@@ -13,6 +13,51 @@ namespace FundingMonitor.Arbitrage.UnitTests;
 public sealed class ArbitrageModuleTests
 {
     [Fact]
+    public async Task SeparateRequestScopes_ReuseUnchangedSnapshotCalculation()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<ICurrentRatesModule>(new StubCurrentRatesModule([
+            TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0.001m, 109.5m, true),
+            TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true)
+        ]));
+        services.AddArbitrageInfrastructure(new ConfigurationManager());
+        using var provider = services.BuildServiceProvider();
+        using var firstScope = provider.CreateScope();
+        using var secondScope = provider.CreateScope();
+        var token = TestContext.Current.CancellationToken;
+
+        var first = await firstScope.ServiceProvider.GetRequiredService<FundingArbitrageDetector>().DetectAsync(token);
+        var second = await secondScope.ServiceProvider.GetRequiredService<FundingArbitrageDetector>().DetectAsync(token);
+
+        Assert.Single(first);
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public async Task CachedSnapshot_DropsRatesWhenTheyBecomeStale()
+    {
+        var time = new MutableTimeProvider { Now = DateTimeOffset.UtcNow };
+        var current = new StubCurrentRatesModule([
+            TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0.001m, 109.5m, true, time.Now),
+            TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true, time.Now)
+        ]);
+        var detector = new FundingArbitrageDetector(current, Options.Create(new FundingArbitrageOptions()),
+            time, new ArbitrageSnapshotCache());
+        var token = TestContext.Current.CancellationToken;
+        Assert.Single(await detector.DetectAsync(token));
+
+        time.Now = time.Now.AddMinutes(6);
+
+        Assert.Empty(await detector.DetectAsync(token));
+    }
+
+    private sealed class MutableTimeProvider : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; }
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    [Fact]
     public void AddArbitrageInfrastructure_ResolvesArbitrageModule()
     {
         var services = new ServiceCollection();

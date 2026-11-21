@@ -85,8 +85,8 @@ export function CurrentRatesTable({
   }
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden min-w-0">
-      <table className="w-full table-fixed text-xs border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+    <div className="h-full overflow-y-auto overflow-x-hidden min-w-0 [scrollbar-gutter:stable]">
+      <table className="w-full table-fixed panel-text border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
         <colgroup>
           <col className="w-[20%]" />
           <col className="w-[22%]" />
@@ -181,7 +181,7 @@ export function CurrentRatesTable({
                 style={{ borderColor: "var(--tg-border)" }}
               >
                 <p
-                  className="font-semibold text-[11px] tabular-nums leading-tight break-all text-center"
+                  className="panel-value leading-tight break-all text-center"
                   style={{ color: "var(--tg-text)" }}
                 >
                   {formatPrice(item.markPrice, {
@@ -196,7 +196,7 @@ export function CurrentRatesTable({
               >
                 <div className="flex flex-col items-center justify-center gap-0.5 leading-tight">
                   <p
-                    className="text-xs font-bold tabular-nums"
+                    className="panel-value"
                     style={{ color: getSignedColor(item.fundingRate) }}
                   >
                     {formatPercent(item.fundingRate * 100, {
@@ -205,7 +205,7 @@ export function CurrentRatesTable({
                     })}
                   </p>
                   <p
-                    className="text-[10px] leading-none"
+                    className="panel-caption leading-none"
                     style={{ color: "var(--tg-text-tertiary)" }}
                   >
                     {item.numberOfPaymentsPerDay}{" "}
@@ -218,7 +218,7 @@ export function CurrentRatesTable({
                 style={{ borderColor: "var(--tg-border)" }}
               >
                 <p
-                  className="font-medium text-[11px] tabular-nums text-center"
+                  className="panel-value text-center"
                   style={{ color: "var(--tg-text)" }}
                 >
                   {formatTime(item.nextFundingTime)}
@@ -229,7 +229,7 @@ export function CurrentRatesTable({
                 style={{ borderColor: "var(--tg-border)" }}
               >
                 <p
-                  className="text-xs font-bold tabular-nums text-center mx-auto"
+                  className="panel-value text-center mx-auto"
                   style={{ color: getSignedColor(item.apr) }}
                 >
                   {formatPercent(item.apr, {

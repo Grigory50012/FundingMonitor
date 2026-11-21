@@ -7,5 +7,4 @@ public sealed record AprPeriodStatsDto(
     decimal Apr,
     decimal TotalFundingRatePercent,
     int PaymentsCount,
-    decimal AvgFundingRatePercent,
-    decimal StdDev);
+    decimal AvgFundingRatePercent);

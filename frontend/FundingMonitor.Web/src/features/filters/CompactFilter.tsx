@@ -107,16 +107,12 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
       <div className="relative z-50" ref={symbolRef}>
         <div
-          className="h-9 px-3 rounded-xl flex items-center gap-2 transition-all min-w-[220px]"
+          className="dashboard-control w-48"
           style={{
-            backgroundColor: "var(--tg-bg-tertiary)",
-            border: isSymbolOpen
-              ? "1px solid var(--tg-button)"
-              : "1px solid var(--tg-border)",
-            color: "var(--tg-text)",
+            borderColor: isSymbolOpen ? "var(--tg-button)" : undefined,
           }}
         >
           <input
@@ -135,7 +131,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
               }
             }}
             placeholder={"Поиск монеты..."}
-            className="h-full bg-transparent outline-none text-sm font-medium w-[170px]"
+            className="h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--tg-hint)]"
             style={{ color: "var(--tg-text)" }}
           />
 
@@ -143,7 +139,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
             <button
               type="button"
               onClick={clearSymbol}
-              className="ml-auto p-1 rounded-lg transition-colors"
+              className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-md transition-colors"
               title={"Сбросить"}
               style={{ color: "var(--tg-hint)" }}
             >
@@ -180,7 +176,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
                     setSymbolInput(symbol);
                     commitSymbol(symbol);
                   }}
-                  className="w-full px-3 py-2 text-left transition-all flex items-center justify-between"
+                  className="w-full px-2.5 py-1.5 rounded-lg text-left transition-all flex items-center justify-between"
                   style={{
                     backgroundColor:
                       symbolInput.trim().toLowerCase() ===
@@ -190,7 +186,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
                   }}
                 >
                   <span
-                    className="text-sm font-medium"
+                    className="text-xs font-medium"
                     style={{ color: "var(--tg-text)" }}
                   >
                     {symbol}
@@ -205,17 +201,13 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
       <div className="relative z-50" ref={exchangeRef}>
         <button
           onClick={() => setIsExchangeOpen(!isExchangeOpen)}
-          className="h-9 px-3 rounded-xl flex items-center gap-2 transition-all min-w-[140px]"
+          className="dashboard-control min-w-32"
           style={{
-            backgroundColor: "var(--tg-bg-tertiary)",
-            border: isExchangeOpen
-              ? "1px solid var(--tg-button)"
-              : "1px solid var(--tg-border)",
-            color: "var(--tg-text)",
+            borderColor: isExchangeOpen ? "var(--tg-button)" : undefined,
           }}
         >
           <svg
-            className="w-4 h-4 flex-shrink-0"
+            className="w-3.5 h-3.5 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -228,7 +220,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
               d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
             />
           </svg>
-          <span className="text-sm font-medium truncate">
+          <span className="truncate">
             {getExchangeLabel()}
           </span>
           <svg
@@ -288,7 +280,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
                   <button
                     key={exchange}
                     onClick={() => toggleExchange(exchange)}
-                    className="w-full px-3 py-2 rounded-xl text-left transition-all flex items-center justify-between mb-1 last:mb-0"
+                    className="w-full px-2.5 py-1.5 rounded-lg text-left transition-all flex items-center justify-between mb-1 last:mb-0"
                     style={{
                       backgroundColor: selectedExchanges.includes(exchange)
                         ? "rgba(0, 136, 204, 0.15)"
@@ -296,7 +288,7 @@ export const CompactFilter: React.FC<CompactFilterProps> = ({
                     }}
                   >
                     <span
-                      className="text-sm font-medium"
+                      className="text-xs font-medium"
                       style={{
                         color: selectedExchanges.includes(exchange)
                           ? "var(--tg-link)"

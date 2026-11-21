@@ -16,6 +16,7 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(FundingArbitrageOptions.SectionName));
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<FundingArbitrageService>();
+        services.AddSingleton<ArbitrageSnapshotCache>();
         services.AddScoped<FundingArbitrageDetector>();
         services.AddScoped<ArbitrageModuleService>();
         services.AddScoped<IArbitrageModule>(provider =>

@@ -11,7 +11,8 @@ public sealed class HistoricalRatesService(
     IHistoricalRatesRepository repository,
     IMemoryCache cache,
     IOptions<AprStatsOptions> options,
-    TimeProvider timeProvider) : IHistoricalRatesModule
+    TimeProvider timeProvider,
+    AprStatsCacheInvalidation cacheInvalidation) : IHistoricalRatesModule
 {
     private static readonly Dictionary<int, string> PeriodLabels = new()
     {
@@ -36,6 +37,7 @@ public sealed class HistoricalRatesService(
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(options.Value.CacheDurationMinutes);
             entry.Size = 1;
+            entry.AddExpirationToken(cacheInvalidation.GetToken(symbol));
             var history = await repository.GetHistoryAsync(
                 new HistoricalRatesQuery(
                     symbol,
@@ -66,8 +68,6 @@ public sealed class HistoricalRatesService(
                     continue;
                 var total = selected.Sum(item => item.FundingRate);
                 var average = total / selected.Length;
-                var variance = selected.Select(item =>
-                    Math.Pow((double)(item.FundingRate - average), 2)).Average();
                 result.Add(new AprPeriodStatsView(
                     group.Key,
                     PeriodLabels.GetValueOrDefault(days, $"{days} дней"),
@@ -75,8 +75,7 @@ public sealed class HistoricalRatesService(
                     total * 100m * (365m / days),
                     total * 100m,
                     selected.Length,
-                    average * 100m,
-                    (decimal)Math.Sqrt(variance) * 100m));
+                    average * 100m));
             }
         }
         return result;

@@ -25,7 +25,7 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
   selectedExchanges,
   symbol,
 }) => {
-  const { data, isLoading, error } = useAprStats({ symbol, selectedExchanges });
+  const { data, isLoading, error, hasData } = useAprStats({ symbol, selectedExchanges });
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     column: "apr",
     direction: null,
@@ -167,18 +167,18 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
         className="flex items-center justify-center h-full"
         style={{ color: "var(--tg-text-secondary)" }}
       >
-        <p className="text-xs">Загрузка данных...</p>
+        <p className="panel-text">Загрузка данных...</p>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !hasData) {
     return (
       <div
         className="flex items-center justify-center h-full"
         style={{ color: "var(--tg-negative)" }}
       >
-        <p className="text-xs">Ошибка: {error}</p>
+        <p className="panel-text">Ошибка: {error}</p>
       </div>
     );
   }
@@ -189,15 +189,23 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
         className="flex items-center justify-center h-full"
         style={{ color: "var(--tg-text-tertiary)" }}
       >
-        <p className="text-xs">Нет исторических данных для отображения</p>
+        <div className="text-center panel-text">
+          <p>Нет исторических данных для отображения</p>
+          {error && <p role="status" className="mt-2 text-[var(--tg-warning)]">Не удалось обновить APR: {error}</p>}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 min-h-0 overflow-auto">
-        <table className="w-full table-fixed text-xs border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+      {error && (
+        <p role="status" className="mb-2 panel-text text-[var(--tg-warning)]">
+          Не удалось обновить APR. Показаны последние полученные данные: {error}
+        </p>
+      )}
+      <div className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:stable]">
+        <table className="w-full table-fixed panel-text border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
           <colgroup>
             <col className="w-[100px]" />
             {PERIODS.map((p) => (
@@ -257,7 +265,7 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
                 >
                   <div className="flex flex-col items-center justify-center gap-0.5 min-w-0">
                     <span
-                      className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold mx-auto max-w-full truncate inline-block text-center"
+                      className="px-1.5 py-0.5 rounded-md panel-caption font-semibold mx-auto max-w-full truncate inline-block text-center"
                       style={{
                         backgroundColor:
                           exchange === "Binance"
@@ -305,7 +313,7 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
                     >
                       <div className="flex flex-col items-center justify-center gap-0.5 leading-tight">
                         <p
-                          className="text-xs font-bold tabular-nums"
+                          className="panel-value"
                           style={{
                             color:
                               stat.apr > 0
@@ -318,25 +326,18 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
                           {stat.apr.toFixed(2)}%
                         </p>
                         <p
-                          className="text-[10px] leading-none tabular-nums"
+                          className="panel-caption leading-none tabular-nums"
                           style={{ color: "var(--tg-text-secondary)" }}
                         >
                           ∑ {stat.totalFundingRatePercent.toFixed(3)}%
                         </p>
                         <div
-                          className="flex items-center gap-1 text-[10px] leading-none tabular-nums"
+                          className="flex items-center gap-1 panel-caption leading-none tabular-nums"
                           style={{ color: "var(--tg-text-tertiary)" }}
                         >
                           <span>{stat.paymentsCount}</span>
                           <span>•</span>
                           <span>{stat.avgFundingRatePercent.toFixed(3)}%</span>
-                        </div>
-                        <div
-                          className="flex items-center gap-0.5 text-[10px] leading-none tabular-nums"
-                          style={{ color: "#BB86FC" }}
-                        >
-                          <span>σ</span>
-                          <span>{(stat.stdDev ?? 0).toFixed(4)}%</span>
                         </div>
                       </div>
                     </td>
@@ -346,31 +347,6 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Пояснение */}
-      <div
-        className="mt-2 pt-2 border-t"
-        style={{ borderColor: "var(--tg-border)" }}
-      >
-        <p
-          className="text-[10px] leading-snug"
-          style={{ color: "var(--tg-text-tertiary)" }}
-        >
-          <span className="font-medium" style={{ color: "var(--tg-positive)" }}>
-            APR
-          </span>{" "}
-          — годовой процент на основе суммарной ставки за период.
-          <span className="mx-1.5">|</span>
-          <span style={{ color: "var(--tg-text-secondary)" }}>∑</span> —
-          суммарная ставка за период.
-          <span className="mx-1.5">|</span>
-          число — количество выплат.
-          <span className="mx-1.5">|</span>% — средняя ставка за выплату.
-          <span className="mx-1.5">|</span>
-          <span style={{ color: "#BB86FC" }}>σ</span> — среднеквадратическое
-          отклонение (волатильность).
-        </p>
       </div>
     </div>
   );

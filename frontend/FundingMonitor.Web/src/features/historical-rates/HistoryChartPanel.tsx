@@ -13,7 +13,6 @@ import {
 import { EXCHANGE_COLORS } from "../../entities/exchange/model";
 import type { HistoricalFundingRateDto, ExchangeType } from "../../types";
 import type { TimeRangeType } from "../../types/history";
-import { TIME_RANGES } from "../../types/history";
 import {
   buildHistoryChartData,
   filterHistoryByExchange,
@@ -24,14 +23,12 @@ interface HistoryPanelProps {
   data: HistoricalFundingRateDto[];
   selectedExchanges: ExchangeType[];
   timeRange?: TimeRangeType;
-  onTimeRangeChange?: (range: TimeRangeType) => void;
 }
 
 export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
   data,
   selectedExchanges,
   timeRange = "1m",
-  onTimeRangeChange,
 }) => {
   const filteredData = React.useMemo(
     () => filterHistoryByExchange(data, selectedExchanges),
@@ -84,7 +81,7 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
 
       return (
         <div className="rounded-md p-2 shadow-xl" style={{ backgroundColor: 'var(--tg-bg-secondary)', border: '1px solid var(--tg-border)' }}>
-          <p className="text-[11px] mb-1 font-medium" style={{ color: 'var(--tg-text-secondary)' }}>{dateStr}</p>
+          <p className="panel-text mb-1 font-medium" style={{ color: 'var(--tg-text-secondary)' }}>{dateStr}</p>
           {/* Показываем все биржи, а не только те, что есть в payload */}
           {allExchanges.map((exchange) => {
             const value = payloadData ? (payloadData as { [key: string]: number | string | Date | undefined })[exchange] : undefined;
@@ -95,7 +92,7 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
             const color = line?.color || EXCHANGE_COLORS[exchange as ExchangeType];
 
             return (
-              <div key={exchange} className="flex items-center gap-1.5 text-[11px]">
+              <div key={exchange} className="flex items-center gap-1.5 panel-text">
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                 <span style={{ color: 'var(--tg-text-secondary)' }}>{exchange}:</span>
                 <span
@@ -118,32 +115,13 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
   if (timeFilteredData.length === 0) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: 'var(--tg-text-tertiary)' }}>
-        <p className="text-xs">Нет исторических данных для отображения</p>
+        <p className="panel-text">Нет исторических данных для отображения</p>
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col">
-      {/* Переключатель временных диапазонов */}
-      {onTimeRangeChange && (
-        <div className="flex items-center gap-1 mb-2">
-          {TIME_RANGES.map((range) => (
-            <button
-              key={range.value}
-              onClick={() => onTimeRangeChange(range.value)}
-              className="px-2 py-1 rounded-md text-xs font-medium transition-all"
-              style={{
-                backgroundColor: timeRange === range.value ? 'var(--tg-button)' : 'var(--tg-bg-tertiary)',
-                color: timeRange === range.value ? 'var(--tg-button-text)' : 'var(--tg-text-secondary)',
-              }}
-            >
-              {range.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
@@ -160,7 +138,7 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
             <XAxis
               dataKey="time"
               stroke="#9CA3AF"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: "var(--panel-caption-size)" }}
               tickFormatter={(_value, index) => {
                 const point = chartData[index];
                 return point?.xAxisLabel || "";
@@ -173,13 +151,13 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
             />
             <YAxis
               stroke="#9CA3AF"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: "var(--panel-caption-size)" }}
               tickFormatter={(value) => `${value.toFixed(2)}%`}
               width={50}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend
-              wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
+              wrapperStyle={{ fontSize: "var(--panel-caption-size)", paddingTop: "10px" }}
               formatter={(value) => (
                 <span style={{ color: 'var(--tg-text)' }}>{value}</span>
               )}
@@ -204,7 +182,7 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
 
       {/* Таблица с последними значениями */}
       <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--tg-border)' }}>
-        <h3 className="text-xs font-medium mb-1.5" style={{ color: 'var(--tg-text-secondary)' }}>
+        <h3 className="panel-text font-medium mb-1.5" style={{ color: 'var(--tg-text-secondary)' }}>
           Последние значения
         </h3>
         <div className="grid grid-cols-3 gap-1.5">
@@ -226,9 +204,9 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
                 className="rounded-md p-1.5 text-center"
                 style={{ backgroundColor: 'var(--tg-bg-tertiary)' }}
               >
-                <p className="text-[10px] leading-none mb-0.5" style={{ color: 'var(--tg-text-tertiary)' }}>{exchange}</p>
+                <p className="panel-caption leading-none mb-0.5" style={{ color: 'var(--tg-text-tertiary)' }}>{exchange}</p>
                 <p
-                  className="text-xs font-bold tabular-nums leading-tight"
+                  className="panel-value leading-tight"
                   style={{
                     color: lastValue.fundingRate > 0 ? 'var(--tg-positive)' : lastValue.fundingRate < 0 ? 'var(--tg-negative)' : 'var(--tg-text-tertiary)',
                   }}

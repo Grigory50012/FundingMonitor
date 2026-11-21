@@ -10,6 +10,7 @@ public sealed class FundingArbitrageDetector
     private readonly ICurrentRatesModule _currentRates;
     private readonly FundingArbitrageOptions _options;
     private readonly TimeProvider _timeProvider;
+    private readonly ArbitrageSnapshotCache _snapshots;
 
     public FundingArbitrageDetector(
         ICurrentRatesModule currentRates,
@@ -21,11 +22,13 @@ public sealed class FundingArbitrageDetector
     public FundingArbitrageDetector(
         ICurrentRatesModule currentRates,
         IOptions<FundingArbitrageOptions> options,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ArbitrageSnapshotCache? snapshots = null)
     {
         _currentRates = currentRates;
         _options = options.Value;
         _timeProvider = timeProvider;
+        _snapshots = snapshots ?? new ArbitrageSnapshotCache();
     }
 
     public async Task<IReadOnlyList<FundingArbitrageOpportunity>> DetectAsync(
@@ -38,6 +41,11 @@ public sealed class FundingArbitrageDetector
             .Where(rate => rate.IsActive && rate.LastSeenOnUtc >= cutoff)
             .ToArray();
 
+        return _snapshots.GetOrCalculate(rates, Calculate);
+    }
+
+    private static IReadOnlyList<FundingArbitrageOpportunity> Calculate(IReadOnlyList<CurrentRateView> rates)
+    {
         var opportunities = new List<FundingArbitrageOpportunity>();
         foreach (var symbolGroup in rates.GroupBy(rate => rate.Symbol))
         {

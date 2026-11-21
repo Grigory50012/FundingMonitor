@@ -4,6 +4,8 @@
 
 ## Текущая структура
 
+Общая типографика панелей задаётся в `frontend/FundingMonitor.Web/src/index.css`: переменные `--panel-title-size` (16 px), `--panel-text-size` (12 px), `--panel-caption-size` (10 px). Классы `panel-title`, `panel-text`, `panel-value` и `panel-caption` применяются к заголовкам, основному тексту, числовым значениям и вторичным подписям. `Panel` задаёт общий основной размер через `dashboard-panel`; `dashboard-control` использует тот же размер текста. Для изменения масштаба редактируйте эти переменные, а не отдельные компоненты.
+
 | Слой | Путь | Назначение |
 | --- | --- | --- |
 | App | `src/app/providers` | Application-level provider boundary |

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getApiErrorMessage } from "../../shared/api/errors";
 import type { ExchangeType, HistoricalFundingRateDto } from "../../types";
 import { getHistory } from "./api/getHistory";
+import { historyRefreshOptions } from "./historyRefreshSchedule";
 
 type HistoryParams = {
   symbol: string;
@@ -11,51 +12,27 @@ type HistoryParams = {
   limit?: number;
 };
 
+const EMPTY_HISTORY: HistoricalFundingRateDto[] = [];
+
 export function useHistoryRates(params?: HistoryParams) {
-  const [data, setData] = useState<HistoricalFundingRateDto[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const exchangesKey = params?.exchanges?.join(",") ?? "";
+  const queryClient = useQueryClient();
+  const { symbol = "", from, to, limit } = params ?? {};
+  const exchanges = [...(params?.exchanges ?? [])].sort();
+  const query = useQuery({
+    queryKey: ["historical-rates", symbol, "history", { exchanges, from, to, limit }],
+    queryFn: ({ signal }) => getHistory({
+      symbol, exchanges: exchanges.length ? exchanges : undefined, from, to, limit,
+    }, signal),
+    enabled: Boolean(symbol),
+    ...historyRefreshOptions,
+  });
 
-  const load = useCallback(async () => {
-    const symbol = params?.symbol;
-    if (!symbol) {
-      setData([]);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await getHistory({
-        symbol,
-        exchanges: exchangesKey ? exchangesKey.split(",") : undefined,
-        from: params?.from,
-        to: params?.to,
-        limit: params?.limit,
-      });
-      setData(response as HistoricalFundingRateDto[]);
-    } catch (err: unknown) {
-      const message = getApiErrorMessage(
-        err,
-        "Не удалось загрузить исторические данные",
-      );
-      console.error("Failed to load history data:", err);
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    params?.symbol,
-    exchangesKey,
-    params?.from,
-    params?.to,
-    params?.limit,
-  ]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  return { data, isLoading, error, refresh: load };
+  return {
+    data: (query.data as HistoricalFundingRateDto[] | undefined) ?? EMPTY_HISTORY,
+    isLoading: query.isLoading,
+    error: query.error
+      ? getApiErrorMessage(query.error, "Не удалось загрузить исторические данные")
+      : null,
+    refresh: () => queryClient.invalidateQueries({ queryKey: ["historical-rates", symbol] }),
+  };
 }

@@ -148,10 +148,11 @@ sequenceDiagram
 TotalFundingRatePercent = Sum(FundingRate) × 100
 Apr = TotalFundingRatePercent × 365 / days
 AvgFundingRatePercent = TotalFundingRatePercent / PaymentsCount
-StdDev = population standard deviation FundingRate × 100
 ```
 
 Если доступно меньше календарных дней, знаменатель APR всё равно равен запрошенному `days`; это закреплённая legacy formula. Историческая запись не содержит funding interval, поэтому расчёт не использует `FundingIntervalHours`. Кэш живёт в памяти одного процесса и по умолчанию действует 5 минут.
+
+После успешного сохранения непустой истории `HistoricalEventHandler` инвалидирует APR выбранного символа для всех наборов бирж через `AprStatsCacheInvalidation`. Expiration token также защищает от повторного сохранения устаревшего результата запроса, начатого до записи. Служебные токены используют тот же ограниченный `IMemoryCache`, занимают по одной записи и истекают через 10 минут; вытеснение токена инвалидирует зависимые результаты. При ошибке записи кэш сохраняется. Инвалидация действует внутри текущего общего процесса API и сборщика; для нескольких реплик потребуется межпроцессная инвалидация.
 
 ## Основные файлы и проверки
 

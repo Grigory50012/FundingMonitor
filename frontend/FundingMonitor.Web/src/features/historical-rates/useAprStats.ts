@@ -1,60 +1,36 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getApiErrorMessage } from "../../shared/api/errors";
+import { toUsdtSymbol } from "../../shared/lib/symbols";
 import type { AprPeriodStatsDto, ExchangeType } from "../../types";
 import { getAprStats } from "./api/getAprStats";
+import { historyRefreshOptions } from "./historyRefreshSchedule";
 
 type UseAprStatsParams = {
   symbol: string;
   selectedExchanges: ExchangeType[];
 };
 
-export function useAprStats({
-  symbol,
-  selectedExchanges,
-}: UseAprStatsParams) {
-  const [data, setData] = useState<AprPeriodStatsDto[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const exchangesKey = selectedExchanges.join(",");
+const EMPTY_STATS: AprPeriodStatsDto[] = [];
 
-  useEffect(() => {
-    if (!symbol) {
-      setData([]);
-      return;
-    }
+export function useAprStats({ symbol, selectedExchanges }: UseAprStatsParams) {
+  const normalizedSymbol = toUsdtSymbol(symbol);
+  const exchanges = [...selectedExchanges].sort();
+  const query = useQuery({
+    queryKey: ["historical-rates", normalizedSymbol, "apr", { exchanges }],
+    queryFn: ({ signal }) => getAprStats({
+      symbol: normalizedSymbol,
+      exchanges: exchanges.length ? exchanges : undefined,
+    }, signal),
+    enabled: Boolean(normalizedSymbol),
+    ...historyRefreshOptions,
+  });
 
-    let isActive = true;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const stats = await getAprStats({
-          symbol,
-          exchanges: exchangesKey ? exchangesKey.split(",") : undefined,
-        });
-        if (isActive) setData(stats as AprPeriodStatsDto[]);
-      } catch (err) {
-        if (isActive) {
-          setError(
-            getApiErrorMessage(
-              err,
-              "Ошибка загрузки данных",
-            ),
-          );
-        }
-      } finally {
-        if (isActive) setIsLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isActive = false;
-    };
-  }, [symbol, exchangesKey]);
-
-  return { data, isLoading, error };
+  return {
+    data: (query.data as AprPeriodStatsDto[] | undefined) ?? EMPTY_STATS,
+    isLoading: query.isLoading,
+    hasData: query.data !== undefined,
+    error: query.error
+      ? getApiErrorMessage(query.error, "Ошибка загрузки данных")
+      : null,
+  };
 }

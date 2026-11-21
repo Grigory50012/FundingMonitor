@@ -3,6 +3,7 @@ using FundingMonitor.HistoricalRates.Application;
 using FundingMonitor.HistoricalRates.Application.Persistence;
 using FundingMonitor.HistoricalRates.Domain;
 using FundingMonitor.SharedKernel;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -15,8 +16,10 @@ public sealed class HistoricalEventHandlerTests
     {
         var market = new Market();
         var store = new Store();
+        using var cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 100 });
         var handler = new HistoricalEventHandler(market, store,
-            Options.Create(new HistoricalDataCollectionOptions()), TimeProvider.System);
+            Options.Create(new HistoricalDataCollectionOptions()), TimeProvider.System,
+            new AprStatsCacheInvalidation(cache));
         var request = new HistoricalCollectionRequest(Guid.NewGuid(), ExchangeId.Parse("Binance"), Symbol.Create("BTC-USDT"));
 
         await handler.HandleAsync(request, TestContext.Current.CancellationToken);

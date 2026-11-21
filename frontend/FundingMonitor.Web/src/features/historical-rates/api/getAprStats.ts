@@ -11,6 +11,7 @@ type GetAprStatsParams = {
 
 export async function getAprStats(
   params: GetAprStatsParams,
+  signal?: AbortSignal,
 ): Promise<AprPeriodStatsDto[]> {
   const queryParams = new URLSearchParams();
 
@@ -24,6 +25,7 @@ export async function getAprStats(
 
   const response = await apiClient.get<AprPeriodStatsDto[]>(
     `/History/apr-stats?${queryParams.toString()}`,
+    { signal },
   );
   return Array.isArray(response.data) ? response.data : [];
 }

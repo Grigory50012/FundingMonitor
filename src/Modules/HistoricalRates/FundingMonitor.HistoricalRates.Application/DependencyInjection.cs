@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddOptions<AprStatsOptions>()
             .Bind(configuration.GetSection(AprStatsOptions.SectionName));
         services.AddMemoryCache(options => options.SizeLimit = 1000);
+        services.AddSingleton<AprStatsCacheInvalidation>();
         services.AddScoped<IHistoricalRatesModule, HistoricalRatesService>();
         services.AddScoped<IHistoricalEventHandler, HistoricalEventHandler>();
         services.AddSingleton<IHistoricalCollectionFailureClassifier, HistoricalCollectionFailureClassifier>();

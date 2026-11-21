@@ -39,14 +39,17 @@ sequenceDiagram
     D->>CR: GetCurrentRatesAsync без фильтров
     CR-->>D: CurrentRateView[]
     D->>D: Оставить active и fresh ставки
-    D->>D: Сгруппировать по symbol и построить пары бирж
+    D->>D: Проверить общий кэш набора свежих ставок
+    D->>D: При изменении ставок построить пары бирж
     D-->>A: Возможности
     A->>A: Применить все заданные фильтры и сортировку
     A-->>C: ArbitrageOpportunityView[]
     C-->>UI: FundingArbitrageDto[]
 ```
 
-Каждый HTTP-запрос строит собственный список пар и применяет к нему переданные критерии.
+Каждый HTTP-запрос читает текущие ставки и проверяет их активность и свежесть. `ArbitrageSnapshotCache`, общий для запросов одного процесса, хранит только последний упорядоченный набор свежих ставок и построенные пары. Если значения ставок не изменились, запрос переиспользует готовые пары; при изменении или исключении просроченных ставок пары строятся заново. Конкурирующие запросы с одинаковым набором выполняют построение один раз. Переданные пользователем фильтры и сортировка применяются отдельно к общему результату; произвольные наборы фильтров не кэшируются.
+
+Это сокращает повторное построение пар, но сохраняет чтение текущих ставок из БД на запрос. Кэш локален для одного процесса API. Контракт ответа остаётся полным списком: клиентская пагинация по монетам не снижает объём передачи данных.
 
 Ставка участвует в расчёте, только если `IsActive=true` и `LastSeenOnUtc` не старше `FundingArbitrage.MaxRateAgeMinutes` — по умолчанию 5 минут. Для каждого символа строятся все пары различных бирж. При трёх биржах это максимум три возможности на символ.
 
@@ -75,6 +78,7 @@ Presentation добавляет `ExchangeAUrl` и `ExchangeBUrl`. URL не уч�
 ## Основные файлы и проверки
 
 - [Расчёт пар](../../../src/Modules/Arbitrage/FundingMonitor.Arbitrage.Application/FundingArbitrageDetector.cs)
+- [Кэш последнего набора ставок](../../../src/Modules/Arbitrage/FundingMonitor.Arbitrage.Application/ArbitrageSnapshotCache.cs)
 - [Фильтрация результата](../../../src/Modules/Arbitrage/FundingMonitor.Arbitrage.Application/FundingArbitrageService.cs)
 - [Domain formulas](../../../src/Modules/Arbitrage/FundingMonitor.Arbitrage.Domain/FundingArbitrageOpportunity.cs)
 - [HTTP endpoint](../../../src/Modules/Arbitrage/FundingMonitor.Arbitrage.Presentation/Controllers/ArbitrageController.cs)

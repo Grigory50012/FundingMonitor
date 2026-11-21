@@ -10,6 +10,7 @@ type GetCurrentRatesParams = {
 
 export async function getCurrentRates(
   params?: GetCurrentRatesParams,
+  signal?: AbortSignal,
 ): Promise<FundingRateDto[]> {
   const queryParams = new URLSearchParams();
 
@@ -20,6 +21,7 @@ export async function getCurrentRates(
 
   const response = await apiClient.get<FundingRateDto[]>(
     `/FundingRates?${queryParams.toString()}`,
+    { signal },
   );
   return Array.isArray(response.data) ? response.data : [];
 }

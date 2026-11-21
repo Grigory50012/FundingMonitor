@@ -8,6 +8,7 @@ import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 import { toUsdtSymbol } from "../../shared/lib/symbols";
 import type { ExchangeType } from "../../types";
 import type { TimeRangeType } from "../../types/history";
+import { startDashboardRefresh } from "./dashboardRefresh";
 
 const DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE"];
 
@@ -42,6 +43,7 @@ export function useDashboardData() {
     },
   );
   const [arbitrageFilters, setArbitrageFilters] = useState(EMPTY_ARBITRAGE_FILTERS);
+  const [arbitrageAutoRefresh, setArbitrageAutoRefresh] = useState(true);
 
   const current = useCurrentRates({
     symbol: mainFilters.symbol,
@@ -71,7 +73,16 @@ export function useDashboardData() {
       arbitrageFilters.exchanges.length > 0
         ? arbitrageFilters.exchanges
         : undefined,
-  }, arbitrageFiltersValid);
+  }, arbitrageFiltersValid, arbitrageAutoRefresh);
+
+  const refreshCurrent = current.refresh;
+  const refreshArbitrage = arbitrage.refresh;
+  useEffect(() => startDashboardRefresh(() => {
+    void refreshCurrent(true);
+    if (arbitrageAutoRefresh && arbitrageFiltersValid) {
+      void refreshArbitrage({ cancelRefetch: false });
+    }
+  }), [refreshCurrent, refreshArbitrage, arbitrageAutoRefresh, arbitrageFiltersValid]);
 
   const [allCoins, setAllCoins] = useState<string[]>([]);
   const [historyViewMode, setHistoryViewMode] =
@@ -105,6 +116,8 @@ export function useDashboardData() {
     arbitrageFilters,
     setArbitrageFilters,
     arbitrageFiltersValid,
+    arbitrageAutoRefresh,
+    setArbitrageAutoRefresh,
     current,
     history,
     arbitrage,

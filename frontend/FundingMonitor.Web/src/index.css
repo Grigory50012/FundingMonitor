@@ -1,6 +1,53 @@
 @import "tailwindcss";
 
+@layer components {
+  .dashboard-panel,
+  .panel-text {
+    font-size: var(--panel-text-size);
+    line-height: 1.5;
+  }
+
+  .panel-title {
+    font-size: var(--panel-title-size);
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .panel-value {
+    font-size: var(--panel-text-size);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+  }
+
+  .panel-caption {
+    font-size: var(--panel-caption-size);
+    line-height: 1.25;
+  }
+
+  .dashboard-control {
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium transition-colors;
+    font-size: var(--panel-text-size);
+    border-color: var(--tg-border);
+    background-color: var(--tg-bg-tertiary);
+    color: var(--tg-text);
+  }
+
+  .dashboard-control:focus-within {
+    border-color: var(--tg-button);
+  }
+
+  button.dashboard-control:focus-visible {
+    outline: 2px solid var(--tg-button);
+    outline-offset: 2px;
+  }
+}
+
 :root {
+  --panel-title-size: 1rem;
+  --panel-text-size: 0.75rem;
+  --panel-caption-size: 0.625rem;
+
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -34,6 +81,10 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 body {

@@ -266,8 +266,6 @@ export interface components {
             paymentsCount: number;
             /** Format: double */
             avgFundingRatePercent: number;
-            /** Format: double */
-            stdDev: number;
         };
         FundingArbitrageDto: {
             symbol: string;

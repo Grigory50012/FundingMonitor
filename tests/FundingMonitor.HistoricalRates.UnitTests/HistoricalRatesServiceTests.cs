@@ -24,7 +24,8 @@ public sealed class HistoricalRatesServiceTests
             repository,
             cache,
             Options.Create(new AprStatsOptions { Periods = [1] }),
-            new FixedTimeProvider());
+            new FixedTimeProvider(),
+            new AprStatsCacheInvalidation(cache));
 
         var result = await service.GetAprStatsAsync(
             Symbol.Create("BTC-USDT"),
@@ -36,7 +37,6 @@ public sealed class HistoricalRatesServiceTests
         Assert.Equal(0.3m, stats.TotalFundingRatePercent);
         Assert.Equal(2, stats.PaymentsCount);
         Assert.Equal(0.15m, stats.AvgFundingRatePercent);
-        Assert.Equal(0.05m, stats.StdDev);
     }
 
     private static HistoricalFundingRate CreateRate(decimal rate, int hour) => new(

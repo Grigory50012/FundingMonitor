@@ -9,5 +9,4 @@ public sealed record AprPeriodStatsView(
     decimal Apr,
     decimal TotalFundingRatePercent,
     int PaymentsCount,
-    decimal AvgFundingRatePercent,
-    decimal StdDev);
+    decimal AvgFundingRatePercent);
