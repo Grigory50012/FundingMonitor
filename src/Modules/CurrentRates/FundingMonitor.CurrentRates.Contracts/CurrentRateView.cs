@@ -10,7 +10,6 @@ public sealed record CurrentRateView(
     decimal FundingRate,
     int? FundingIntervalHours,
     DateTimeOffset? NextFundingTime,
-    decimal? PredictedNextRate,
     DateTimeOffset LastSeenOnUtc,
     bool IsActive,
     decimal Apr,

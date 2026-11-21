@@ -13,7 +13,6 @@ public sealed record CurrentFundingRate
     public required decimal FundingRate { get; init; }
     public required int? FundingIntervalHours { get; init; }
     public required DateTimeOffset? NextFundingTime { get; init; }
-    public decimal? PredictedNextRate { get; init; }
     public required DateTimeOffset LastSeenOnUtc { get; init; }
     public bool IsActive { get; init; } = true;
 

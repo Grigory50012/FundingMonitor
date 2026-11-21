@@ -101,7 +101,7 @@ sequenceDiagram
     P-->>User: HTTP 200: { exchange: available }
 ```
 
-Binance использует ping, Bybit и OKX — server time. Контракт содержит `Available`, `Degraded`, `Unavailable` и `ErrorCode`, но нынешние gateways возвращают `Available` или `Unavailable`; HTTP endpoint преобразует статус в `bool` и не отдаёт `ErrorCode`. Это отдельная проверка бирж, не эквивалентная инфраструктурному `/health`.
+Binance использует ping, Bybit и OKX — server time. Контракт содержит статусы `Available` и `Unavailable`, а также `ErrorCode`; HTTP endpoint преобразует статус в `bool` и не отдаёт `ErrorCode`. Это отдельная проверка бирж, не эквивалентная инфраструктурному `/health`.
 
 ## Ошибки и гарантии
 

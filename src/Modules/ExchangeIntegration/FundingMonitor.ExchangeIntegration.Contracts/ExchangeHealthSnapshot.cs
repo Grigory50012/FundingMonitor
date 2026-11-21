@@ -4,9 +4,8 @@ namespace FundingMonitor.ExchangeIntegration.Contracts;
 
 public enum ExchangeHealthStatus
 {
-    Available,
-    Degraded,
-    Unavailable
+    Available = 0,
+    Unavailable = 2
 }
 
 public sealed record ExchangeHealthSnapshot(

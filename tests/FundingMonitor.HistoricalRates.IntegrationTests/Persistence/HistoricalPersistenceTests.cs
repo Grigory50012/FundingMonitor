@@ -12,17 +12,15 @@ namespace FundingMonitor.HistoricalRates.IntegrationTests.Persistence;
 [Collection("HistoricalRatesPostgreSql")]
 public sealed class HistoricalPersistenceTests(HistoricalRatesPostgreSqlFixture fixture)
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task RepeatedFundingPoint_UpsertsOneRow(bool sameEventId)
+    [Fact]
+    public async Task RepeatedFundingPoint_UpsertsOneRow()
     {
         await fixture.ResetAsync();
         var market = new CountingExchangeMarketDataModule([TestHistory.BtcPoint]);
         await using var scope = await fixture.CreateScopeAsync(market);
         var handler = scope.ServiceProvider.GetRequiredService<IHistoricalEventHandler>();
         await handler.HandleAsync(TestEvents.BtcChanged, TestContext.Current.CancellationToken);
-        await handler.HandleAsync(sameEventId ? TestEvents.BtcChanged : TestEvents.BtcChanged with { EventId = Guid.NewGuid() },
+        await handler.HandleAsync(TestEvents.BtcChanged,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(2, market.HistoricalRequestCount);
@@ -31,10 +29,8 @@ public sealed class HistoricalPersistenceTests(HistoricalRatesPostgreSqlFixture 
         Assert.Equal(TestHistory.BtcPoint.FundingRate, point.FundingRate);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ConcurrentDeliveries_UpsertOneRow(bool sameEventId)
+    [Fact]
+    public async Task ConcurrentDeliveries_UpsertOneRow()
     {
         await fixture.ResetAsync();
         await using var first = await fixture.CreateScopeAsync(new CountingExchangeMarketDataModule([TestHistory.BtcPoint]));
@@ -42,7 +38,7 @@ public sealed class HistoricalPersistenceTests(HistoricalRatesPostgreSqlFixture 
         await Task.WhenAll(
             first.ServiceProvider.GetRequiredService<IHistoricalEventHandler>().HandleAsync(TestEvents.BtcChanged, TestContext.Current.CancellationToken),
             second.ServiceProvider.GetRequiredService<IHistoricalEventHandler>().HandleAsync(
-                sameEventId ? TestEvents.BtcChanged : TestEvents.BtcChanged with { EventId = Guid.NewGuid() }, TestContext.Current.CancellationToken));
+                TestEvents.BtcChanged, TestContext.Current.CancellationToken));
 
         await using var verification = await fixture.CreateDbContextAsync();
         Assert.Single(await verification.HistoricalFundingRates.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken));

@@ -47,7 +47,6 @@ public sealed class CurrentFundingRateCollector(
         }
 
         return new CurrentCollectionResult(
-            true,
             successful.Sum(result => result.Rates.Count),
             successful.Sum(result => result.Events.Count),
             successful.Length,
@@ -99,7 +98,6 @@ public sealed class CurrentFundingRateCollector(
             FundingRate = snapshot.FundingRate,
             FundingIntervalHours = snapshot.FundingIntervalHours,
             NextFundingTime = snapshot.NextFundingTime,
-            PredictedNextRate = snapshot.PredictedNextRate,
             LastSeenOnUtc = snapshot.ObservedOnUtc,
             IsActive = true
         };

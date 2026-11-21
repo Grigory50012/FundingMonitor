@@ -51,5 +51,5 @@ public sealed class ArbitrageSnapshotCacheTests
 
     private static CurrentRateView Rate(string exchange) => new(
         ExchangeId.Parse(exchange), Symbol.Create("BTC-USDT"), 100m, 100m, 0.001m,
-        8, null, null, new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero), true, 109.5m, 0m);
+        8, null, new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero), true, 109.5m, 0m);
 }

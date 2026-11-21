@@ -48,6 +48,8 @@ public sealed class HistoricalRatesPostgreSqlFixture : IAsyncLifetime
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddMemoryCache(options => options.SizeLimit = 1000);
+        services.AddSingleton<AprStatsCacheInvalidation>();
         services.AddSingleton(exchangeModule);
         services.AddSingleton<TimeProvider>(new FixedTimeProvider(
             new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero)));

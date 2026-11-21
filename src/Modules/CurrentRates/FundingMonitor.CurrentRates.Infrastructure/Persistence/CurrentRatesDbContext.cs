@@ -26,7 +26,6 @@ public sealed class CurrentRatesDbContext(
             entity.Property(item => item.MarkPrice).HasPrecision(28, 12);
             entity.Property(item => item.IndexPrice).HasPrecision(28, 12);
             entity.Property(item => item.FundingRate).HasPrecision(20, 12);
-            entity.Property(item => item.PredictedNextRate).HasPrecision(20, 12);
         });
 
         modelBuilder.Entity<OutboxMessage>(entity =>

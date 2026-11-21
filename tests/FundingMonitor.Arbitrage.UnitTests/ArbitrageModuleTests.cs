@@ -245,7 +245,6 @@ public sealed class ArbitrageModuleTests
             fundingRate,
             intervalHours,
             DateTimeOffset.UtcNow.AddHours(1),
-            null,
             lastSeenOnUtc ?? DateTimeOffset.UtcNow,
             isActive,
             apr,

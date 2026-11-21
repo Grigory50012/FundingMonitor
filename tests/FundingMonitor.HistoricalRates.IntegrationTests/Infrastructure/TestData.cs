@@ -7,7 +7,6 @@ namespace FundingMonitor.HistoricalRates.IntegrationTests.Infrastructure;
 internal static class TestEvents
 {
     public static HistoricalCollectionRequest BtcChanged => new(
-        Guid.Parse("30000000-0000-0000-0000-000000000001"),
         ExchangeId.Parse("Binance"),
         Symbol.Create("BTC-USDT"));
 }

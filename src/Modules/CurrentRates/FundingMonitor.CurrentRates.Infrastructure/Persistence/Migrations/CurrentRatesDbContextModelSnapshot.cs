@@ -109,10 +109,6 @@ namespace FundingMonitor.CurrentRates.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<decimal?>("PredictedNextRate")
-                        .HasPrecision(20, 12)
-                        .HasColumnType("numeric(20,12)");
-
                     b.Property<string>("QuoteAsset")
                         .IsRequired()
                         .HasMaxLength(32)

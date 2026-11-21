@@ -35,16 +35,14 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
             Password = "guest",
             PublisherConfirmTimeoutSeconds = 10
         });
-        var health = new RabbitMqTopologyHealthState();
         _connection = new RabbitMqConnection(options);
-        var initializer = new RabbitMqTopologyInitializer(_connection, health);
+        var initializer = new RabbitMqTopologyInitializer(_connection);
         _publisher = new RabbitMqMessagePublisher(_connection, options);
 
         await initializer.InitializeAsync(cancellationToken);
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(_connection);
-        services.AddSingleton(health);
         services.AddSingleton(initializer);
         services.AddHealthChecks().AddCheck<RabbitMqTopologyHealthCheck>("rabbitmq-topology");
         _services = services.BuildServiceProvider();

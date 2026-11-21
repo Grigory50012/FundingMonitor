@@ -97,7 +97,7 @@ internal sealed class HistoricalMessageProcessor(
         try
         {
             await handler.HandleAsync(new HistoricalCollectionRequest(
-                integrationEvent.EventId, integrationEvent.Exchange, integrationEvent.Symbol), stoppingToken);
+                integrationEvent.Exchange, integrationEvent.Symbol), stoppingToken);
             logger.LogInformation("Historical collection completed in {DurationMs} ms", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             return HistoricalMessageDisposition.Ack;
         }

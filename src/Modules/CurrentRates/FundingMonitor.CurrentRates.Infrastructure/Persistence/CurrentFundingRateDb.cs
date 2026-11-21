@@ -12,7 +12,6 @@ internal sealed class CurrentFundingRateDb
     public decimal FundingRate { get; set; }
     public int? FundingIntervalHours { get; set; }
     public DateTimeOffset? NextFundingTime { get; set; }
-    public decimal? PredictedNextRate { get; set; }
     public DateTimeOffset LastSeenOnUtc { get; set; }
     public bool IsActive { get; set; } = true;
 }

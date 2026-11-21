@@ -32,7 +32,6 @@ internal static class GatewayAssertions
         Assert.Equal(0.001m, rate.FundingRate);
         Assert.Equal(8, rate.FundingIntervalHours);
         Assert.Equal(NextFundingTime, rate.NextFundingTime);
-        Assert.Null(rate.PredictedNextRate);
         Assert.Equal(ObservedOnUtc, rate.ObservedOnUtc);
         Assert.True(server.ReceivedPath(expectedPath));
     }

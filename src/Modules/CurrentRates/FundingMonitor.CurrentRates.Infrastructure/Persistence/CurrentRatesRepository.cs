@@ -118,7 +118,6 @@ internal sealed class CurrentRatesRepository(
         FundingRate = rate.FundingRate,
         FundingIntervalHours = rate.FundingIntervalHours,
         NextFundingTime = rate.NextFundingTime,
-        PredictedNextRate = rate.PredictedNextRate,
         LastSeenOnUtc = rate.LastSeenOnUtc,
         IsActive = true
     };
@@ -134,7 +133,6 @@ internal sealed class CurrentRatesRepository(
         FundingRate = entity.FundingRate,
         FundingIntervalHours = entity.FundingIntervalHours,
         NextFundingTime = entity.NextFundingTime,
-        PredictedNextRate = entity.PredictedNextRate,
         LastSeenOnUtc = entity.LastSeenOnUtc,
         IsActive = entity.IsActive
     };
@@ -148,7 +146,6 @@ internal sealed class CurrentRatesRepository(
         entity.FundingRate = rate.FundingRate;
         entity.FundingIntervalHours = rate.FundingIntervalHours;
         entity.NextFundingTime = rate.NextFundingTime;
-        entity.PredictedNextRate = rate.PredictedNextRate;
         entity.LastSeenOnUtc = rate.LastSeenOnUtc;
         entity.IsActive = true;
     }

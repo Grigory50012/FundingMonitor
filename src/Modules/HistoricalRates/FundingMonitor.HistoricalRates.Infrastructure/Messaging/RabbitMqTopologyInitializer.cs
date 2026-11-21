@@ -5,8 +5,7 @@ using RabbitMQ.Client;
 namespace FundingMonitor.HistoricalRates.Infrastructure.Messaging;
 
 internal sealed class RabbitMqTopologyInitializer(
-    RabbitMqConnection connection,
-    RabbitMqTopologyHealthState? healthState = null)
+    RabbitMqConnection connection)
 {
     private static readonly ExchangeId[] Exchanges =
     [
@@ -15,36 +14,27 @@ internal sealed class RabbitMqTopologyInitializer(
 
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            var rabbitConnection = await connection.GetAsync(cancellationToken);
-            await using var channel = await rabbitConnection.CreateChannelAsync(
-                cancellationToken: cancellationToken);
-            await channel.ExchangeDeclareAsync(
-                RabbitMqTopology.ExchangeName,
-                RabbitMQ.Client.ExchangeType.Direct,
-                durable: true,
-                autoDelete: false,
-                arguments: null,
-                cancellationToken: cancellationToken);
-            foreach (var exchange in Exchanges)
-                await DeclareAndBindAsync(
-                    channel,
-                    RabbitMqTopology.GetQueueName(exchange),
-                    RabbitMqTopology.GetRoutingKey(exchange),
-                    cancellationToken);
+        var rabbitConnection = await connection.GetAsync(cancellationToken);
+        await using var channel = await rabbitConnection.CreateChannelAsync(
+            cancellationToken: cancellationToken);
+        await channel.ExchangeDeclareAsync(
+            RabbitMqTopology.ExchangeName,
+            RabbitMQ.Client.ExchangeType.Direct,
+            durable: true,
+            autoDelete: false,
+            arguments: null,
+            cancellationToken: cancellationToken);
+        foreach (var exchange in Exchanges)
             await DeclareAndBindAsync(
                 channel,
-                RabbitMqTopology.DeadQueueName,
-                RabbitMqTopology.DeadRoutingKey,
+                RabbitMqTopology.GetQueueName(exchange),
+                RabbitMqTopology.GetRoutingKey(exchange),
                 cancellationToken);
-            healthState?.Healthy();
-        }
-        catch (Exception exception)
-        {
-            healthState?.Failed(exception);
-            throw;
-        }
+        await DeclareAndBindAsync(
+            channel,
+            RabbitMqTopology.DeadQueueName,
+            RabbitMqTopology.DeadRoutingKey,
+            cancellationToken);
     }
 
     private static async Task DeclareAndBindAsync(

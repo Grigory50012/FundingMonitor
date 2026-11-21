@@ -90,6 +90,6 @@ public sealed class GetArbitrageTests : IDisposable
 
         private static CurrentRateView Rate(string exchange, decimal price, decimal rate, int interval) =>
             new(ExchangeId.Parse(exchange), Symbol.Create("BTC-USDT"), price, price, rate, interval,
-                null, null, DateTimeOffset.UtcNow, true, rate * 100m * 365m * 24m / interval, 0m);
+                null, DateTimeOffset.UtcNow, true, rate * 100m * 365m * 24m / interval, 0m);
     }
 }

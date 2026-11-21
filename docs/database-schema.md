@@ -18,7 +18,6 @@
 | `FundingRate` | `numeric(20,12)` | Ставка за период |
 | `FundingIntervalHours` | `integer`, nullable | Интервал выплат |
 | `NextFundingTime` | `timestamptz`, nullable | Следующая выплата |
-| `PredictedNextRate` | `numeric(20,12)`, nullable | Прогноз |
 | `LastSeenOnUtc` | `timestamptz` | Последний успешный сбор пары |
 | `IsActive` | `boolean` | Доступна в обычной выдаче и арбитраже |
 

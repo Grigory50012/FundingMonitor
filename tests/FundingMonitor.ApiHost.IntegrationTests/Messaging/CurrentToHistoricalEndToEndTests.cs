@@ -296,7 +296,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
         public Task<Result<IReadOnlyList<CurrentRateSnapshot>>> GetCurrentRatesAsync(ExchangeId exchange, CancellationToken cancellationToken) =>
             Task.FromResult(Result<IReadOnlyList<CurrentRateSnapshot>>.Success(exchange.Value == "Binance"
                 ? Symbols.Select(symbol => new CurrentRateSnapshot(exchange, Symbol.Create(symbol), 100m, 100m,
-                    0.0001m, 8, DateTimeOffset.UtcNow.AddHours(8), null, DateTimeOffset.UtcNow)).ToArray()
+                    0.0001m, 8, DateTimeOffset.UtcNow.AddHours(8), DateTimeOffset.UtcNow)).ToArray()
                 : []));
         public Task<Result<IReadOnlyList<HistoricalRatePoint>>> GetHistoricalRatesAsync(HistoricalRatesRequest request, CancellationToken cancellationToken)
         {

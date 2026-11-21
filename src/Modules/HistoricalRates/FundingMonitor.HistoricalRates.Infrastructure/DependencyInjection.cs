@@ -21,7 +21,6 @@ public static class DependencyInjection
             provider.GetRequiredService<HistoricalRatesRepository>());
         services.AddScoped<IHistoricalRatesUnitOfWork>(provider =>
             provider.GetRequiredService<HistoricalRatesRepository>());
-        services.AddSingleton<RabbitMqTopologyHealthState>();
         services.AddSingleton<RabbitMqTopologyInitializer>();
         services.AddSingleton<IHistoricalRetryDelay, HistoricalRetryDelay>();
         services.AddSingleton<HistoricalTransportMetrics>();

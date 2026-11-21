@@ -20,7 +20,7 @@ public sealed class HistoricalEventHandlerTests
         var handler = new HistoricalEventHandler(market, store,
             Options.Create(new HistoricalDataCollectionOptions()), TimeProvider.System,
             new AprStatsCacheInvalidation(cache));
-        var request = new HistoricalCollectionRequest(Guid.NewGuid(), ExchangeId.Parse("Binance"), Symbol.Create("BTC-USDT"));
+        var request = new HistoricalCollectionRequest(ExchangeId.Parse("Binance"), Symbol.Create("BTC-USDT"));
 
         await handler.HandleAsync(request, TestContext.Current.CancellationToken);
         await handler.HandleAsync(request, TestContext.Current.CancellationToken);

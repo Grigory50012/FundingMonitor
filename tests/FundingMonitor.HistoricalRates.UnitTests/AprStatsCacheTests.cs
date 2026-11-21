@@ -59,7 +59,7 @@ public sealed class AprStatsCacheTests
         var handler = new HistoricalEventHandler(new Market(), store,
             Options.Create(new HistoricalDataCollectionOptions()), TimeProvider.System, invalidation);
 
-        await handler.HandleAsync(new HistoricalCollectionRequest(Guid.NewGuid(), exchange, symbol), token);
+        await handler.HandleAsync(new HistoricalCollectionRequest(exchange, symbol), token);
 
         var after = await service.GetAprStatsAsync(symbol, exchanges, token);
         Assert.Equal(36.5m, Assert.Single(before).Apr);
@@ -82,7 +82,7 @@ public sealed class AprStatsCacheTests
             Options.Create(new HistoricalDataCollectionOptions()), TimeProvider.System, invalidation);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(
-            new HistoricalCollectionRequest(Guid.NewGuid(), ExchangeId.Parse("Binance"), symbol), token));
+            new HistoricalCollectionRequest(ExchangeId.Parse("Binance"), symbol), token));
 
         Assert.Same(before, await service.GetAprStatsAsync(symbol, null, token));
     }

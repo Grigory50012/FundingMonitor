@@ -1,7 +1,6 @@
 using FundingMonitor.CurrentRates.Application;
 using FundingMonitor.CurrentRates.Infrastructure;
 using FundingMonitor.CurrentRates.Presentation.Controllers;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,7 +17,4 @@ public static class CurrentRatesModule
         services.AddControllers().AddApplicationPart(typeof(FundingRatesController).Assembly);
         return services;
     }
-
-    public static IEndpointRouteBuilder MapCurrentRatesEndpoints(
-        this IEndpointRouteBuilder endpoints) => endpoints;
 }

@@ -133,7 +133,6 @@ public abstract class BaseExchangeGateway : IExchangeGateway
             fundingRate,
             fundingIntervalHours,
             nextFundingTime is null ? null : AsUtc(nextFundingTime.Value),
-            null,
             TimeProvider.GetUtcNow());
 
     protected HistoricalRatePoint CreateHistoricalRate(

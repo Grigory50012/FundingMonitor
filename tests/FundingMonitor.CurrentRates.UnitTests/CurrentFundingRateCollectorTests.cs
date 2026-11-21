@@ -26,7 +26,6 @@ public sealed class CurrentFundingRateCollectorTests
 
         var result = await collector.CollectAsync(CancellationToken.None);
 
-        Assert.True(result.Success);
         Assert.Equal(2, result.SuccessfulExchanges);
         Assert.Equal(1, result.FailedExchanges);
         Assert.Equal(2, persistence.Stored.Count);
@@ -53,7 +52,6 @@ public sealed class CurrentFundingRateCollectorTests
                     0.0001m,
                     8,
                     DateTimeOffset.UtcNow.AddHours(8),
-                    null,
                     DateTimeOffset.UtcNow)
             ];
             return Task.FromResult(Result<IReadOnlyList<CurrentRateSnapshot>>.Success(result));

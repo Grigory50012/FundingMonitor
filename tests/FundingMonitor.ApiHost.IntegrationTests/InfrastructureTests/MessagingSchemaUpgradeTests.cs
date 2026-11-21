@@ -31,6 +31,10 @@ public sealed class MessagingSchemaUpgradeTests
                 ("Id", "Type", "Payload", "OccurredOnUtc", "Attempts", "Error", "LockOwner", "LockedUntilUtc")
             VALUES ('20000000-0000-0000-0000-000000000001', 'FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent',
                 @payload::jsonb, '2026-09-12T00:00:00Z', 2, 'offline', 'stopped-instance', '2099-01-01T00:00:00Z');
+            INSERT INTO current_rates."CurrentFundingRates"
+                ("Exchange", "NormalizedSymbol", "BaseAsset", "QuoteAsset", "MarkPrice", "IndexPrice",
+                 "FundingRate", "FundingIntervalHours", "PredictedNextRate", "LastSeenOnUtc", "IsActive")
+            VALUES ('Binance', 'BTC-USDT', 'BTC', 'USDT', 100, 99, 0.0003, 8, 0.0004, '2026-09-12T00:00:00Z', true);
             INSERT INTO historical_rates."HistoricalFundingRates"
                 ("Exchange", "NormalizedSymbol", "FundingTime", "FundingRate", "CollectedOnUtc")
             VALUES ('Binance', 'BTC-USDT', '2026-09-12T00:00:00Z', 0.0003, '2026-09-12T01:00:00Z');
@@ -62,17 +66,30 @@ public sealed class MessagingSchemaUpgradeTests
             Assert.True(await migrated.IsDBNullAsync(2, ct));
         }
         Assert.Equal(0.0003m, Assert.Single(await history.HistoricalFundingRates.AsNoTracking().ToListAsync(ct)).FundingRate);
+        var currentRate = Assert.Single(await current.CurrentFundingRates.AsNoTracking().ToListAsync(ct));
+        Assert.Equal("BTC-USDT", currentRate.NormalizedSymbol);
+        Assert.Equal(100m, currentRate.MarkPrice);
+        Assert.Equal(0.0003m, currentRate.FundingRate);
         Assert.False(current.Database.HasPendingModelChanges());
         Assert.False(history.Database.HasPendingModelChanges());
         await using var retiredSchema = new NpgsqlCommand("""
             SELECT
                 (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'current_rates'
                     AND table_name = 'OutboxMessages' AND column_name IN ('Type', 'LockOwner', 'LockedUntilUtc'))
-                + (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'historical_rates' AND table_name = 'InboxMessages');
+                + (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'historical_rates' AND table_name = 'InboxMessages')
+                + (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'current_rates'
+                    AND table_name = 'CurrentFundingRates' AND column_name = 'PredictedNextRate');
             """, connection);
         Assert.Equal(0L, await retiredSchema.ExecuteScalarAsync(ct));
 
         await current.GetService<IMigrator>().MigrateAsync("20260912145113_SimplifyOutbox", ct);
+        await using (var restoredPrediction = new NpgsqlCommand("""
+            SELECT "PredictedNextRate" FROM current_rates."CurrentFundingRates"
+            WHERE "NormalizedSymbol" = 'BTC-USDT';
+            """, connection))
+        {
+            Assert.Equal(DBNull.Value, await restoredPrediction.ExecuteScalarAsync(ct));
+        }
         await using var restored = new NpgsqlCommand("""
             SELECT "Payload" FROM current_rates."OutboxMessages"
             WHERE "Id" = '20000000-0000-0000-0000-000000000001';

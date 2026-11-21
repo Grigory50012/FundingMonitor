@@ -1,6 +1,5 @@
 using FundingMonitor.Arbitrage.Infrastructure;
 using FundingMonitor.Arbitrage.Presentation.Controllers;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,7 +15,4 @@ public static class ArbitrageModule
         services.AddControllers().AddApplicationPart(typeof(ArbitrageController).Assembly);
         return services;
     }
-
-    public static IEndpointRouteBuilder MapArbitrageEndpoints(
-        this IEndpointRouteBuilder endpoints) => endpoints;
 }

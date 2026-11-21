@@ -13,7 +13,7 @@ public sealed class ExchangeMarketDataModuleTests
         var snapshot = new CurrentRateSnapshot(
             ExchangeId.Parse("Binance"), Symbol.Create("BTC-USDT"),
             100m, 99m, 0.001m, 8, DateTimeOffset.UtcNow.AddHours(1),
-            null, DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow);
         var sut = new ExchangeMarketDataModule([new StubGateway([snapshot])]);
 
         var result = await sut.GetCurrentRatesAsync(

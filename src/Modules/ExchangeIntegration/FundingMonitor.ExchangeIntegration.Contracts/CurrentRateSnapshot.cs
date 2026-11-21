@@ -10,5 +10,4 @@ public sealed record CurrentRateSnapshot(
     decimal FundingRate,
     int? FundingIntervalHours,
     DateTimeOffset? NextFundingTime,
-    decimal? PredictedNextRate,
     DateTimeOffset ObservedOnUtc);

@@ -44,15 +44,11 @@ try
     app.UseResponseCaching();
     app.UseAuthorization();
     app.MapControllers();
-    app.MapExchangeIntegrationEndpoints();
-    app.MapCurrentRatesEndpoints();
-    app.MapHistoricalRatesEndpoints();
-    app.MapArbitrageEndpoints();
     app.MapHealthChecks("/health");
 
     app.Run();
 }
-catch (Microsoft.Extensions.Hosting.HostAbortedException)
+catch (HostAbortedException)
 {
     throw;
 }

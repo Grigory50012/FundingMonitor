@@ -19,7 +19,6 @@ public sealed class CurrentRatesService(
             rate.FundingRate,
             rate.FundingIntervalHours,
             rate.NextFundingTime,
-            rate.PredictedNextRate,
             rate.LastSeenOnUtc,
             rate.IsActive,
             rate.Apr,
