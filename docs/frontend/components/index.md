@@ -21,6 +21,8 @@
 
 ## Активные UI части
 
+`DashboardPage` объединяет текущие ставки и историю в общую панель «Ставки финансирования». В её шапке находятся общие поиск монеты и выбор бирж. На широком экране части занимают 40% и 60% ширины и разделены вертикальной линией; на узком расположены друг под другом с горизонтальным разделителем. Периоды и переключатель графика/APR остаются в заголовке части «История».
+
 | Документ | Реальная реализация | Назначение |
 | --- | --- | --- |
 | [CurrentDataTable](CurrentDataTable.md) | `src/features/current-rates/CurrentRatesTable.tsx` | Текущие rates, сортировка, exchange links |
@@ -43,7 +45,7 @@ DashboardPage
 -> /api/v1/*
 ```
 
-APR table дополнительно использует `useAprStats`. API-функции каждого feature используют общий Axios client и generated DTO types; feature internals не импортируют друг друга. Их composition разрешён только в `widgets` и `app`.
+`useDashboardData` дополнительно вызывает `useAprStats` в режиме APR-таблицы и задаёт общий порядок бирж и сортировку для текущих ставок и истории. API-функции каждого feature используют общий Axios client и generated DTO types; feature internals не импортируют друг друга. Их composition разрешён только в `widgets` и `app`.
 
 Backend состоит из модулей `CurrentRates`, `HistoricalRates`, `Arbitrage` и `ExchangeIntegration`, зарегистрированных в `FundingMonitor.ApiHost`. HTTP-маршруты и OpenAPI-контракт сохранены. APR, spread и freshness рассчитываются на backend; frontend отвечает за отображение, фильтры, сортировку и состояние UI. Типы обновляются через `npm run generate:api-types` из единого `/openapi/v1.json`.
 

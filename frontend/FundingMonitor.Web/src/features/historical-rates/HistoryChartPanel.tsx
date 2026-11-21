@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
@@ -122,12 +121,24 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
 
   return (
     <div className="h-full flex flex-col">
+      <ul aria-label="Биржи на графике" className="mb-1 flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 pr-5 panel-caption">
+        {allExchanges.map((exchange) => (
+          <li key={exchange} className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-0.5 w-4 shrink-0 rounded-full"
+              style={{ backgroundColor: EXCHANGE_COLORS[exchange as ExchangeType] }}
+            />
+            <span style={{ color: 'var(--tg-text-secondary)' }}>{exchange}</span>
+          </li>
+        ))}
+      </ul>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             key={timeRange}
             data={chartData}
-            margin={{ top: 10, right: 20, bottom: 30, left: 0 }}
+            margin={{ top: 10, right: 20, bottom: 4, left: 0 }}
           >
             <CartesianGrid
               strokeDasharray="4 4"
@@ -145,7 +156,7 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
               }}
               angle={-45}
               textAnchor="end"
-              height={80}
+              height={60}
               interval={0}
               tickMargin={10}
             />
@@ -156,12 +167,6 @@ export const HistoryChartPanel: React.FC<HistoryPanelProps> = ({
               width={50}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ fontSize: "var(--panel-caption-size)", paddingTop: "10px" }}
-              formatter={(value) => (
-                <span style={{ color: 'var(--tg-text)' }}>{value}</span>
-              )}
-            />
             <ReferenceLine y={0} stroke="#9CA3AF" strokeDasharray="4 4" />
             {allExchanges.map((exchange) => (
               <Line

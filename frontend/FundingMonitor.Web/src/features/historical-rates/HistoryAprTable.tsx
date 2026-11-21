@@ -1,14 +1,20 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import type { ExchangeType } from "../../types";
 import { PERIODS } from "../../types";
-import { useAprStats } from "./useAprStats";
+import type { AprPeriodStatsDto } from "../../types";
 
 interface HistoryTableProps {
   selectedExchanges: ExchangeType[];
-  symbol: string;
+  data: AprPeriodStatsDto[];
+  isLoading: boolean;
+  error: string | null;
+  hasData: boolean;
+  exchangeOrder: ExchangeType[];
+  sortConfig: HistoryAprSortConfig;
+  onSortChange: (sort: HistoryAprSortConfig) => void;
 }
 
-interface SortConfig {
+export interface HistoryAprSortConfig {
   column: SortColumn;
   direction: SortDirection;
   period?: string;
@@ -23,79 +29,27 @@ type SortDirection = "asc" | "desc" | null;
 
 export const HistoryAprTable: React.FC<HistoryTableProps> = ({
   selectedExchanges,
-  symbol,
+  data,
+  isLoading,
+  error,
+  hasData,
+  exchangeOrder,
+  sortConfig,
+  onSortChange,
 }) => {
-  const { data, isLoading, error, hasData } = useAprStats({ symbol, selectedExchanges });
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    column: "apr",
-    direction: null,
-    period: undefined,
-  });
-
-
   // Фильтруем данные по выбранным биржам (на случай если фильтр не применился на бэкенде)
   const filteredData = useMemo(() => {
     if (selectedExchanges.length === 0) return data;
     return data.filter((item) => selectedExchanges.includes(item.exchange));
   }, [data, selectedExchanges]);
 
-  // Получаем уникальные биржи и периоды (всегда в исходном порядке)
-  const exchanges = useMemo(
-    () => Array.from(new Set(filteredData.map((s) => s.exchange))),
-    [filteredData],
-  );
+  const sortedExchanges = exchangeOrder;
 
-  // Сортировка бирж (строк) на основе выбранного столбца периода
-  const sortedExchanges = useMemo(() => {
-    if (!sortConfig.direction || !sortConfig.period) {
-      return exchanges;
-    }
-
-    const multiplier = sortConfig.direction === "asc" ? 1 : -1;
-
-    return [...exchanges].sort((a, b) => {
-      const statsA = filteredData.find(
-        (s) => s.exchange === a && s.period === sortConfig.period,
-      );
-      const statsB = filteredData.find(
-        (s) => s.exchange === b && s.period === sortConfig.period,
-      );
-
-      if (!statsA || !statsB) return 0;
-
-      let valueA: number;
-      let valueB: number;
-
-      if (sortConfig.column === "apr") {
-        valueA = statsA.apr;
-        valueB = statsB.apr;
-      } else if (sortConfig.column === "totalFundingRatePercent") {
-        valueA = statsA.totalFundingRatePercent;
-        valueB = statsB.totalFundingRatePercent;
-      } else if (sortConfig.column === "avgFundingRatePercent") {
-        valueA = statsA.avgFundingRatePercent;
-        valueB = statsB.avgFundingRatePercent;
-      } else {
-        valueA = statsA.paymentsCount;
-        valueB = statsB.paymentsCount;
-      }
-
-      return (valueA - valueB) * multiplier;
-    });
-  }, [exchanges, filteredData, sortConfig]);
-
-  // Обработчик клика по заголовку столбца периода
   const handleSort = (period: string, column: SortColumn) => {
-    setSortConfig((prev) => {
-      if (prev.period === period && prev.column === column) {
-        if (prev.direction === "asc")
-          return { column, direction: "desc", period };
-        if (prev.direction === "desc")
-          return { column, direction: null, period };
-        return { column, direction: "asc", period };
-      }
-      return { column, direction: "asc", period };
-    });
+    const direction = sortConfig.period === period && sortConfig.column === column
+      ? sortConfig.direction === "asc" ? "desc" : sortConfig.direction === "desc" ? null : "asc"
+      : "asc";
+    onSortChange({ column, period, direction });
   };
 
   // Иконка сортировки
@@ -183,7 +137,7 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
     );
   }
 
-  if (filteredData.length === 0) {
+  if (exchangeOrder.length === 0) {
     return (
       <div
         className="flex items-center justify-center h-full"
@@ -199,13 +153,8 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      {error && (
-        <p role="status" className="mb-2 panel-text text-[var(--tg-warning)]">
-          Не удалось обновить APR. Показаны последние полученные данные: {error}
-        </p>
-      )}
       <div className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:stable]">
-        <table className="w-full table-fixed panel-text border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+        <table className="funding-rates-table min-w-[720px] w-full table-fixed panel-text border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
           <colgroup>
             <col className="w-[100px]" />
             {PERIODS.map((p) => (
@@ -348,6 +297,11 @@ export const HistoryAprTable: React.FC<HistoryTableProps> = ({
           </tbody>
         </table>
       </div>
+      {error && (
+        <p role="status" className="mt-2 panel-text text-[var(--tg-warning)]">
+          Не удалось обновить APR. Показаны последние полученные данные: {error}
+        </p>
+      )}
     </div>
   );
 };

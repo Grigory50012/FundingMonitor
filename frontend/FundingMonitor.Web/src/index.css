@@ -25,6 +25,19 @@
     line-height: 1.25;
   }
 
+  .funding-rates-table thead tr {
+    height: 36px;
+  }
+
+  .funding-rates-table tbody tr {
+    height: var(--funding-row-height);
+  }
+
+  .funding-rates-table .panel-value,
+  .funding-rates-table .panel-caption {
+    white-space: nowrap;
+  }
+
   .dashboard-control {
     @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium transition-colors;
     font-size: var(--panel-text-size);
@@ -47,6 +60,7 @@
   --panel-title-size: 1rem;
   --panel-text-size: 0.75rem;
   --panel-caption-size: 0.625rem;
+  --funding-row-height: 64px;
 
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;

@@ -4,6 +4,9 @@ import { useArbitrageRates } from "../../features/arbitrage/useArbitrageRates";
 import { useCurrentRates } from "../../features/current-rates/useCurrentRates";
 import { getCurrentRates } from "../../features/current-rates/api/getCurrentRates";
 import { useHistoryRates } from "../../features/historical-rates/useHistoryRates";
+import { useAprStats } from "../../features/historical-rates/useAprStats";
+import { getFundingExchangeOrder } from "./fundingExchangeOrder";
+import type { FundingExchangeSort } from "./fundingExchangeOrder";
 import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 import { toUsdtSymbol } from "../../shared/lib/symbols";
 import type { ExchangeType } from "../../types";
@@ -44,6 +47,10 @@ export function useDashboardData() {
   );
   const [arbitrageFilters, setArbitrageFilters] = useState(EMPTY_ARBITRAGE_FILTERS);
   const [arbitrageAutoRefresh, setArbitrageAutoRefresh] = useState(true);
+  const [historyViewMode, setHistoryViewMode] = useState<HistoryViewMode>("chart");
+  const [exchangeSort, setExchangeSort] = useState<FundingExchangeSort>({
+    source: "current", config: { column: "fundingRate", direction: null },
+  });
 
   const current = useCurrentRates({
     symbol: mainFilters.symbol,
@@ -57,6 +64,15 @@ export function useDashboardData() {
       mainFilters.exchanges.length > 0 ? mainFilters.exchanges : undefined,
     limit: 1000,
   });
+
+  const aprHistory = useAprStats({
+    symbol: mainFilters.symbol,
+    selectedExchanges: mainFilters.exchanges,
+    enabled: historyViewMode === "table",
+  });
+  const exchangeOrder = useMemo(() => getFundingExchangeOrder(
+    current.data, aprHistory.data, mainFilters.exchanges, exchangeSort,
+  ), [current.data, aprHistory.data, mainFilters.exchanges, exchangeSort]);
 
   const minAprPercent = parsePercent(arbitrageFilters.minAprPercent);
   const maxAdversePriceSpreadPercent = parsePercent(arbitrageFilters.maxAdversePriceSpreadPercent);
@@ -85,8 +101,6 @@ export function useDashboardData() {
   }), [refreshCurrent, refreshArbitrage, arbitrageAutoRefresh, arbitrageFiltersValid]);
 
   const [allCoins, setAllCoins] = useState<string[]>([]);
-  const [historyViewMode, setHistoryViewMode] =
-    useState<HistoryViewMode>("chart");
   const [timeRange, setTimeRange] = useState<TimeRangeType>("1d");
 
   const loadAllCoins = useCallback(async () => {
@@ -120,6 +134,10 @@ export function useDashboardData() {
     setArbitrageAutoRefresh,
     current,
     history,
+    aprHistory,
+    exchangeOrder,
+    exchangeSort,
+    setExchangeSort,
     arbitrage,
     availableCoins,
     historyViewMode,

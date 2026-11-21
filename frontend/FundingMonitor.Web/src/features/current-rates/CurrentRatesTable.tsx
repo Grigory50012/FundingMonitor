@@ -1,4 +1,3 @@
-import { useMemo, useState } from "react";
 import { ExchangeBadge } from "../../entities/exchange/ExchangeBadge";
 import {
   formatPercent,
@@ -10,10 +9,6 @@ import { nextSortDirection } from "../../shared/lib/sort";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { SortIcon } from "../../shared/ui/SortIcon";
 import type { ExchangeType, FundingRateDto } from "../../types";
-import {
-  filterCurrentRates,
-  sortCurrentRates,
-} from "./currentRatesTableModel";
 import type {
   CurrentRatesSortColumn,
   CurrentRatesSortConfig,
@@ -21,7 +16,9 @@ import type {
 
 interface CurrentRatesTableProps {
   data: FundingRateDto[];
-  selectedExchanges: ExchangeType[];
+  exchangeOrder: ExchangeType[];
+  sortConfig: CurrentRatesSortConfig;
+  onSortChange: (sort: CurrentRatesSortConfig) => void;
 }
 
 type HeaderCellProps = {
@@ -56,27 +53,19 @@ function HeaderCell({ column, label, sortConfig, onSort }: HeaderCellProps) {
 
 export function CurrentRatesTable({
   data,
-  selectedExchanges,
+  exchangeOrder,
+  sortConfig,
+  onSortChange,
 }: CurrentRatesTableProps) {
-  const [sortConfig, setSortConfig] = useState<CurrentRatesSortConfig>({
-    column: "fundingRate",
-    direction: null,
-  });
-
-  const sortedData = useMemo(() => {
-    const filteredData = filterCurrentRates(data, selectedExchanges);
-    return sortCurrentRates(filteredData, sortConfig);
-  }, [data, selectedExchanges, sortConfig]);
-
   const handleSort = (column: CurrentRatesSortColumn) => {
-    setSortConfig((prev) => ({
+    onSortChange({
       column,
       direction:
-        prev.column === column ? nextSortDirection(prev.direction) : "asc",
-    }));
+        sortConfig.column === column ? nextSortDirection(sortConfig.direction) : "asc",
+    });
   };
 
-  if (sortedData.length === 0) {
+  if (exchangeOrder.length === 0) {
     return (
       <EmptyState>
         {"Нет данных для отображения"}
@@ -85,8 +74,8 @@ export function CurrentRatesTable({
   }
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden min-w-0 [scrollbar-gutter:stable]">
-      <table className="w-full table-fixed panel-text border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
+    <div className="h-full overflow-auto min-w-0 [scrollbar-gutter:stable]">
+      <table className="funding-rates-table min-w-[420px] w-full table-fixed panel-text border-separate border-spacing-0 [&_tbody_td]:border-b [&_tbody_td]:border-[var(--tg-border)]">
         <colgroup>
           <col className="w-[20%]" />
           <col className="w-[22%]" />
@@ -135,7 +124,17 @@ export function CurrentRatesTable({
           </tr>
         </thead>
         <tbody>
-          {sortedData.map((item) => (
+          {exchangeOrder.map((exchange) => {
+            const item = data.find((row) => row.exchange === exchange);
+            if (!item) return (
+              <tr key={exchange}>
+                <td className="text-center border-r border-[var(--tg-border)] bg-[var(--tg-bg)]">
+                  <ExchangeBadge exchange={exchange} compact />
+                </td>
+                <td colSpan={4} className="text-center text-[var(--tg-text-tertiary)]" title="Нет текущих данных этой биржи">—</td>
+              </tr>
+            );
+            return (
             <tr
               key={`${item.exchange}-${item.symbol}`}
               className="border-t transition-colors"
@@ -239,7 +238,8 @@ export function CurrentRatesTable({
                 </p>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

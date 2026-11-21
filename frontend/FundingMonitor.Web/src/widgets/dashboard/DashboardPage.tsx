@@ -20,6 +20,10 @@ export function DashboardPage() {
     setArbitrageAutoRefresh,
     current,
     history,
+    aprHistory,
+    exchangeOrder,
+    exchangeSort,
+    setExchangeSort,
     arbitrage,
     availableCoins,
     historyViewMode,
@@ -34,7 +38,7 @@ export function DashboardPage() {
       className="min-h-screen text-[var(--tg-text)]"
       style={{ backgroundColor: "var(--tg-bg)" }}
     >
-      <main className="max-w-[1920px] mx-auto p-6">
+      <main className="max-w-[1920px] mx-auto p-3">
         {errorMessage && (
           <div
             className="mb-6 p-4 rounded-xl"
@@ -48,19 +52,11 @@ export function DashboardPage() {
           </div>
         )}
 
-        <div
-          className="mb-2 rounded-2xl px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
-          style={{
-            backgroundColor: "var(--tg-bg-secondary)",
-            border: "1px solid var(--tg-border)",
-          }}
-        >
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <h2
-              className="text-xs font-semibold whitespace-nowrap"
-              style={{ color: "var(--tg-text-secondary)" }}
-            >
-              {"Фильтры"}
+        <Panel className="flex flex-col">
+          <header className="border-b border-[var(--tg-border)] px-4 py-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 min-w-0">
+            <h2 className="panel-title whitespace-nowrap">
+              {"Ставки финансирования"}
             </h2>
             <CompactFilter
               selectedExchanges={mainFilters.exchanges}
@@ -77,15 +73,15 @@ export function DashboardPage() {
               availableSymbols={availableCoins}
             />
           </div>
-        </div>
+          </header>
 
-        <div className="grid grid-cols-1 gap-3 h-[calc(100vh-180px)] min-h-[600px] lg:[grid-template-columns:minmax(0,40%)_minmax(0,1fr)]">
-          <Panel className="p-4 flex flex-col min-w-0">
-            <div className="flex items-center justify-between mb-2">
+        <div className="grid grid-cols-1 lg:h-[calc(100vh-180px)] lg:min-h-[600px] lg:[grid-template-columns:minmax(0,40%)_minmax(0,1fr)]">
+          <section aria-labelledby="current-rates-title" className="p-4 flex flex-col min-w-0 min-h-[240px] lg:min-h-0">
+            <div className="flex min-h-8 items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <h2 className="panel-title">
+                <h3 id="current-rates-title" className="panel-title">
                   {"Текущие ставки"}
-                </h2>
+                </h3>
               </div>
             </div>
 
@@ -102,18 +98,20 @@ export function DashboardPage() {
               ) : (
                 <CurrentDataTable
                   data={current.data}
-                  selectedExchanges={mainFilters.exchanges}
+                  exchangeOrder={exchangeOrder}
+                  sortConfig={exchangeSort.source === "current" ? exchangeSort.config : { column: "fundingRate", direction: null }}
+                  onSortChange={(config) => setExchangeSort({ source: "current", config })}
                 />
               )}
             </div>
-          </Panel>
+          </section>
 
-          <Panel className="p-4 flex flex-col min-w-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <section aria-labelledby="history-title" className="p-4 flex flex-col min-w-0 min-h-[420px] border-t border-[var(--tg-border)] lg:min-h-0 lg:border-t-0 lg:border-l">
+            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2 mb-2">
               <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2 min-w-0">
-                <h2 className="panel-title whitespace-nowrap">
+                <h3 id="history-title" className="panel-title whitespace-nowrap">
                   {"История"}
-                </h2>
+                </h3>
                 {historyViewMode === "chart" && (
                   <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Период истории">
                     {TIME_RANGES.map((range) => (
@@ -246,13 +244,20 @@ export function DashboardPage() {
                 />
               ) : (
                 <HistoryTable
-                  symbol={mainFilters.symbol}
                   selectedExchanges={mainFilters.exchanges}
+                  data={aprHistory.data}
+                  isLoading={aprHistory.isLoading}
+                  error={aprHistory.error}
+                  hasData={aprHistory.hasData}
+                  exchangeOrder={exchangeOrder}
+                  sortConfig={exchangeSort.source === "history" ? exchangeSort.config : { column: "apr", direction: null }}
+                  onSortChange={(config) => setExchangeSort({ source: "history", config })}
                 />
               )}
             </div>
-          </Panel>
+          </section>
         </div>
+        </Panel>
 
         <Panel className="mt-3 p-6 flex flex-col h-[650px]">
           <div className="mb-4 flex flex-wrap items-start gap-2 text-xs">
@@ -294,14 +299,14 @@ export function DashboardPage() {
             />
             {([
               ["minAprPercent", "Минимальный APR пары, %", "Мин. APR, %"],
-              ["maxAdversePriceSpreadPercent", "Макс. неблагоприятный спред цены, %", "Макс. спред, %"],
+              ["maxAdversePriceSpreadPercent", "Макс. неблагоприятный спред цены, %", "Макс. спред цены, %"],
             ] as const).map(([field, label, placeholder]) => {
               const value = arbitrageFilters[field];
               const invalid = value.trim() !== "" && parsePercent(value) === undefined;
               return (
                 <label key={field} className="flex flex-col gap-1" title={label}>
                   <span className="sr-only">{label}</span>
-                  <span className={`dashboard-control has-[[aria-invalid=true]]:border-[var(--tg-negative)] ${field === "minAprPercent" ? "w-24" : "w-32"}`}>
+                  <span className={`dashboard-control has-[[aria-invalid=true]]:border-[var(--tg-negative)] ${field === "minAprPercent" ? "w-24" : "w-44"}`}>
                     <input
                       className="h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--tg-hint)]"
                       inputMode="decimal"
