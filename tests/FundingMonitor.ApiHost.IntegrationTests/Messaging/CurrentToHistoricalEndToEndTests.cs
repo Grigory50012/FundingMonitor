@@ -115,7 +115,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
                 await _host.Services.GetRequiredService<IMessagePublisher>().PublishAsync(
                     RabbitMqTopology.ExchangeName, RabbitMqTopology.GetRoutingKey(message.Exchange),
                     new MessageEnvelope<FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent>(
-                        message.EventId, message.EventId, null, message.OccurredOnUtc, "funding-rate.changed", 1, message),
+                        message.EventId, message.EventId, message.OccurredOnUtc, "funding-rate.changed", 1, message),
                     null, Ct));
         }
         await EventuallyAsync(() => Task.FromResult(_market.Calls["BTC-USDT"] == 2), "duplicate fetched again");

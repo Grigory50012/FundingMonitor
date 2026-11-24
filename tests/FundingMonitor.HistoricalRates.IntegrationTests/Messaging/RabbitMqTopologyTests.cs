@@ -139,6 +139,6 @@ public sealed class RabbitMqTopologyTests : IAsyncLifetime
 
     private static MessageEnvelope<FundingRateChangedIntegrationEvent> CreateEnvelope(
         FundingRateChangedIntegrationEvent integrationEvent) => new(
-        integrationEvent.EventId, integrationEvent.EventId, null,
+        integrationEvent.EventId, integrationEvent.EventId,
         integrationEvent.OccurredOnUtc, "funding-rate.changed", 1, integrationEvent);
 }

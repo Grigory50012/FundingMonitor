@@ -97,8 +97,7 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
 
         return new ExchangeHealthSnapshot(
             Exchange,
-            result.IsSuccess ? ExchangeHealthStatus.Available : ExchangeHealthStatus.Unavailable,
-            result.Error?.Code);
+            result.IsSuccess ? ExchangeHealthStatus.Available : ExchangeHealthStatus.Unavailable);
     }
 
     private async Task<List<OKXInstrument>> GetAllInstrumentsAsync(CancellationToken cancellationToken)

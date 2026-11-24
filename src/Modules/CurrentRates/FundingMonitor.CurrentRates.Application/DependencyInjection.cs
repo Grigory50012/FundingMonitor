@@ -7,8 +7,7 @@ namespace FundingMonitor.CurrentRates.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddCurrentRatesApplication(
-        this IServiceCollection services,
+    public static void AddCurrentRatesApplication(this IServiceCollection services,
         IConfiguration configuration)
     {
         services.AddOptions<CurrentDataCollectionOptions>()
@@ -17,6 +16,5 @@ public static class DependencyInjection
         services.AddScoped<IFundingRateChangeDetector, FundingRateChangeDetector>();
         services.AddScoped<ICurrentFundingRateCollector, CurrentFundingRateCollector>();
         services.AddHostedService<CurrentCollectionBackgroundService>();
-        return services;
     }
 }

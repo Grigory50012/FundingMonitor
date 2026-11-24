@@ -20,7 +20,7 @@ try
     builder.Services.AddOpenApi();
     builder.Services.AddProblemDetails();
     builder.Services.AddAuthorization();
-    builder.Services.AddExchangeIntegrationModule(builder.Configuration);
+    builder.Services.AddExchangeIntegrationModule();
     builder.Services.AddCurrentRatesModule(builder.Configuration);
     builder.Services.AddHistoricalRatesModule(builder.Configuration);
     builder.Services.AddArbitrageModule(builder.Configuration);

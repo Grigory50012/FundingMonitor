@@ -10,5 +10,4 @@ public enum ExchangeHealthStatus
 
 public sealed record ExchangeHealthSnapshot(
     ExchangeId Exchange,
-    ExchangeHealthStatus Status,
-    string? ErrorCode);
+    ExchangeHealthStatus Status);

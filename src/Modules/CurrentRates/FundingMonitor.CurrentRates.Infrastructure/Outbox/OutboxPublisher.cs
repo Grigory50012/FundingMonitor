@@ -66,7 +66,6 @@ internal sealed class OutboxPublisher(
             var envelope = new MessageEnvelope<FundingRateChangedIntegrationEvent>(
                 message.Id,
                 message.Id,
-                null,
                 message.OccurredOnUtc,
                 "funding-rate.changed",
                 1,

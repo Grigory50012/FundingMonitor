@@ -7,7 +7,6 @@ using Bybit.Net.Objects.Options;
 using FundingMonitor.ExchangeIntegration.Application;
 using FundingMonitor.ExchangeIntegration.Domain;
 using FundingMonitor.ExchangeIntegration.Infrastructure.Gateways;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -20,11 +19,8 @@ namespace FundingMonitor.ExchangeIntegration.Infrastructure;
 public static class DependencyInjection
 {
     public static IServiceCollection AddExchangeIntegrationInfrastructure(
-        this IServiceCollection services,
-        IConfiguration configuration)
+        this IServiceCollection services)
     {
-        _ = configuration;
-
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<SymbolNormalizer>();
         services.AddSingleton(_ => new BinanceRestClient(

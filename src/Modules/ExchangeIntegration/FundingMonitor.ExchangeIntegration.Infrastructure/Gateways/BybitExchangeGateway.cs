@@ -94,7 +94,6 @@ public sealed class BybitExchangeGateway : BaseExchangeGateway
 
         return new ExchangeHealthSnapshot(
             Exchange,
-            result.IsSuccess ? ExchangeHealthStatus.Available : ExchangeHealthStatus.Unavailable,
-            result.Error?.Code);
+            result.IsSuccess ? ExchangeHealthStatus.Available : ExchangeHealthStatus.Unavailable);
     }
 }

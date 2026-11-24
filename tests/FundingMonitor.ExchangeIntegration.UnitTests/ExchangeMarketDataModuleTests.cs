@@ -67,6 +67,6 @@ public sealed class ExchangeMarketDataModuleTests
 
         public Task<ExchangeHealthSnapshot> CheckHealthAsync(CancellationToken token) =>
             Task.FromResult(new ExchangeHealthSnapshot(
-                Exchange, ExchangeHealthStatus.Available, null));
+                Exchange, ExchangeHealthStatus.Available));
     }
 }

@@ -39,7 +39,6 @@ internal sealed class HistoricalMessageProcessor(
         var envelope = new MessageEnvelope<MalformedHistoricalMessage>(
             messageId,
             messageId,
-            null,
             DateTimeOffset.UtcNow,
             "historical-rate.malformed",
             1,
@@ -136,7 +135,6 @@ internal sealed class HistoricalMessageProcessor(
         var envelope = new MessageEnvelope<FundingRateChangedIntegrationEvent>(
             integrationEvent.EventId,
             integrationEvent.EventId,
-            null,
             integrationEvent.OccurredOnUtc,
             "funding-rate.changed",
             1,

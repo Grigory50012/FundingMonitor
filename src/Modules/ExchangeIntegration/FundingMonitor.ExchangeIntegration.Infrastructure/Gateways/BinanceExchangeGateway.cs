@@ -109,8 +109,7 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
 
         return new ExchangeHealthSnapshot(
             Exchange,
-            result.IsSuccess ? ExchangeHealthStatus.Available : ExchangeHealthStatus.Unavailable,
-            result.Error?.Code);
+            result.IsSuccess ? ExchangeHealthStatus.Available : ExchangeHealthStatus.Unavailable);
     }
 
     private async Task<Dictionary<string, int>> GetFundingIntervalsAsync(CancellationToken cancellationToken)

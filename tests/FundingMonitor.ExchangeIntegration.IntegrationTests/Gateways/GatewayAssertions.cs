@@ -70,7 +70,6 @@ internal static class GatewayAssertions
         var result = await gateway.CheckHealthAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(ExchangeHealthStatus.Available, result.Status);
-        Assert.Null(result.ErrorCode);
         Assert.True(server.ReceivedPath(expectedPath));
     }
 
