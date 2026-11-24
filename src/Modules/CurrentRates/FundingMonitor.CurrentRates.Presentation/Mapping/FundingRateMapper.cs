@@ -11,7 +11,7 @@ internal static class FundingRateMapper
         rate.Exchange.Value,
         rate.Symbol.Value,
         rate.MarkPrice,
-        rate.FundingRate,
+        rate.FundingRate ?? 0m,
         rate.Apr,
         rate.FundingIntervalHours is > 0 ? 24 / rate.FundingIntervalHours.Value : 3,
         rate.NextFundingTime?.UtcDateTime,

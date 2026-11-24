@@ -36,9 +36,13 @@ public sealed class FundingArbitrageDetector
     {
         var currentRates = await _currentRates.GetCurrentRatesAsync(
             new CurrentRatesQuery(null, null), cancellationToken);
-        var cutoff = _timeProvider.GetUtcNow().AddMinutes(-_options.MaxRateAgeMinutes);
+        var now = _timeProvider.GetUtcNow();
+        var cutoff = now.AddMinutes(-_options.MaxRateAgeMinutes);
         var rates = currentRates
-            .Where(rate => rate.IsActive && rate.LastSeenOnUtc >= cutoff)
+            .Where(rate => rate.IsActive && rate.LastSeenOnUtc >= cutoff
+                && rate.BidPrice is > 0m && rate.AskPrice is > 0m && rate.BidPrice <= rate.AskPrice
+                && rate.FundingRate.HasValue && rate.FundingIntervalHours is > 0
+                && rate.NextFundingTime > now)
             .ToArray();
 
         return _snapshots.GetOrCalculate(rates, Calculate);
@@ -63,10 +67,12 @@ public sealed class FundingArbitrageDetector
                     Symbol = rateA.Symbol,
                     ExchangeA = rateA.Exchange,
                     ExchangeB = rateB.Exchange,
-                    PriceA = rateA.MarkPrice,
-                    PriceB = rateB.MarkPrice,
-                    FundingRateA = rateA.FundingRate,
-                    FundingRateB = rateB.FundingRate,
+                    BidPriceA = rateA.BidPrice!.Value,
+                    AskPriceA = rateA.AskPrice!.Value,
+                    BidPriceB = rateB.BidPrice!.Value,
+                    AskPriceB = rateB.AskPrice!.Value,
+                    FundingRateA = rateA.FundingRate!.Value,
+                    FundingRateB = rateB.FundingRate!.Value,
                     AprA = rateA.Apr,
                     AprB = rateB.Apr,
                     FundingIntervalHoursA = rateA.FundingIntervalHours,

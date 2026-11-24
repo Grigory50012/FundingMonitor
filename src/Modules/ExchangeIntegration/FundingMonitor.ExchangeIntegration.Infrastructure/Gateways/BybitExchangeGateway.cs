@@ -42,9 +42,11 @@ public sealed class BybitExchangeGateway : BaseExchangeGateway
                         item.Symbol,
                         item.MarkPrice,
                         item.IndexPrice,
-                        item.FundingRate ?? 0,
+                        item.FundingRate,
                         item.NextFundingTime,
-                        item.FundingInterval))
+                        item.FundingInterval,
+                        item.BestBidPrice,
+                        item.BestAskPrice))
                     .ToArray();
             },
             cancellationToken);

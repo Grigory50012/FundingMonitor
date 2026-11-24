@@ -7,10 +7,12 @@ public sealed record CurrentRateView(
     Symbol Symbol,
     decimal MarkPrice,
     decimal IndexPrice,
-    decimal FundingRate,
+    decimal? FundingRate,
     int? FundingIntervalHours,
     DateTimeOffset? NextFundingTime,
     DateTimeOffset LastSeenOnUtc,
     bool IsActive,
     decimal Apr,
-    decimal Deviation);
+    decimal Deviation,
+    decimal? BidPrice = null,
+    decimal? AskPrice = null);

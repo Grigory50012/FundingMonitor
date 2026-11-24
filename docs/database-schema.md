@@ -15,7 +15,8 @@
 | `NormalizedSymbol` | `varchar(64)` | Нормализованный символ |
 | `BaseAsset`, `QuoteAsset` | `varchar(32)` | Активы пары |
 | `MarkPrice`, `IndexPrice` | `numeric(28,12)` | Цены, обязательные поля |
-| `FundingRate` | `numeric(20,12)` | Ставка за период |
+| `BidPrice`, `AskPrice` | `numeric(28,12)`, nullable | Лучшие цены покупки и продажи из последнего снимка |
+| `FundingRate` | `numeric(20,12)`, nullable | Ставка за период. NULL означает, что биржа не прислала ставку |
 | `FundingIntervalHours` | `integer`, nullable | Интервал выплат |
 | `NextFundingTime` | `timestamptz`, nullable | Следующая выплата |
 | `LastSeenOnUtc` | `timestamptz` | Последний успешный сбор пары |

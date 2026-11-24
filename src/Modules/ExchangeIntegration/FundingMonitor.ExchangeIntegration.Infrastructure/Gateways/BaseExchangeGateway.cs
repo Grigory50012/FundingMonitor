@@ -122,10 +122,14 @@ public abstract class BaseExchangeGateway : IExchangeGateway
         string exchangeSymbol,
         decimal markPrice,
         decimal indexPrice,
-        decimal fundingRate,
+        decimal? fundingRate,
         DateTime? nextFundingTime,
-        int? fundingIntervalHours) =>
-        new(
+        int? fundingIntervalHours,
+        decimal? bidPrice = null,
+        decimal? askPrice = null)
+    {
+        var validQuote = bidPrice is > 0m && askPrice is > 0m && bidPrice <= askPrice;
+        return new(
             Exchange,
             SymbolNormalizer.Normalize(exchangeSymbol, Exchange),
             markPrice,
@@ -133,7 +137,18 @@ public abstract class BaseExchangeGateway : IExchangeGateway
             fundingRate,
             fundingIntervalHours,
             nextFundingTime is null ? null : AsUtc(nextFundingTime.Value),
-            TimeProvider.GetUtcNow());
+            TimeProvider.GetUtcNow(),
+            validQuote ? bidPrice : null,
+            validQuote ? askPrice : null);
+    }
+
+    protected async Task<Dictionary<string, (decimal? Bid, decimal? Ask)>> GetQuotesAsync(
+        Func<Task<Dictionary<string, (decimal? Bid, decimal? Ask)>>> collect,
+        CancellationToken token)
+    {
+        var result = await ExecuteAsync("GetQuotes", _ => collect(), token);
+        return result.Value ?? new(StringComparer.OrdinalIgnoreCase);
+    }
 
     protected HistoricalRatePoint CreateHistoricalRate(
         string exchangeSymbol,

@@ -35,6 +35,12 @@ public sealed class CurrentFundingRateTests
         Assert.Equal(1m, CreateRate(markPrice: 101m, indexPrice: 100m).Deviation);
     }
 
+    [Fact]
+    public void Apr_MissingFundingRate_ReturnsZero()
+    {
+        Assert.Equal(0m, (CreateRate() with { FundingRate = null }).Apr);
+    }
+
     private static CurrentFundingRate CreateRate(
         decimal fundingRate = 0.0001m,
         int? intervalHours = 8,

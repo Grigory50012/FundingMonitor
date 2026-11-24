@@ -51,6 +51,29 @@ public sealed class ArbitrageModuleTests
         Assert.Empty(await detector.DetectAsync(token));
     }
 
+    [Fact]
+    public async Task CachedSnapshot_ExcludesOnlyIncompleteLegsAndExpiresAtPayment()
+    {
+        var time = new MutableTimeProvider { Now = DateTimeOffset.UtcNow };
+        var payment = time.Now.AddSeconds(10);
+        var current = new StubCurrentRatesModule([
+            TestCurrentRate.Create("Binance", "BTC-USDT", 100m, 0m, 0m, true, time.Now)
+                with { NextFundingTime = payment },
+            TestCurrentRate.Create("Bybit", "BTC-USDT", 99m, -0.001m, -109.5m, true, time.Now),
+            TestCurrentRate.Create("OKX", "BTC-USDT", 101m, 0.001m, 109.5m, true, time.Now)
+                with { AskPrice = null }
+        ]);
+        var detector = new FundingArbitrageDetector(current, Options.Create(new FundingArbitrageOptions()), time);
+        var token = TestContext.Current.CancellationToken;
+
+        var pair = Assert.Single(await detector.DetectAsync(token));
+        Assert.Equal(ExchangeId.Parse("Binance"), pair.ShortExchange);
+        Assert.Equal(ExchangeId.Parse("Bybit"), pair.LongExchange);
+
+        time.Now = payment;
+        Assert.Empty(await detector.DetectAsync(token));
+    }
+
     private sealed class MutableTimeProvider : TimeProvider
     {
         public DateTimeOffset Now { get; set; }
@@ -192,7 +215,7 @@ public sealed class ArbitrageModuleTests
     }
 
     [Fact]
-    public async Task GetOpportunitiesAsync_UnknownIntervalOnlyPassesWithoutDependentFilters()
+    public async Task GetOpportunitiesAsync_UnknownIntervalIsExcluded()
     {
         var current = new StubCurrentRatesModule(
         [
@@ -203,11 +226,7 @@ public sealed class ArbitrageModuleTests
         var token = TestContext.Current.CancellationToken;
         var query = new ArbitrageQuery(null, null);
 
-        var opportunity = Assert.Single(await sut.GetOpportunitiesAsync(query, token));
-        Assert.Null(opportunity.AprSpread);
-        Assert.Null(opportunity.ShortExchange);
-        Assert.Null(opportunity.LongExchange);
-        Assert.Null(opportunity.PriceSpreadPercent);
+        Assert.Empty(await sut.GetOpportunitiesAsync(query, token));
         Assert.Empty(await sut.GetOpportunitiesAsync(query with { MinAprPercent = 0m }, token));
         Assert.Empty(await sut.GetOpportunitiesAsync(query with { MaxAdversePriceSpreadPercent = 0m }, token));
         Assert.Empty(await sut.GetOpportunitiesAsync(query with { SameFundingIntervalOnly = true }, token));
@@ -248,6 +267,6 @@ public sealed class ArbitrageModuleTests
             lastSeenOnUtc ?? DateTimeOffset.UtcNow,
             isActive,
             apr,
-            0m);
+            0m) { BidPrice = markPrice, AskPrice = markPrice };
     }
 }

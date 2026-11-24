@@ -32,11 +32,21 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
             {
                 var markPricesTask = _client.UsdFuturesApi.ExchangeData.GetMarkPricesAsync(token);
                 var intervalsTask = GetFundingIntervalsAsync(token);
-                await Task.WhenAll(markPricesTask, intervalsTask);
+                var quotesTask = GetQuotesAsync(async () =>
+                {
+                    var response = await _client.UsdFuturesApi.ExchangeData.GetBookPricesAsync(token);
+                    EnsureSuccess(response);
+                    var data = response.Data ?? throw new InvalidOperationException("Exchange returned no quote data.");
+                    return data.ToDictionary(item => item.Symbol,
+                        item => ((decimal?)item.BestBidPrice, (decimal?)item.BestAskPrice),
+                        StringComparer.OrdinalIgnoreCase);
+                }, token);
+                await Task.WhenAll(markPricesTask, intervalsTask, quotesTask);
 
                 var markPrices = await markPricesTask;
                 EnsureSuccess(markPrices);
                 var intervals = await intervalsTask;
+                var quotes = await quotesTask;
                 var data = markPrices.Data
                            ?? throw new InvalidOperationException("Binance returned no mark-price data.");
                 var rates = new List<CurrentRateSnapshot>(data.Length);
@@ -47,18 +57,19 @@ public sealed class BinanceExchangeGateway : BaseExchangeGateway
                         continue;
                     if (item.NextFundingTime < item.Timestamp)
                         continue;
-                    if (item is { EstimatedSettlePrice: 0, FundingRate: 0 })
-                        continue;
                     if (!intervals.TryGetValue(item.Symbol, out var intervalHours))
                         continue;
 
+                    var quote = quotes.GetValueOrDefault(item.Symbol);
                     rates.Add(CreateCurrentRate(
                         item.Symbol,
                         item.MarkPrice,
                         item.IndexPrice,
-                        item.FundingRate ?? 0,
+                        item.FundingRate,
                         item.NextFundingTime,
-                        intervalHours));
+                        intervalHours,
+                        quote.Bid,
+                        quote.Ask));
                 }
 
                 return rates;

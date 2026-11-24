@@ -95,6 +95,8 @@ public sealed class CurrentFundingRateCollector(
             QuoteAsset = parts[1],
             MarkPrice = snapshot.MarkPrice,
             IndexPrice = snapshot.IndexPrice,
+            BidPrice = snapshot.BidPrice,
+            AskPrice = snapshot.AskPrice,
             FundingRate = snapshot.FundingRate,
             FundingIntervalHours = snapshot.FundingIntervalHours,
             NextFundingTime = snapshot.NextFundingTime,

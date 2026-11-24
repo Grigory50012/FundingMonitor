@@ -129,16 +129,11 @@ const renderRow = (
           className="px-4 py-2 text-center border-l"
           style={{ borderColor: "var(--tg-border)" }}
         >
-          <p
-            className="panel-value"
-            style={{ color: "var(--tg-text)" }}
-          >
-            $
-            {item.priceA.toLocaleString(undefined, {
-              minimumFractionDigits: 4,
-              maximumFractionDigits: 8,
-            })}
-          </p>
+          <QuotePrice
+            bid={item.bidPriceA}
+            ask={item.askPriceA}
+            isShort={item.shortExchange === item.exchangeA}
+          />
         </td>
         {/* Спред цены — на две строки */}
         <td
@@ -244,16 +239,11 @@ const renderRow = (
           className="px-4 py-2 text-center border-l"
           style={{ borderColor: "var(--tg-border)" }}
         >
-          <p
-            className="panel-value"
-            style={{ color: "var(--tg-text)" }}
-          >
-            $
-            {item.priceB.toLocaleString(undefined, {
-              minimumFractionDigits: 4,
-              maximumFractionDigits: 8,
-            })}
-          </p>
+          <QuotePrice
+            bid={item.bidPriceB}
+            ask={item.askPriceB}
+            isShort={item.shortExchange === item.exchangeB}
+          />
         </td>
         {/* Funding Rate B */}
         <td
@@ -306,11 +296,21 @@ function formatApr(apr: number | null) {
   return apr === null ? "—" : `${apr.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
 }
 
+const quotePriceFormat = { minimumFractionDigits: 4, maximumFractionDigits: 8 };
+
+function QuotePrice({ bid, ask, isShort }: { bid: number; ask: number; isShort: boolean }) {
+  const price = isShort ? bid : ask;
+
+  return (
+    <span className="panel-value whitespace-nowrap">
+      ${price.toLocaleString(undefined, quotePriceFormat)}
+    </span>
+  );
+}
+
 function PriceSpread({ item }: { item: FundingArbitrageDto }) {
   const percent = item.priceSpreadPercent;
-  if (percent === null || item.shortExchange === null) return <>—</>;
-
-  const amount = item.shortExchange === item.exchangeA ? item.priceSpread : -item.priceSpread;
+  const amount = item.priceSpread;
   const sign = percent > 0 ? "+" : percent < 0 ? "-" : "";
   const color = percent > 0
     ? "var(--tg-positive)"
@@ -552,7 +552,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                   borderColor: "var(--tg-border)",
                 }}
               >
-                Цена
+                Цена в стакане
               </th>
               <th
                 className="px-4 py-3 text-center font-medium border-b cursor-pointer transition-colors sticky top-0 z-20"
@@ -566,7 +566,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                 }}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span title="По ценам маркировки">Спред цены</span>
+                  <span title="Bid шорта − Ask лонга">Спред цены</span>
                   <SortIcon column="priceSpreadPercent" />
                 </div>
               </th>
@@ -751,16 +751,11 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                         className="px-4 py-2 text-center border-l"
                         style={{ borderColor: "var(--tg-border)" }}
                       >
-                        <p
-                          className="panel-value"
-                          style={{ color: "var(--tg-text)" }}
-                        >
-                          $
-                          {group.best.priceA.toLocaleString(undefined, {
-                            minimumFractionDigits: 4,
-                            maximumFractionDigits: 8,
-                          })}
-                        </p>
+                        <QuotePrice
+                          bid={group.best.bidPriceA}
+                          ask={group.best.askPriceA}
+                          isShort={group.best.shortExchange === group.best.exchangeA}
+                        />
                       </td>
                       {/* Спред цены */}
                       <td
@@ -883,16 +878,11 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                         className="px-4 py-2 text-center border-l"
                         style={{ borderColor: "var(--tg-border)" }}
                       >
-                        <p
-                          className="panel-value"
-                          style={{ color: "var(--tg-text)" }}
-                        >
-                          $
-                          {group.best.priceB.toLocaleString(undefined, {
-                            minimumFractionDigits: 4,
-                            maximumFractionDigits: 8,
-                          })}
-                        </p>
+                        <QuotePrice
+                          bid={group.best.bidPriceB}
+                          ask={group.best.askPriceB}
+                          isShort={group.best.shortExchange === group.best.exchangeB}
+                        />
                       </td>
                       {/* Funding Rate B */}
                       <td

@@ -23,6 +23,8 @@ public sealed class CurrentRatesDbContext(
             entity.Property(item => item.NormalizedSymbol).HasMaxLength(64);
             entity.Property(item => item.BaseAsset).HasMaxLength(32);
             entity.Property(item => item.QuoteAsset).HasMaxLength(32);
+            entity.Property(item => item.BidPrice).HasPrecision(28, 12);
+            entity.Property(item => item.AskPrice).HasPrecision(28, 12);
             entity.Property(item => item.MarkPrice).HasPrecision(28, 12);
             entity.Property(item => item.IndexPrice).HasPrecision(28, 12);
             entity.Property(item => item.FundingRate).HasPrecision(20, 12);

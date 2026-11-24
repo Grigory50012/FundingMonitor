@@ -7,20 +7,14 @@ public sealed record FundingArbitrageOpportunity
     public required Symbol Symbol { get; init; }
     public required ExchangeId ExchangeA { get; init; }
     public required ExchangeId ExchangeB { get; init; }
-    public required decimal PriceA { get; init; }
-    public required decimal PriceB { get; init; }
-    public decimal PriceSpread => PriceA - PriceB;
-    public decimal? PriceSpreadPercent
-    {
-        get
-        {
-            if (ShortExchange is not { } shortExchange || PriceA <= 0m || PriceB <= 0m)
-                return null;
-
-            var signedSpread = shortExchange == ExchangeA ? PriceSpread : -PriceSpread;
-            return signedSpread / ((PriceA + PriceB) / 2m) * 100m;
-        }
-    }
+    public required decimal BidPriceA { get; init; }
+    public required decimal AskPriceA { get; init; }
+    public required decimal BidPriceB { get; init; }
+    public required decimal AskPriceB { get; init; }
+    private decimal BidShort => ShortExchange == ExchangeA ? BidPriceA : BidPriceB;
+    private decimal AskLong => ShortExchange == ExchangeA ? AskPriceB : AskPriceA;
+    public decimal PriceSpread => BidShort - AskLong;
+    public decimal PriceSpreadPercent => 100m * PriceSpread / ((BidShort + AskLong) / 2m);
     public required decimal FundingRateA { get; init; }
     public required decimal FundingRateB { get; init; }
     public decimal FundingRateSpread => FundingRateA - FundingRateB;

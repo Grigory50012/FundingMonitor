@@ -19,6 +19,8 @@ public sealed class OkxExchangeGatewayTests
         ConfigureCurrent(server);
 
         await GatewayAssertions.CurrentMapsAsync(CreateGateway(server), server, "/api/v5/public/instruments");
+        Assert.Equal(5, server.Requests.Count);
+        Assert.Contains("/api/v5/public/funding-rate?instId=ANY", server.Requests);
     }
 
     [Fact]
@@ -47,6 +49,7 @@ public sealed class OkxExchangeGatewayTests
     public async Task GetCurrentRatesAsync_Http429_ReturnsExchangeRateLimited()
     {
         await using var server = CreateServer();
+        ConfigureCurrent(server);
         server.Respond("/api/v5/public/instruments", "{\"code\":\"50011\",\"msg\":\"Too many requests\",\"data\":[]}",
             HttpStatusCode.TooManyRequests);
 
@@ -54,13 +57,18 @@ public sealed class OkxExchangeGatewayTests
     }
 
     [Fact]
-    public async Task Partial_current_failure_emits_one_warning()
+    public async Task GetCurrentRatesAsync_TickerFailure_PreservesFundingWithoutQuotes()
     {
         await using var server = CreateServer();
         ConfigureCurrent(server);
-        server.Respond("/api/v5/public/funding-rate", "{}", HttpStatusCode.ServiceUnavailable);
+        server.Respond("/api/v5/market/tickers", "{}", HttpStatusCode.ServiceUnavailable);
         var logger = new TestLogger<OkxExchangeGateway>();
-        await CreateGateway(server, logger).GetCurrentRatesAsync(TestContext.Current.CancellationToken);
+        var result = await CreateGateway(server, logger).GetCurrentRatesAsync(TestContext.Current.CancellationToken);
+        Assert.True(result.IsSuccess, result.Error?.Code);
+        var rate = Assert.Single(result.Value!);
+        Assert.Equal(0.001m, rate.FundingRate);
+        Assert.Null(rate.BidPrice);
+        Assert.Null(rate.AskPrice);
         Assert.Single(logger.Levels, level => level == LogLevel.Warning);
     }
     private static StubHttpServer CreateServer()
@@ -74,6 +82,9 @@ public sealed class OkxExchangeGatewayTests
     {
         server.Respond("/api/v5/public/instruments", """
             {"code":"0","msg":"","data":[{"instType":"SWAP","instId":"BTC-USDT-SWAP","uly":"BTC-USDT","instFamily":"BTC-USDT","category":"1","baseCcy":"","quoteCcy":"","settleCcy":"USDT","ctVal":"0.01","ctMult":"1","ctValCcy":"BTC","optType":"","stk":"","listTime":"0","expTime":"","lever":"100","tickSz":"0.1","lotSz":"1","minSz":"1","ctType":"linear","alias":"","state":"live","maxLmtSz":"","maxMktSz":"","maxTwapSz":"","maxIcebergSz":"","maxTriggerSz":"","maxStopSz":""}]}
+            """);
+        server.Respond("/api/v5/market/tickers", """
+            {"code":"0","msg":"","data":[{"instType":"SWAP","instId":"BTC-USDT-SWAP","bidPx":"99","askPx":"100","ts":"1788782400000"}]}
             """);
         server.Respond("/api/v5/public/mark-price", $$"""
             {"code":"0","msg":"","data":[{"instType":"SWAP","instId":"BTC-USDT-SWAP","markPx":"100","ts":"{{GatewayAssertions.ObservedOnUtc.ToUnixTimeMilliseconds()}}"}]}

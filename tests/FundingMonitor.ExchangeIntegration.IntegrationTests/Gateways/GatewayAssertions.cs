@@ -29,6 +29,8 @@ internal static class GatewayAssertions
         Assert.Equal(Symbol.Create("BTC-USDT"), rate.Symbol);
         Assert.Equal(100m, rate.MarkPrice);
         Assert.Equal(99m, rate.IndexPrice);
+        Assert.Equal(99m, rate.BidPrice);
+        Assert.Equal(100m, rate.AskPrice);
         Assert.Equal(0.001m, rate.FundingRate);
         Assert.Equal(8, rate.FundingIntervalHours);
         Assert.Equal(NextFundingTime, rate.NextFundingTime);

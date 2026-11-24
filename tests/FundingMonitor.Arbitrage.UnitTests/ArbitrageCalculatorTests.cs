@@ -7,15 +7,17 @@ namespace FundingMonitor.Arbitrage.UnitTests;
 public sealed class ArbitrageCalculatorTests
 {
     [Fact]
-    public void CalculatedProperties_UseAprDirectionAndSignedMarkSpread()
+    public void CalculatedProperties_UseAprDirectionAndSignedEntrySpread()
     {
         var opportunity = new FundingArbitrageOpportunity
         {
             Symbol = Symbol.Create("BTC-USDT"),
             ExchangeA = ExchangeId.Parse("Binance"),
             ExchangeB = ExchangeId.Parse("Bybit"),
-            PriceA = 100m,
-            PriceB = 99m,
+            BidPriceA = 98m,
+            AskPriceA = 100m,
+            BidPriceB = 99m,
+            AskPriceB = 101m,
             FundingRateA = 0.001m,
             FundingRateB = -0.001m,
             AprA = -109.5m,
@@ -26,8 +28,8 @@ public sealed class ArbitrageCalculatorTests
             PaymentsB = 3
         };
 
-        Assert.Equal(1m, opportunity.PriceSpread);
-        Assert.Equal((99m - 100m) / 99.5m * 100m, opportunity.PriceSpreadPercent);
+        Assert.Equal(-1m, opportunity.PriceSpread);
+        Assert.Equal(-100m / 99.5m, opportunity.PriceSpreadPercent);
         Assert.Equal(0.002m, opportunity.FundingRateSpread);
         Assert.Equal(219m, opportunity.AprSpread);
         Assert.Equal(ExchangeId.Parse("Bybit"), opportunity.ShortExchange);

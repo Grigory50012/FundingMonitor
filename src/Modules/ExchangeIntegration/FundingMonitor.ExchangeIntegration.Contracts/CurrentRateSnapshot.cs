@@ -7,7 +7,9 @@ public sealed record CurrentRateSnapshot(
     Symbol Symbol,
     decimal MarkPrice,
     decimal IndexPrice,
-    decimal FundingRate,
+    decimal? FundingRate,
     int? FundingIntervalHours,
     DateTimeOffset? NextFundingTime,
-    DateTimeOffset ObservedOnUtc);
+    DateTimeOffset ObservedOnUtc,
+    decimal? BidPrice = null,
+    decimal? AskPrice = null);

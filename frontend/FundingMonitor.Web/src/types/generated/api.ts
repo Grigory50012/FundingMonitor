@@ -272,13 +272,17 @@ export interface components {
             exchangeA: string;
             exchangeB: string;
             /** Format: double */
-            priceA: number;
+            bidPriceA: number;
             /** Format: double */
-            priceB: number;
+            askPriceA: number;
+            /** Format: double */
+            bidPriceB: number;
+            /** Format: double */
+            askPriceB: number;
             /** Format: double */
             priceSpread: number;
             /** Format: double */
-            priceSpreadPercent: null | number;
+            priceSpreadPercent: number;
             /** Format: double */
             fundingRateA: number;
             /** Format: double */

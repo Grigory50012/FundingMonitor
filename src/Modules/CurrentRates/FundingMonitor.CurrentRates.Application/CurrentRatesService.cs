@@ -22,6 +22,8 @@ public sealed class CurrentRatesService(
             rate.LastSeenOnUtc,
             rate.IsActive,
             rate.Apr,
-            rate.Deviation)).ToArray();
+            rate.Deviation,
+            rate.BidPrice,
+            rate.AskPrice)).ToArray();
     }
 }

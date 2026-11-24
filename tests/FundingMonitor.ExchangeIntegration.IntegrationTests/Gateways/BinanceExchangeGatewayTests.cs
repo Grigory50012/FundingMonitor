@@ -22,6 +22,23 @@ public sealed class BinanceExchangeGatewayTests
         ConfigureCurrent(server);
 
         await GatewayAssertions.CurrentMapsAsync(CreateGateway(server), server, "/fapi/v1/premiumIndex");
+        Assert.Equal(3, server.Requests.Count);
+        Assert.Contains("/fapi/v1/ticker/bookTicker", server.Requests);
+    }
+
+    [Fact]
+    public async Task GetCurrentRatesAsync_ZeroFundingAndNoSettlementEstimate_KeepsPerpetual()
+    {
+        await using var server = CreateServer();
+        ConfigureCurrent(server);
+        server.Respond("/fapi/v1/premiumIndex", $$"""
+            [{"symbol":"BTCUSDT","markPrice":"100","indexPrice":"99","estimatedSettlePrice":"0","lastFundingRate":"0","nextFundingTime":{{GatewayAssertions.NextFundingTime.ToUnixTimeMilliseconds()}},"time":{{GatewayAssertions.ObservedOnUtc.ToUnixTimeMilliseconds()}}}]
+            """);
+
+        var result = await CreateGateway(server).GetCurrentRatesAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Code);
+        Assert.Equal(0m, Assert.Single(result.Value!).FundingRate);
     }
 
     [Fact]
@@ -96,6 +113,9 @@ public sealed class BinanceExchangeGatewayTests
     {
         server.Respond("/fapi/v1/premiumIndex", $$"""
             [{"symbol":"BTCUSDT","markPrice":"100","indexPrice":"99","estimatedSettlePrice":"1","lastFundingRate":"0.001","interestRate":"0.0001","nextFundingTime":{{GatewayAssertions.NextFundingTime.ToUnixTimeMilliseconds()}},"time":{{GatewayAssertions.ObservedOnUtc.ToUnixTimeMilliseconds()}}}]
+            """);
+        server.Respond("/fapi/v1/ticker/bookTicker", """
+            [{"symbol":"BTCUSDT","bidPrice":"99","askPrice":"100","bidQty":"1","askQty":"1","time":1788782400000}]
             """);
         server.Respond("/fapi/v1/fundingInfo", """
             [{"symbol":"BTCUSDT","adjustedFundingRateCap":"0.01","adjustedFundingRateFloor":"-0.01","fundingIntervalHours":8,"disclaimer":false}]

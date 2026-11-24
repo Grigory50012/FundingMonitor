@@ -30,23 +30,48 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
             "GetCurrentRates",
             async token =>
             {
-                var instruments = await GetAllInstrumentsAsync(token);
-                var markPrices = await GetMarkPricesMapAsync(token);
-                var indexPrices = await GetIndexPricesMapAsync(token);
-                var fundingRates = await GetAllFundingRatesAsync(instruments, token);
-                var rates = new List<CurrentRateSnapshot>(fundingRates.Count);
+                var instrumentsTask = GetAllInstrumentsAsync(token);
+                var markPricesTask = GetMarkPricesMapAsync(token);
+                var indexPricesTask = GetIndexPricesMapAsync(token);
+                var fundingRatesTask = _client.UnifiedApi.ExchangeData.GetFundingRatesAsync("ANY", token);
+                var quotesTask = GetQuotesAsync(async () =>
+                {
+                    var response = await _client.UnifiedApi.ExchangeData.GetTickersAsync(InstrumentType.Swap, ct: token);
+                    EnsureSuccess(response);
+                    var data = response.Data ?? throw new InvalidOperationException("Exchange returned no quote data.");
+                    return data.ToDictionary(item => item.Symbol,
+                        item => (item.BestBidPrice, item.BestAskPrice),
+                        StringComparer.OrdinalIgnoreCase);
+                }, token);
+                await Task.WhenAll(instrumentsTask, markPricesTask, indexPricesTask, fundingRatesTask, quotesTask);
+
+                var symbols = (await instrumentsTask).Select(item => item.Symbol)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var markPrices = await markPricesTask;
+                var indexPrices = await indexPricesTask;
+                var fundingResult = await fundingRatesTask;
+                EnsureSuccess(fundingResult);
+                var fundingRates = fundingResult.Data
+                    ?? throw new InvalidOperationException("OKX returned no funding rates.");
+                var quotes = await quotesTask;
+                var rates = new List<CurrentRateSnapshot>(symbols.Count);
 
                 foreach (var rate in fundingRates)
                 {
+                    if (!symbols.Contains(rate.Symbol))
+                        continue;
+                    var quote = quotes.GetValueOrDefault(rate.Symbol);
                     markPrices.TryGetValue(rate.Symbol, out var markPrice);
                     indexPrices.TryGetValue(rate.Symbol, out var indexPrice);
                     rates.Add(CreateCurrentRate(
                         rate.Symbol,
                         markPrice,
                         indexPrice,
-                        rate.FundingRate ?? 0,
+                        rate.FundingRate,
                         rate.FundingTime,
-                        CalculateFundingIntervalHours(rate.FundingTime, rate.NextFundingTime)));
+                        CalculateFundingIntervalHours(rate.FundingTime, rate.NextFundingTime),
+                        quote.Bid,
+                        quote.Ask));
                 }
 
                 return rates;
@@ -145,43 +170,11 @@ public sealed class OkxExchangeGateway : BaseExchangeGateway
             StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task<List<OKXFundingRate>> GetAllFundingRatesAsync(
-        IReadOnlyList<OKXInstrument> instruments,
-        CancellationToken cancellationToken)
+    private static int? CalculateFundingIntervalHours(DateTime fundingTime, DateTime nextFundingTime)
     {
-        var failed = 0;
-        var missing = 0;
-        var tasks = instruments.Select(async instrument =>
-        {
-            var result = await _client.UnifiedApi.ExchangeData.GetFundingRatesAsync(
-                instrument.Symbol,
-                cancellationToken);
-            if (!result.Success)
-            {
-                Interlocked.Increment(ref failed);
-                Logger.LogDebug("Funding request failed for {Exchange} {Symbol}: {ErrorCode}", Exchange.Value, instrument.Symbol, result.Error?.ErrorCode);
-                return null;
-            }
-            if (result.Data is not { Length: > 0 } data)
-            {
-                Interlocked.Increment(ref missing);
-                return null;
-            }
-
-            var rate = data[0];
-            return rate.FundingRate == 0 && rate.NextFundingTime == default ? null : rate;
-        });
-
-        var results = await Task.WhenAll(tasks);
-        if (failed > 0 || missing > 0)
-            Logger.LogWarning("Partial funding snapshot for {Exchange}: {Requested} requested, {Failed} failed, {Missing} empty responses",
-                Exchange.Value, instruments.Count, failed, missing);
-        return results.Where(rate => rate is not null).Select(rate => rate!).ToList();
-    }
-
-    private static int CalculateFundingIntervalHours(DateTime fundingTime, DateTime nextFundingTime)
-    {
-        var hours = (int)(nextFundingTime - fundingTime).TotalHours;
-        return hours is > 0 and <= 24 ? hours : 8;
+        if (fundingTime == default || nextFundingTime == default)
+            return null;
+        var hours = (nextFundingTime - fundingTime).TotalHours;
+        return hours is > 0 and <= 24 && hours == Math.Truncate(hours) ? (int)hours : null;
     }
 }

@@ -21,6 +21,24 @@ public sealed class BybitExchangeGatewayTests
             """);
 
         await GatewayAssertions.CurrentMapsAsync(CreateGateway(server), server, "/v5/market/tickers");
+        Assert.Single(server.Requests);
+    }
+
+    [Theory]
+    [InlineData("0", true)]
+    [InlineData(null, false)]
+    public async Task GetCurrentRatesAsync_PreservesZeroAndMissingFunding(string? rawRate, bool hasFunding)
+    {
+        await using var server = CreateServer();
+        var fundingJson = rawRate is null ? "null" : $"\"{rawRate}\"";
+        server.Respond("/v5/market/tickers", $$"""
+            {"retCode":0,"retMsg":"OK","result":{"category":"linear","list":[{"symbol":"BTCUSDT","markPrice":"100","indexPrice":"99","fundingRate":{{fundingJson}},"nextFundingTime":"{{GatewayAssertions.NextFundingTime.ToUnixTimeMilliseconds()}}","fundingIntervalHour":"8","bid1Price":"99","ask1Price":"100"}]},"time":{{GatewayAssertions.ObservedOnUtc.ToUnixTimeMilliseconds()}}}
+            """);
+
+        var result = await CreateGateway(server).GetCurrentRatesAsync(TestContext.Current.CancellationToken);
+        Assert.True(result.IsSuccess, result.Error?.Code);
+        var rate = Assert.Single(result.Value!);
+        Assert.Equal(hasFunding ? 0m : (decimal?)null, rate.FundingRate);
     }
 
     [Fact]

@@ -42,6 +42,8 @@ public sealed class GetArbitrageTests : IDisposable
         Assert.NotNull(filtered);
         var match = Assert.Single(filtered);
         Assert.Equal(-2m, match.PriceSpreadPercent);
+        Assert.Equal(99m, match.BidPriceA);
+        Assert.Equal(101m, match.AskPriceB);
         Assert.Equal(8, match.FundingIntervalHoursA);
 
         var empty = await client.GetFromJsonAsync<FundingArbitrageDto[]>(
@@ -61,6 +63,11 @@ public sealed class GetArbitrageTests : IDisposable
             .Select(parameter => parameter.GetProperty("name").GetString());
         foreach (var name in new[] { "symbol", "exchanges", "minAprPercent", "maxAdversePriceSpreadPercent", "sameFundingIntervalOnly" })
             Assert.Contains(name, parameters);
+
+        var properties = document.RootElement.GetProperty("components").GetProperty("schemas")
+            .GetProperty(nameof(FundingArbitrageDto)).GetProperty("properties");
+        foreach (var name in new[] { "bidPriceA", "askPriceA", "bidPriceB", "askPriceB" })
+            Assert.True(properties.TryGetProperty(name, out _), name);
     }
 
     [Theory]
@@ -90,6 +97,7 @@ public sealed class GetArbitrageTests : IDisposable
 
         private static CurrentRateView Rate(string exchange, decimal price, decimal rate, int interval) =>
             new(ExchangeId.Parse(exchange), Symbol.Create("BTC-USDT"), price, price, rate, interval,
-                null, DateTimeOffset.UtcNow, true, rate * 100m * 365m * 24m / interval, 0m);
+                DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow, true,
+                rate * 100m * 365m * 24m / interval, 0m) { BidPrice = price, AskPrice = price };
     }
 }

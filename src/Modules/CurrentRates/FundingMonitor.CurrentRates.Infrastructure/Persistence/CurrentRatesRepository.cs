@@ -115,6 +115,8 @@ internal sealed class CurrentRatesRepository(
         QuoteAsset = rate.QuoteAsset,
         MarkPrice = rate.MarkPrice,
         IndexPrice = rate.IndexPrice,
+        BidPrice = rate.BidPrice,
+        AskPrice = rate.AskPrice,
         FundingRate = rate.FundingRate,
         FundingIntervalHours = rate.FundingIntervalHours,
         NextFundingTime = rate.NextFundingTime,
@@ -130,6 +132,8 @@ internal sealed class CurrentRatesRepository(
         QuoteAsset = entity.QuoteAsset,
         MarkPrice = entity.MarkPrice,
         IndexPrice = entity.IndexPrice,
+        BidPrice = entity.BidPrice,
+        AskPrice = entity.AskPrice,
         FundingRate = entity.FundingRate,
         FundingIntervalHours = entity.FundingIntervalHours,
         NextFundingTime = entity.NextFundingTime,
@@ -143,6 +147,8 @@ internal sealed class CurrentRatesRepository(
         entity.QuoteAsset = rate.QuoteAsset;
         entity.MarkPrice = rate.MarkPrice;
         entity.IndexPrice = rate.IndexPrice;
+        entity.BidPrice = rate.BidPrice;
+        entity.AskPrice = rate.AskPrice;
         entity.FundingRate = rate.FundingRate;
         entity.FundingIntervalHours = rate.FundingIntervalHours;
         entity.NextFundingTime = rate.NextFundingTime;

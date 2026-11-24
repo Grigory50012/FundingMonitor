@@ -89,6 +89,38 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         Assert.False(rate.IsActive);
     }
 
+    [Fact]
+    public async Task StoreSnapshotAsync_FreshRateWithoutQuote_ClearsOldQuote()
+    {
+        await fixture.ResetAsync();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var initial = TestRate with { BidPrice = 99m, AskPrice = 101m, FundingRate = 0m };
+        await using var scope = await fixture.CreateScopeAsync();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<ICurrentRatesUnitOfWork>();
+        var repository = scope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
+        await unitOfWork.StoreSnapshotAsync(initial.Exchange, [initial], [], cancellationToken);
+
+        var stored = Assert.Single(await repository.GetAllRatesAsync(cancellationToken));
+        Assert.Equal(99m, stored.BidPrice);
+        Assert.Equal(101m, stored.AskPrice);
+        Assert.Equal(0m, stored.FundingRate);
+
+        var updated = initial with
+        {
+            BidPrice = null,
+            AskPrice = null,
+            FundingRate = null,
+            LastSeenOnUtc = initial.LastSeenOnUtc.AddSeconds(10)
+        };
+        await unitOfWork.StoreSnapshotAsync(initial.Exchange, [updated], [], cancellationToken);
+
+        stored = Assert.Single(await repository.GetAllRatesAsync(cancellationToken));
+        Assert.Null(stored.BidPrice);
+        Assert.Null(stored.AskPrice);
+        Assert.Null(stored.FundingRate);
+        Assert.Equal(updated.LastSeenOnUtc, stored.LastSeenOnUtc);
+    }
+
     private static CurrentFundingRate TestRate => new()
     {
         Exchange = ExchangeId.Parse("Binance"),
