@@ -11,6 +11,7 @@ import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 import { toUsdtSymbol } from "../../shared/lib/symbols";
 import type { ExchangeType } from "../../types";
 import type { TimeRangeType } from "../../types/history";
+import { TIME_RANGES } from "../../types/history";
 import { startDashboardRefresh } from "./dashboardRefresh";
 
 const DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE"];
@@ -45,12 +46,39 @@ export function useDashboardData() {
       symbol: "BTC",
     },
   );
-  const [arbitrageFilters, setArbitrageFilters] = useState(EMPTY_ARBITRAGE_FILTERS);
+  const [arbitrageFilters, setArbitrageFilters] = useLocalStorage(
+    STORAGE_KEYS.arbitrageFilters,
+    EMPTY_ARBITRAGE_FILTERS,
+    (value) => {
+      if (!value || typeof value !== "object") return false;
+      const filters = value as Record<string, unknown>;
+      return Array.isArray(filters.exchanges) &&
+        typeof filters.symbol === "string" &&
+        typeof filters.minAprPercent === "string" &&
+        typeof filters.maxAdversePriceSpreadPercent === "string" &&
+        typeof filters.sameFundingIntervalOnly === "boolean";
+    },
+  );
   const [arbitrageAutoRefresh, setArbitrageAutoRefresh] = useState(true);
-  const [historyViewMode, setHistoryViewMode] = useState<HistoryViewMode>("chart");
-  const [exchangeSort, setExchangeSort] = useState<FundingExchangeSort>({
-    source: "current", config: { column: "fundingRate", direction: null },
-  });
+  const [historyViewMode, setHistoryViewMode] = useLocalStorage<HistoryViewMode>(
+    STORAGE_KEYS.historyViewMode,
+    "chart",
+    (value) => value === "chart" || value === "table",
+  );
+  const [exchangeSort, setExchangeSort] = useLocalStorage<FundingExchangeSort>(
+    STORAGE_KEYS.exchangeSort,
+    { source: "current", config: { column: "fundingRate", direction: null } },
+    (value) => {
+      if (!value || typeof value !== "object") return false;
+      const sort = value as FundingExchangeSort;
+      if (!sort.config || ![null, "asc", "desc"].includes(sort.config.direction)) return false;
+      return sort.source === "current"
+        ? ["fundingRate", "apr", "markPrice", "nextFundingTime"].includes(sort.config.column)
+        : sort.source === "history" &&
+          ["apr", "totalFundingRatePercent", "paymentsCount", "avgFundingRatePercent"].includes(sort.config.column) &&
+          (sort.config.period === undefined || typeof sort.config.period === "string");
+    },
+  );
 
   const current = useCurrentRates({
     symbol: mainFilters.symbol,
@@ -101,7 +129,11 @@ export function useDashboardData() {
   }), [refreshCurrent, refreshArbitrage, arbitrageAutoRefresh, arbitrageFiltersValid]);
 
   const [allCoins, setAllCoins] = useState<string[]>([]);
-  const [timeRange, setTimeRange] = useState<TimeRangeType>("1d");
+  const [timeRange, setTimeRange] = useLocalStorage<TimeRangeType>(
+    STORAGE_KEYS.timeRange,
+    "1d",
+    (value) => TIME_RANGES.some((range) => range.value === value),
+  );
 
   const loadAllCoins = useCallback(async () => {
     try {

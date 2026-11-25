@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { paginateGroups } from "./arbitragePagination";
+import { STORAGE_KEYS } from "../../config/storageKeys";
+import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 import { Spinner } from "../../shared/ui/Spinner";
 import { PriceValue } from "../../shared/ui/PriceValue";
 import { buildPriceFormats } from "../../shared/lib/priceFormat";
@@ -341,15 +343,23 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
       .map((value) => ({ symbol: item.symbol, value })),
   )), [data]);
 
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    column: "aprSpread",
-    direction: "desc",
-  });
+  const [sortConfig, setSortConfig] = useLocalStorage<SortConfig>(
+    STORAGE_KEYS.arbitrageSort,
+    { column: "aprSpread", direction: "desc" },
+    (value) => {
+      if (!value || typeof value !== "object") return false;
+      const sort = value as SortConfig;
+      return ["aprSpread", "priceSpreadPercent", "fundingRateSpread", "symbol"].includes(sort.column) &&
+        [null, "asc", "desc"].includes(sort.direction);
+    },
+  );
   const [expandedSymbols, setExpandedSymbols] = useState<Set<string>>(
     new Set(),
   );
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useLocalStorage(STORAGE_KEYS.arbitragePage, 1,
+    (value) => typeof value === "number" && Number.isSafeInteger(value) && value > 0);
+  const [pageSize, setPageSize] = useLocalStorage(STORAGE_KEYS.arbitragePageSize, 25,
+    (value) => typeof value === "number" && [25, 50, 100].includes(value));
   const [previousFiltersKey, setPreviousFiltersKey] = useState(filtersKey);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -428,7 +438,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
   if (previousFiltersKey !== filtersKey) {
     setPreviousFiltersKey(filtersKey);
     setPage(1);
-  } else if (pagination.page !== page) {
+  } else if (!isLoading && pagination.page !== page) {
     setPage(pagination.page);
   }
 

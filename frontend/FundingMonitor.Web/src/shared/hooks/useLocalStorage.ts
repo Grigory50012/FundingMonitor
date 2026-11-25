@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 
 // Simple generic localStorage hook with auto-persistence
-export function useLocalStorage<T>(key: string, initialValue: T) {
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T,
+  isValid?: (value: unknown) => boolean,
+) {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const raw = localStorage.getItem(key);
       if (raw != null) {
-        return JSON.parse(raw) as T;
+        const parsed: unknown = JSON.parse(raw);
+        if (!isValid || isValid(parsed)) return parsed as T;
       }
     } catch {
       // ignore parse errors
