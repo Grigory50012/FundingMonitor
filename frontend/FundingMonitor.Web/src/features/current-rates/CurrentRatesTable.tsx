@@ -1,13 +1,15 @@
+import { useMemo } from "react";
 import { ExchangeBadge } from "../../entities/exchange/ExchangeBadge";
 import {
   formatPercent,
-  formatPrice,
   formatTime,
   getSignedColor,
 } from "../../shared/lib/format";
 import { nextSortDirection } from "../../shared/lib/sort";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { SortIcon } from "../../shared/ui/SortIcon";
+import { PriceValue } from "../../shared/ui/PriceValue";
+import { buildPriceFormats } from "../../shared/lib/priceFormat";
 import type { ExchangeType, FundingRateDto } from "../../types";
 import type {
   CurrentRatesSortColumn,
@@ -57,6 +59,10 @@ export function CurrentRatesTable({
   sortConfig,
   onSortChange,
 }: CurrentRatesTableProps) {
+  const priceFormats = useMemo(() => buildPriceFormats(
+    data.map((item) => ({ symbol: item.symbol, value: item.markPrice })),
+  ), [data]);
+
   const handleSort = (column: CurrentRatesSortColumn) => {
     onSortChange({
       column,
@@ -183,10 +189,7 @@ export function CurrentRatesTable({
                   className="panel-value leading-tight break-all text-center"
                   style={{ color: "var(--tg-text)" }}
                 >
-                  {formatPrice(item.markPrice, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 8,
-                  })}
+                  <PriceValue value={item.markPrice} format={priceFormats.get(item.symbol)!} />
                 </p>
               </td>
               <td

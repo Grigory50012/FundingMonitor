@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { paginateGroups } from "./arbitragePagination";
 import { Spinner } from "../../shared/ui/Spinner";
+import { PriceValue } from "../../shared/ui/PriceValue";
+import { buildPriceFormats } from "../../shared/lib/priceFormat";
+import type { PriceFormat } from "../../shared/lib/priceFormat";
 import type { FundingArbitrageDto } from "../../types";
 import {
   calcFundingRate,
@@ -37,6 +40,7 @@ const renderRow = (
   item: FundingArbitrageDto,
   key: string,
   showSymbol: boolean,
+  priceFormat: PriceFormat,
   onArbitrageClick?: (symbol: string, exchanges: string[]) => void,
 ): React.ReactNode => {
   const isLongA = item.longExchange === item.exchangeA;
@@ -133,6 +137,7 @@ const renderRow = (
             bid={item.bidPriceA}
             ask={item.askPriceA}
             isShort={item.shortExchange === item.exchangeA}
+            format={priceFormat}
           />
         </td>
         {/* Спред цены — на две строки */}
@@ -141,7 +146,7 @@ const renderRow = (
           rowSpan={2}
           style={{ borderColor: "var(--tg-border)" }}
         >
-          <PriceSpread item={item} />
+          <PriceSpread item={item} format={priceFormat} />
         </td>
         {/* Funding Rate A */}
         <td
@@ -243,6 +248,7 @@ const renderRow = (
             bid={item.bidPriceB}
             ask={item.askPriceB}
             isShort={item.shortExchange === item.exchangeB}
+            format={priceFormat}
           />
         </td>
         {/* Funding Rate B */}
@@ -296,19 +302,15 @@ function formatApr(apr: number | null) {
   return apr === null ? "—" : `${apr.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
 }
 
-const quotePriceFormat = { minimumFractionDigits: 4, maximumFractionDigits: 8 };
-
-function QuotePrice({ bid, ask, isShort }: { bid: number; ask: number; isShort: boolean }) {
+function QuotePrice({ bid, ask, isShort, format }: { bid: number; ask: number; isShort: boolean; format: PriceFormat }) {
   const price = isShort ? bid : ask;
 
   return (
-    <span className="panel-value whitespace-nowrap">
-      ${price.toLocaleString(undefined, quotePriceFormat)}
-    </span>
+    <PriceValue value={price} format={format} className="panel-value whitespace-nowrap" />
   );
 }
 
-function PriceSpread({ item }: { item: FundingArbitrageDto }) {
+function PriceSpread({ item, format }: { item: FundingArbitrageDto; format: PriceFormat }) {
   const percent = item.priceSpreadPercent;
   const amount = item.priceSpread;
   const sign = percent > 0 ? "+" : percent < 0 ? "-" : "";
@@ -322,7 +324,7 @@ function PriceSpread({ item }: { item: FundingArbitrageDto }) {
         {sign}{Math.abs(percent).toFixed(4)}%
       </p>
       <p className="panel-caption" style={{ color: "var(--tg-text-tertiary)" }}>
-        {sign}${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
+        <PriceValue value={amount} format={format} showPlus />
       </p>
     </>
   );
@@ -334,6 +336,11 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
   isLoading = false,
   onArbitrageClick,
 }) => {
+  const priceFormats = useMemo(() => buildPriceFormats(data.flatMap((item) =>
+    [item.bidPriceA, item.askPriceA, item.bidPriceB, item.askPriceB]
+      .map((value) => ({ symbol: item.symbol, value })),
+  )), [data]);
+
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     column: "aprSpread",
     direction: "desc",
@@ -755,6 +762,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                           bid={group.best.bidPriceA}
                           ask={group.best.askPriceA}
                           isShort={group.best.shortExchange === group.best.exchangeA}
+                          format={priceFormats.get(group.symbol)!}
                         />
                       </td>
                       {/* Спред цены */}
@@ -763,7 +771,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                         rowSpan={2}
                         style={{ borderColor: "var(--tg-border)" }}
                       >
-                        <PriceSpread item={group.best} />
+                        <PriceSpread item={group.best} format={priceFormats.get(group.symbol)!} />
                       </td>
                       {/* Funding Rate A */}
                       <td
@@ -882,6 +890,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                           bid={group.best.bidPriceB}
                           ask={group.best.askPriceB}
                           isShort={group.best.shortExchange === group.best.exchangeB}
+                          format={priceFormats.get(group.symbol)!}
                         />
                       </td>
                       {/* Funding Rate B */}
@@ -925,6 +934,7 @@ export const ArbitrageTable: React.FC<ArbitrageTableProps> = ({
                         item,
                         `${item.symbol}-${item.exchangeA}-${item.exchangeB}-extra-${idx}`,
                         false,
+                        priceFormats.get(group.symbol)!,
                         onArbitrageClick,
                       ),
                     )}
