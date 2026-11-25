@@ -27,6 +27,11 @@ public static class DependencyInjection
         services.AddScoped<HistoricalMessageProcessor>();
         services.AddHostedService<RabbitMqTopologyHostedService>();
         services.AddHostedService<HistoricalCollectionBackgroundService>();
+        services.AddOptions<HistoricalRatesCleanupOptions>()
+            .BindConfiguration("HistoricalRatesCleanup")
+            .Validate(options => options.RetentionDays > 0, "RetentionDays must be positive.")
+            .ValidateOnStart();
+        services.AddHostedService<HistoricalRatesCleanupService>();
         services.AddHealthChecks().AddCheck<RabbitMqTopologyHealthCheck>("rabbitmq-topology");
         return services;
     }
