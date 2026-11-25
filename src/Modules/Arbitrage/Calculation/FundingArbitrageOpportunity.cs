@@ -1,8 +1,8 @@
 using FundingMonitor.SharedKernel;
 
-namespace FundingMonitor.Arbitrage.Domain;
+namespace FundingMonitor.Arbitrage.Calculation;
 
-public sealed record FundingArbitrageOpportunity
+internal sealed record FundingArbitrageOpportunity
 {
     public required Symbol Symbol { get; init; }
     public required ExchangeId ExchangeA { get; init; }

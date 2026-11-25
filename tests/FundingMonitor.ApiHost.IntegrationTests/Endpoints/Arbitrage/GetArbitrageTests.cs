@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using FundingMonitor.Arbitrage.Presentation.Dtos;
+using FundingMonitor.Arbitrage.GetOpportunities;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.SharedKernel;
 using Microsoft.AspNetCore.Hosting;

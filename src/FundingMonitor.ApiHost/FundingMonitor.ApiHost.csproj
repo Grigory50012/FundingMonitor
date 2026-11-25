@@ -17,7 +17,7 @@
         <ProjectReference Include="..\Modules\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Presentation\FundingMonitor.ExchangeIntegration.Presentation.csproj"/>
         <ProjectReference Include="..\Modules\CurrentRates\FundingMonitor.CurrentRates.Presentation\FundingMonitor.CurrentRates.Presentation.csproj"/>
         <ProjectReference Include="..\Modules\HistoricalRates\FundingMonitor.HistoricalRates.Presentation\FundingMonitor.HistoricalRates.Presentation.csproj"/>
-        <ProjectReference Include="..\Modules\Arbitrage\FundingMonitor.Arbitrage.Presentation\FundingMonitor.Arbitrage.Presentation.csproj"/>
+        <ProjectReference Include="..\Modules\Arbitrage\FundingMonitor.Arbitrage.csproj"/>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="../Logging/LocalLogging.cs" Link="Logging/LocalLogging.cs" />

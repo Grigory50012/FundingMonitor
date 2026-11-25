@@ -1,8 +1,8 @@
 using FundingMonitor.SharedKernel;
 
-namespace FundingMonitor.Arbitrage.Presentation;
+namespace FundingMonitor.Arbitrage.GetOpportunities;
 
-public static class ExchangeTradeUrlExtensions
+internal static class ExchangeTradeUrlExtensions
 {
     public static string ToTradeUrl(this ExchangeId exchange, string normalizedSymbol)
     {

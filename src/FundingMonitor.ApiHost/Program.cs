@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using FundingMonitor.ApiHost.Shared.Middleware;
-using FundingMonitor.Arbitrage.Presentation;
+using FundingMonitor.Arbitrage;
 using FundingMonitor.CurrentRates.Presentation;
 using FundingMonitor.ExchangeIntegration.Presentation;
 using FundingMonitor.HistoricalRates.Presentation;

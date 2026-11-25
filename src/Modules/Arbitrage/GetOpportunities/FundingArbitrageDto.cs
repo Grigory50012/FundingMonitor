@@ -1,4 +1,4 @@
-namespace FundingMonitor.Arbitrage.Presentation.Dtos;
+namespace FundingMonitor.Arbitrage.GetOpportunities;
 
 public sealed record FundingArbitrageDto(
     string Symbol,

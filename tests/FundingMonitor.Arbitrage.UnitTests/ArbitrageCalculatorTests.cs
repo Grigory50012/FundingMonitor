@@ -1,4 +1,4 @@
-using FundingMonitor.Arbitrage.Domain;
+using FundingMonitor.Arbitrage.Calculation;
 using FundingMonitor.SharedKernel;
 using Xunit;
 

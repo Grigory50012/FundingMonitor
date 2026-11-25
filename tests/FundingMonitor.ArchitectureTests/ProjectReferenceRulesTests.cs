@@ -19,7 +19,7 @@ public sealed class ProjectReferenceRulesTests
                 "FundingMonitor.ExchangeIntegration.Presentation",
                 "FundingMonitor.CurrentRates.Presentation",
                 "FundingMonitor.HistoricalRates.Presentation",
-                "FundingMonitor.Arbitrage.Presentation"
+                "FundingMonitor.Arbitrage"
             ],
             ["FundingMonitor.DatabaseMigrator"] =
             [
@@ -30,7 +30,7 @@ public sealed class ProjectReferenceRulesTests
 
         foreach (var module in new[]
                  {
-                     "ExchangeIntegration", "CurrentRates", "HistoricalRates", "Arbitrage"
+                     "ExchangeIntegration", "CurrentRates", "HistoricalRates"
                  })
         {
             allowed[$"FundingMonitor.{module}.Contracts"] = ["FundingMonitor.SharedKernel"];
@@ -76,9 +76,9 @@ public sealed class ProjectReferenceRulesTests
             .. allowed["FundingMonitor.CurrentRates.Infrastructure"],
             "FundingMonitor.Messaging"
         ];
-        allowed["FundingMonitor.Arbitrage.Application"] =
+        allowed["FundingMonitor.Arbitrage"] =
         [
-            .. allowed["FundingMonitor.Arbitrage.Application"],
+            "FundingMonitor.SharedKernel",
             "FundingMonitor.CurrentRates.Contracts"
         ];
 

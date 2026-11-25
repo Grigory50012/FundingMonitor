@@ -11,7 +11,8 @@ namespace FundingMonitor.ArchitectureTests;
 
 internal static class ArchitectureGuard
 {
-    private static readonly HashSet<string> Modules = ["CurrentRates", "HistoricalRates", "ExchangeIntegration", "Arbitrage"];
+    private const string ArbitrageAssembly = "FundingMonitor.Arbitrage";
+    private static readonly HashSet<string> Modules = ["CurrentRates", "HistoricalRates", "ExchangeIntegration"];
     private static readonly Dictionary<string, string[]> AllowedLayers = new()
     {
         ["Contracts"] = [], ["Domain"] = [],
@@ -23,8 +24,7 @@ internal static class ArchitectureGuard
     [
         ("FundingMonitor.CurrentRates.Application", "FundingMonitor.ExchangeIntegration.Contracts"),
         ("FundingMonitor.HistoricalRates.Application", "FundingMonitor.ExchangeIntegration.Contracts"),
-        ("FundingMonitor.HistoricalRates.Infrastructure", "FundingMonitor.CurrentRates.Contracts"),
-        ("FundingMonitor.Arbitrage.Application", "FundingMonitor.CurrentRates.Contracts")
+        ("FundingMonitor.HistoricalRates.Infrastructure", "FundingMonitor.CurrentRates.Contracts")
     ];
     // These small composition/transport surfaces are deliberately closed. New types require review.
     private static readonly HashSet<string> TransportTypes =
@@ -94,6 +94,12 @@ internal static class ArchitectureGuard
                 return "framework or external dependency in domain/kernel";
         }
         if (!target.StartsWith("FundingMonitor.", StringComparison.Ordinal)) return null;
+        if (owner == ArbitrageAssembly)
+            return target is "FundingMonitor.SharedKernel" or "FundingMonitor.CurrentRates.Contracts"
+                ? null : "foreign module dependency outside the approved matrix";
+        if (target == ArbitrageAssembly)
+            return owner == "FundingMonitor.ApiHost"
+                ? null : "only the host may reference the Arbitrage module";
         if (owner == "FundingMonitor.Messaging")
             return target == "FundingMonitor.SharedKernel" ? null : "transport surface depends on business module";
         if (owner == "FundingMonitor.ApiHost")

@@ -66,7 +66,7 @@ sequenceDiagram
 flowchart LR
     UI[React frontend] -->|GET FundingRates| CR[CurrentRates]
     UI -->|GET History / APR| HR[HistoricalRates]
-    UI -->|GET Arbitrage| AR[Arbitrage]
+    UI -->|GET Arbitrage| AR[Arbitrage / GetOpportunities]
     UI -->|GET exchanges/health| EI[ExchangeIntegration]
     AR -->|ICurrentRatesModule| CR
     CR --> CRDB[(current_rates)]
@@ -74,7 +74,7 @@ flowchart LR
     EI --> EX[Exchange APIs]
 ```
 
-APR, spread и freshness рассчитывает backend. Frontend получает готовые business values и отвечает за отображение, фильтрацию и сортировку.
+Backend рассчитывает APR и спред, проверяет актуальность ставок и применяет параметры запроса арбитража. В сценарии [GetOpportunities](modules/arbitrage.md#getopportunities) контроллер передаёт фильтры обработчику. Обработчик получает рассчитанные пары, фильтрует их и формирует ответ. Frontend отображает результат и выполняет клиентскую пагинацию.
 
 ## Локальный runtime
 

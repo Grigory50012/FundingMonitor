@@ -1,8 +1,8 @@
 using FundingMonitor.SharedKernel;
 
-namespace FundingMonitor.Arbitrage.Contracts;
+namespace FundingMonitor.Arbitrage.GetOpportunities;
 
-public sealed record ArbitrageQuery(
+internal sealed record GetOpportunitiesQuery(
     string? Symbol,
     IReadOnlyCollection<ExchangeId>? Exchanges,
     decimal? MinAprPercent = null,

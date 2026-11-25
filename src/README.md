@@ -39,7 +39,7 @@ API использует встроенный `Microsoft.AspNetCore.OpenApi`; и
 - `Modules/HistoricalRates` — история, APR, схема `historical_rates`, идемпотентный upsert и RabbitMQ consumers.
 - `Modules/Arbitrage` — расчёт арбитража через `CurrentRates.Contracts`, без persistence.
 
-Каждый модуль содержит отдельные проекты `Contracts`, `Domain`, `Application`, `Infrastructure`, `Presentation`. Зависимость от другого модуля разрешена только через его `Contracts`; правила проверяют architecture tests. HTTP/OpenAPI-контракт сохранён.
+`ExchangeIntegration`, `CurrentRates` и `HistoricalRates` разделены на проекты `Contracts`, `Domain`, `Application`, `Infrastructure` и `Presentation`. `Arbitrage` содержит один проект и вертикальный срез [GetOpportunities](../docs/architecture/modules/arbitrage.md#getopportunities). Архитектурные тесты проверяют межмодульные зависимости.
 
 Подробнее: [ADR 0012](../docs/adr/0012-strict-modular-monolith.md).
 

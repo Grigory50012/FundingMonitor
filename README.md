@@ -73,7 +73,7 @@ npm run generate:api-types
 - REST API для текущих ставок, истории, APR statistics, arbitrage и health бирж.
 - React/Vite dashboard с фильтрами по символу и биржам.
 - APR analytics по периодам 1, 2, 3, 7, 14, 21 и 30 дней.
-- Строгий модульный монолит: `ExchangeIntegration`, `CurrentRates`, `HistoricalRates`, `Arbitrage`; каждый модуль содержит пять отдельных слоёв, внешние зависимости разрешены только через `Contracts`.
+- Модульный монолит с `ExchangeIntegration`, `CurrentRates`, `HistoricalRates` и `Arbitrage`. Межмодульные зависимости проходят через `Contracts`. Сценарий выдачи арбитража собран в одном проекте.
 - Надёжная доставка изменений ставок: PostgreSQL Outbox → RabbitMQ → идемпотентный upsert истории (один экземпляр backend).
 
 ## Технологии

@@ -1,6 +1,6 @@
-namespace FundingMonitor.Arbitrage.Application;
+namespace FundingMonitor.Arbitrage.Calculation;
 
-public sealed class FundingArbitrageOptions
+internal sealed class FundingArbitrageOptions
 {
     public const string SectionName = "FundingArbitrage";
 

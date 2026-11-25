@@ -14,7 +14,7 @@ flowchart LR
     I --> MQ[RabbitMQ via Messaging]
     HTTP[GET FundingRates] --> P[Presentation]
     P --> C
-    AR[Arbitrage.Application] -->|ICurrentRatesModule| C
+    AR[Arbitrage] -->|ICurrentRatesModule| C
 ```
 
 | Слой | Главное содержимое |

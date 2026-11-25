@@ -21,7 +21,7 @@ Backend остаётся одним deployable приложением, но ра
 - `HistoricalRates` — исторический сбор, RabbitMQ consumers, retry/DLQ и APR;
 - `Arbitrage` — расчёт и выдача арбитражных возможностей.
 
-Каждый модуль получает отдельные проекты:
+`ExchangeIntegration`, `CurrentRates` и `HistoricalRates` разделены на проекты по слоям:
 
 ```text
 FundingMonitor.<Module>.Contracts
@@ -31,11 +31,13 @@ FundingMonitor.<Module>.Infrastructure
 FundingMonitor.<Module>.Presentation
 ```
 
-Другой модуль может ссылаться только на `FundingMonitor.<Module>.Contracts`. Правило защищается `ProjectReference` и архитектурными тестами.
+С 2026-11-25 `Arbitrage` использует один проект с вертикальным срезом [GetOpportunities](../architecture/modules/arbitrage.md). У модуля один HTTP-сценарий и одна межмодульная зависимость, `CurrentRates.Contracts`. `ApiHost` подключает модуль напрямую.
+
+Межмодульные ссылки разрешены только на согласованные проекты `Contracts`. Правило защищается `ProjectReference` и архитектурными тестами.
 
 `FundingMonitor.SharedKernel` содержит только стабильные общие domain primitives. Техническая RabbitMQ-механика размещается отдельно в `FundingMonitor.Messaging` и не содержит business contracts.
 
-`FundingMonitor.ApiHost` является единым composition root и подключает module Presentation assemblies. HTTP routes, единый `/openapi/v1.json` и `/scalar` сохраняются.
+`FundingMonitor.ApiHost` является единым composition root и подключает модули через их точки регистрации. HTTP routes, единый `/openapi/v1.json` и `/scalar` сохраняются.
 
 ## Данные
 
@@ -46,7 +48,7 @@ FundingMonitor.<Module>.Presentation
 
 Каждый context имеет собственную `__EFMigrationsHistory` в своей schema. Cross-schema queries, foreign keys и EF navigation properties запрещены.
 
-`Arbitrage` сохраняет результаты в памяти и не получает schema или `DbContext`. `ExchangeIntegration` остаётся stateless, пока не появится конкретный сценарий persistence.
+`Arbitrage` рассчитывает пары на каждый запрос из ставок `CurrentRates`. `ExchangeIntegration` остаётся stateless, пока не появится конкретный сценарий persistence.
 
 Устаревшие development-данные не переносятся. Новые module migrations создают clean baseline. Миграции применяет отдельное console application `FundingMonitor.DatabaseMigrator`; `ApiHost` не изменяет database schema при запуске.
 

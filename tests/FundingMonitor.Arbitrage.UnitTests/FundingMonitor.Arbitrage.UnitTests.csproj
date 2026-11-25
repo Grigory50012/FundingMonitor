@@ -17,8 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj" />
     <ProjectReference Include="..\..\src\Modules\CurrentRates\FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\Modules\Arbitrage\FundingMonitor.Arbitrage.Contracts\FundingMonitor.Arbitrage.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\Modules\Arbitrage\FundingMonitor.Arbitrage.Application\FundingMonitor.Arbitrage.Application.csproj" />
-    <ProjectReference Include="..\..\src\Modules\Arbitrage\FundingMonitor.Arbitrage.Infrastructure\FundingMonitor.Arbitrage.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Arbitrage\FundingMonitor.Arbitrage.csproj" />
   </ItemGroup>
 </Project>

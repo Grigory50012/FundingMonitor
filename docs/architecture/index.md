@@ -1,6 +1,6 @@
 # Архитектура FundingMonitor
 
-FundingMonitor — строгий модульный монолит: один `FundingMonitor.ApiHost` собирает четыре изолированных бизнес-модуля. Каждый модуль разделён на `Contracts`, `Domain`, `Application`, `Infrastructure` и `Presentation`; другой модуль может использовать только его `Contracts`.
+FundingMonitor — модульный монолит. Один `FundingMonitor.ApiHost` собирает четыре изолированных бизнес-модуля. Межмодульные зависимости проходят через `Contracts`. Модуль `Arbitrage` организован по сценариям в одном проекте.
 
 ## Общая карта
 
@@ -10,7 +10,7 @@ flowchart LR
     Host --> EP[ExchangeIntegration.Presentation]
     Host --> CP[CurrentRates.Presentation]
     Host --> HP[HistoricalRates.Presentation]
-    Host --> AP[Arbitrage.Presentation]
+    Host --> AR[Arbitrage]
     CR[CurrentRates] -->|sync via Contracts| EI[ExchangeIntegration]
     HR[HistoricalRates] -->|sync via Contracts| EI
     AR[Arbitrage] -->|sync via Contracts| CR
@@ -27,11 +27,11 @@ flowchart LR
 | `ExchangeIntegration` | SDK бирж, нормализация, rate limits и health | Без persistence |
 | `CurrentRates` | Сбор, актуальность и выдача текущих ставок | schema `current_rates`, Outbox |
 | `HistoricalRates` | Исторический сбор, retry/DLQ, история и APR | schema `historical_rates` |
-| `Arbitrage` | Расчёт арбитражных возможностей | Только память |
+| `Arbitrage` | Расчёт арбитражных возможностей | Расчёт на запрос |
 
 Подробная карта и статус проверки: [модули](modules/index.md). Межмодульные потоки: [сквозные сценарии](scenarios.md).
 
-## Слои модуля
+## Слои ExchangeIntegration, CurrentRates и HistoricalRates
 
 ```mermaid
 flowchart BT

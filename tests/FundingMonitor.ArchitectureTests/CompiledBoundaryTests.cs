@@ -10,6 +10,8 @@ namespace FundingMonitor.ArchitectureTests;
 public sealed class CompiledBoundaryTests
 {
     [Theory]
+    [InlineData("FundingMonitor.Arbitrage", "public class Leak { public FundingMonitor.CurrentRates.Infrastructure.Persistence.CurrentRatesDbContext Value = null!; }", "foreign module")]
+    [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.Arbitrage.GetOpportunities.FundingArbitrageDto Value = null!; }", "only the host")]
     [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.HistoricalRates.Infrastructure.Persistence.HistoricalRatesDbContext Value = null!; }", "foreign module")]
     [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.CurrentRates.Infrastructure.Persistence.CurrentRatesDbContext Value = null!; }", "reverse layer")]
     [InlineData("FundingMonitor.CurrentRates.Domain", "public class Leak { public Microsoft.Extensions.Logging.ILogger Value = null!; }", "framework")]
@@ -65,7 +67,7 @@ public sealed class CompiledBoundaryTests
     [InlineData("FundingMonitor.CurrentRates.Application", "public class Port { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }")]
     [InlineData("FundingMonitor.HistoricalRates.Application", "public class Port { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }")]
     [InlineData("FundingMonitor.HistoricalRates.Infrastructure", "public class Port { public FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent Value = null!; }")]
-    [InlineData("FundingMonitor.Arbitrage.Application", "public class Port { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }")]
+    [InlineData("FundingMonitor.Arbitrage", "public class Port { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }")]
     [InlineData("FundingMonitor.CurrentRates.Infrastructure", "public class Port { public FundingMonitor.Messaging.Abstractions.IMessagePublisher Value = null!; }")]
     [InlineData("FundingMonitor.Messaging", "namespace FundingMonitor.Messaging.Abstractions; public interface IMessagePublisher { }")]
     [InlineData("FundingMonitor.ApiHost", "public class Program { public void Configure() { System.Action action = () => System.Console.WriteLine(1); action(); } }")]

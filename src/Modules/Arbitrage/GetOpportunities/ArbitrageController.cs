@@ -1,16 +1,13 @@
-using FundingMonitor.Arbitrage.Contracts;
-using FundingMonitor.Arbitrage.Presentation.Dtos;
-using FundingMonitor.Arbitrage.Presentation.Mapping;
 using FundingMonitor.SharedKernel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FundingMonitor.Arbitrage.Presentation.Controllers;
+namespace FundingMonitor.Arbitrage.GetOpportunities;
 
 [ApiController]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public sealed class ArbitrageController(IArbitrageModule module) : ControllerBase
+public sealed class ArbitrageController(GetOpportunitiesHandler handler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<FundingArbitrageDto>), StatusCodes.Status200OK)]
@@ -28,11 +25,11 @@ public sealed class ArbitrageController(IArbitrageModule module) : ControllerBas
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var opportunities = await module.GetOpportunitiesAsync(
-            new ArbitrageQuery(symbol, ParseExchanges(exchanges), minAprPercent,
+        var opportunities = await handler.HandleAsync(
+            new GetOpportunitiesQuery(symbol, ParseExchanges(exchanges), minAprPercent,
                 maxAdversePriceSpreadPercent, sameFundingIntervalOnly),
             HttpContext.RequestAborted);
-        return Ok(opportunities.ToDtoList());
+        return Ok(opportunities);
     }
 
     private static IReadOnlyCollection<ExchangeId>? ParseExchanges(string? exchanges)

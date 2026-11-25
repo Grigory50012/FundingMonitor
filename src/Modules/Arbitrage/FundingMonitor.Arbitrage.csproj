@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- Ignore build output left by the former projects after a branch switch. -->
+        <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**</DefaultItemExcludes>
+    </PropertyGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj"/>
+        <ProjectReference Include="..\CurrentRates\FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj"/>
+    </ItemGroup>
+</Project>
