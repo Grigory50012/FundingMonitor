@@ -18,7 +18,7 @@ flowchart LR
 | Каталог | Главное содержимое |
 | --- | --- |
 | `GetCurrentRates` | Контроллер, DTO и чтение ставок через `ICurrentRatesModule` |
-| `CollectCurrentRates` | Таймер, сборщик, настройки и определение событий |
+| `CollectCurrentRates` | Независимые циклы опроса, сборщик и настройки |
 | `PublishPendingEvents` | Издатель Outbox, фоновый цикл и настройки |
 | `Persistence` | Общие DbContext, репозиторий, EF-сущности и миграции |
 
@@ -26,37 +26,29 @@ flowchart LR
 
 ## Периодический сбор CollectCurrentRates
 
-Сборщик сравнивает полученные ставки с предыдущими и передаёт ставки и события в `StoreSnapshotAsync` для записи в одной транзакции. После сохранения он пишет итог цикла в лог: число ставок, событий, успешных и неуспешных опросов и длительность сбора.
+`CurrentCollectionBackgroundService` запускает отдельный цикл для Binance, Bybit и OKX. У каждого цикла свой таймер и DI scope на опрос. В `ApiHost/appsettings.json` интервал настроен на 5 секунд. Следующий опрос биржи начинается после завершения предыдущего. Готовый снимок сохраняется сразу, пока остальные биржи могут ещё отвечать.
 
 ```mermaid
 sequenceDiagram
-    participant T as CurrentCollectionBackgroundService
+    participant T as Цикл одной биржи
     participant C as CurrentFundingRateCollector
     participant DB as CurrentRatesRepository
     participant EI as ExchangeIntegration.Contracts
-    participant D as FundingRateChangeDetector
-    T->>C: CollectAsync по таймеру
-    C->>DB: GetAllRatesAsync (предыдущее состояние)
-    par Binance
-        C->>EI: GetCurrentRatesAsync(Binance)
-        EI-->>C: Snapshots или ошибка
-    and Bybit
-        C->>EI: GetCurrentRatesAsync(Bybit)
-        EI-->>C: Snapshots или ошибка
-    and OKX
-        C->>EI: GetCurrentRatesAsync(OKX)
-        EI-->>C: Snapshots или ошибка
-    end
-    C->>D: Сравнить NextFundingTime по каждой успешной бирже
-    D-->>C: FundingRateChangedIntegrationEvent[]
-    loop Каждая успешно опрошенная биржа
-        C->>DB: StoreSnapshotAsync(rates, events)
-        DB->>DB: Транзакция: insert/update ставок + Outbox events
-        DB-->>C: Commit
+    T->>C: CollectAsync(exchange) в отдельном scope
+    C->>EI: GetCurrentRatesAsync(exchange)
+    alt Успешный опрос
+        EI-->>C: Снимок ставок
+        C->>DB: StoreSnapshotAsync(exchange, rates)
+        DB->>DB: В транзакции прочитать строки биржи и сравнить NextFundingTime
+        DB->>DB: Записать ставки и Outbox
+        DB-->>C: Commit и число записанных событий
+    else Ошибка опроса
+        EI-->>C: Ошибка
+        C-->>T: Завершить текущую попытку
     end
 ```
 
-`CurrentRateSnapshot` описывает наблюдение по одному инструменту. `StoreSnapshotAsync` сохраняет успешный набор ставок конкретной биржи. В `ApiHost/appsettings.json` цикл настроен на 5 секунд. Биржи опрашиваются параллельно. При ошибке одной биржи результаты успешно опрошенных бирж сохраняются отдельно.
+`StoreSnapshotAsync` читает предыдущий набор только для своей биржи. Те же строки используются для сравнения времени платежа, обновления и деактивации. Запрос к API биржи завершается до открытия транзакции. Циклы обновляют отдельные группы строк в общей таблице по ключу `(NormalizedSymbol, Exchange)`. После коммита сборщик логирует биржу, число ставок и событий и длительность цикла.
 
 Новую задачу истории создаёт новая пара либо изменение `NextFundingTime` у существующей пары. Изменение только `FundingRate` или `FundingIntervalHours` событие не создаёт. Ставки и созданные events коммитятся одной PostgreSQL-транзакцией на биржу: при ошибке записи не сохраняется ни то, ни другое.
 
@@ -129,11 +121,11 @@ sequenceDiagram
 
 ## Основные файлы и проверки
 
-- [Таймер сбора](../../../src/Modules/CurrentRates/CollectCurrentRates/CurrentCollectionBackgroundService.cs), [сборщик](../../../src/Modules/CurrentRates/CollectCurrentRates/CurrentFundingRateCollector.cs) и [определение событий](../../../src/Modules/CurrentRates/CollectCurrentRates/FundingRateChangeDetector.cs)
+- [Циклы сбора](../../../src/Modules/CurrentRates/CollectCurrentRates/CurrentCollectionBackgroundService.cs) и [сборщик](../../../src/Modules/CurrentRates/CollectCurrentRates/CurrentFundingRateCollector.cs)
 - [Доменные расчёты](../../../src/Modules/CurrentRates/CurrentFundingRate.cs)
 - [Repository и транзакция](../../../src/Modules/CurrentRates/Persistence/CurrentRatesRepository.cs)
 - [Цикл публикации](../../../src/Modules/CurrentRates/PublishPendingEvents/OutboxPublisherBackgroundService.cs) и [обработка ожидающих событий](../../../src/Modules/CurrentRates/PublishPendingEvents/OutboxPublisher.cs)
 - [HTTP-сценарий чтения](../../../src/Modules/CurrentRates/GetCurrentRates/FundingRatesController.cs) и [реализация межмодульного контракта](../../../src/Modules/CurrentRates/GetCurrentRates/CurrentRatesReader.cs)
-- [Unit tests](../../../tests/FundingMonitor.CurrentRates.UnitTests/FundingRateChangeDetectorTests.cs) и [integration tests](../../../tests/FundingMonitor.CurrentRates.IntegrationTests/Outbox/CurrentRatesOutboxTests.cs)
+- [Проверки независимости циклов](../../../tests/FundingMonitor.CurrentRates.UnitTests/CurrentFundingRateCollectorTests.cs) и [интеграционные тесты записи](../../../tests/FundingMonitor.CurrentRates.IntegrationTests/Outbox/CurrentRatesOutboxTests.cs)
 
 См. также [схему БД](../../database-schema.md) и [ADR 0013](../../adr/0013-simple-outbox-without-inbox.md).

@@ -1,7 +1,6 @@
 using FundingMonitor.CurrentRates.CollectCurrentRates;
 using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates.GetCurrentRates;
-using FundingMonitor.CurrentRates.Infrastructure.Persistence;
 using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.CurrentRates.PublishPendingEvents;
 using FundingMonitor.Messaging;
@@ -14,38 +13,34 @@ namespace FundingMonitor.CurrentRates;
 
 public static class CurrentRatesModule
 {
-    public static IServiceCollection AddCurrentRatesModule(
-        this IServiceCollection services,
-        IConfiguration configuration)
+    extension(IServiceCollection services)
     {
-        services.TryAddSingleton(TimeProvider.System);
-        services.AddCurrentRatesPersistence(configuration);
-        services.AddFundingMonitorMessaging(configuration);
-        services.AddScoped<ICurrentRatesRepository, CurrentRatesRepository>();
+        public void AddCurrentRatesModule(IConfiguration configuration)
+        {
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddCurrentRatesPersistence(configuration);
+            services.AddFundingMonitorMessaging(configuration);
+            services.AddScoped<ICurrentRatesRepository, CurrentRatesRepository>();
 
-        services.AddScoped<ICurrentRatesModule, CurrentRatesReader>();
-        services.AddControllers().AddApplicationPart(typeof(FundingRatesController).Assembly);
+            services.AddScoped<ICurrentRatesModule, CurrentRatesReader>();
+            services.AddControllers().AddApplicationPart(typeof(FundingRatesController).Assembly);
 
-        services.AddOptions<CurrentDataCollectionOptions>()
-            .Bind(configuration.GetSection(CurrentDataCollectionOptions.SectionName));
-        services.AddScoped<FundingRateChangeDetector>();
-        services.AddScoped<CurrentFundingRateCollector>();
-        services.AddHostedService<CurrentCollectionBackgroundService>();
+            services.AddOptions<CurrentDataCollectionOptions>()
+                .Bind(configuration.GetSection(CurrentDataCollectionOptions.SectionName));
+            services.AddScoped<CurrentFundingRateCollector>();
+            services.AddHostedService<CurrentCollectionBackgroundService>();
 
-        services.AddOptions<OutboxOptions>()
-            .Bind(configuration.GetSection(OutboxOptions.SectionName));
-        services.AddSingleton<OutboxPublisher>();
-        services.AddHostedService<OutboxPublisherBackgroundService>();
-        return services;
-    }
+            services.AddOptions<OutboxOptions>()
+                .Bind(configuration.GetSection(OutboxOptions.SectionName));
+            services.AddSingleton<OutboxPublisher>();
+            services.AddHostedService<OutboxPublisherBackgroundService>();
+        }
 
-    public static IServiceCollection AddCurrentRatesPersistence(
-        this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        services.AddDbContextFactory<CurrentRatesDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"), npgsql =>
-                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "current_rates")));
-        return services;
+        public void AddCurrentRatesPersistence(IConfiguration configuration)
+        {
+            services.AddDbContextFactory<CurrentRatesDbContext>(options =>
+                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"), npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "current_rates")));
+        }
     }
 }

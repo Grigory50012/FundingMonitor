@@ -9,12 +9,8 @@ internal interface ICurrentRatesRepository
         CurrentRatesQuery query,
         CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<CurrentFundingRate>> GetAllRatesAsync(
-        CancellationToken cancellationToken);
-
-    Task StoreSnapshotAsync(
+    Task<int> StoreSnapshotAsync(
         ExchangeId exchange,
         IReadOnlyCollection<CurrentFundingRate> rates,
-        IReadOnlyCollection<FundingRateChangedIntegrationEvent> events,
         CancellationToken cancellationToken);
 }

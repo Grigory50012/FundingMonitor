@@ -41,18 +41,9 @@ internal sealed class CurrentRatesRepository(
             .ToArray();
     }
 
-    public async Task<IReadOnlyList<CurrentFundingRate>> GetAllRatesAsync(
-        CancellationToken cancellationToken) =>
-        (await dbContext.CurrentFundingRates
-                .AsNoTracking()
-                .ToListAsync(cancellationToken))
-            .Select(Map)
-            .ToArray();
-
-    public async Task StoreSnapshotAsync(
+    public async Task<int> StoreSnapshotAsync(
         ExchangeId exchange,
         IReadOnlyCollection<CurrentFundingRate> rates,
-        IReadOnlyCollection<FundingRateChangedIntegrationEvent> events,
         CancellationToken cancellationToken)
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -64,11 +55,27 @@ internal sealed class CurrentRatesRepository(
             item => item.NormalizedSymbol,
             StringComparer.OrdinalIgnoreCase);
         var currentSymbols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var now = timeProvider.GetUtcNow();
+        var eventCount = 0;
 
         foreach (var rate in rates.Where(item => item.Exchange == exchange))
         {
             currentSymbols.Add(rate.Symbol.Value);
-            if (!existingBySymbol.TryGetValue(rate.Symbol.Value, out var entity))
+            existingBySymbol.TryGetValue(rate.Symbol.Value, out var entity);
+            if (entity is null || entity.NextFundingTime != rate.NextFundingTime)
+            {
+                dbContext.OutboxMessages.Add(new OutboxMessage
+                {
+                    Id = Guid.NewGuid(),
+                    Exchange = exchangeName,
+                    Symbol = rate.Symbol.Value,
+                    NextFundingTime = rate.NextFundingTime,
+                    OccurredOnUtc = now
+                });
+                eventCount++;
+            }
+
+            if (entity is null)
             {
                 dbContext.CurrentFundingRates.Add(CreateEntity(rate));
                 continue;
@@ -77,7 +84,7 @@ internal sealed class CurrentRatesRepository(
             Apply(rate, entity);
         }
 
-        var cutoff = timeProvider.GetUtcNow().AddMinutes(
+        var cutoff = now.AddMinutes(
             -options.Value.DeactivateMissingAfterMinutes);
         foreach (var missing in existing.Where(item =>
                      item.IsActive &&
@@ -85,20 +92,9 @@ internal sealed class CurrentRatesRepository(
                      item.LastSeenOnUtc < cutoff))
             missing.IsActive = false;
 
-        foreach (var integrationEvent in events)
-        {
-            dbContext.OutboxMessages.Add(new OutboxMessage
-            {
-                Id = integrationEvent.EventId,
-                Exchange = integrationEvent.Exchange.Value,
-                Symbol = integrationEvent.Symbol.Value,
-                NextFundingTime = integrationEvent.NextFundingTime,
-                OccurredOnUtc = integrationEvent.OccurredOnUtc
-            });
-        }
-
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        return eventCount;
     }
 
     private static CurrentFundingRateDb CreateEntity(CurrentFundingRate rate)

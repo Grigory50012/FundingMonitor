@@ -152,7 +152,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
         await using (var collectionScope = _host.Services.CreateAsyncScope())
         {
             await collectionScope.ServiceProvider
-                .GetRequiredService<CurrentFundingRateCollector>().CollectAsync(Ct);
+                .GetRequiredService<CurrentFundingRateCollector>().CollectAsync(exchange, Ct);
         }
         await EventuallyAsync(async () =>
         {
@@ -253,7 +253,8 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
     private async Task CollectAndAssertTransactionAsync(int expected)
     {
         await using var scope = _host!.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<CurrentFundingRateCollector>().CollectAsync(Ct);
+        await scope.ServiceProvider.GetRequiredService<CurrentFundingRateCollector>()
+            .CollectAsync(ExchangeId.Parse("Binance"), Ct);
         var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
         Assert.Equal(expected, await current.CurrentFundingRates.CountAsync(Ct));
         Assert.Equal(expected, await current.OutboxMessages.CountAsync(row => row.ProcessedOnUtc == null, Ct));

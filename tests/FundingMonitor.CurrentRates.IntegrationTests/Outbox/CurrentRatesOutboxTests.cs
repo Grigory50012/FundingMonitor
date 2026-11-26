@@ -1,5 +1,3 @@
-using FundingMonitor.CurrentRates.Infrastructure.Persistence;
-using FundingMonitor.CurrentRates.Contracts;
 using FundingMonitor.CurrentRates;
 using FundingMonitor.CurrentRates.IntegrationTests.Infrastructure;
 using FundingMonitor.CurrentRates.Persistence;
@@ -24,7 +22,6 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         await repository.StoreSnapshotAsync(
             ExchangeId.Parse("Binance"),
             [TestRate],
-            [TestEvent],
             TestContext.Current.CancellationToken);
 
         await using var verification = await fixture.CreateDbContextAsync();
@@ -33,11 +30,10 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         var outbox = Assert.Single(await verification.OutboxMessages.AsNoTracking().ToListAsync(
             TestContext.Current.CancellationToken));
         Assert.Null(outbox.ProcessedOnUtc);
-        Assert.Equal(TestEvent.EventId, outbox.Id);
-        Assert.Equal(TestEvent.OccurredOnUtc, outbox.OccurredOnUtc);
-        Assert.Equal(TestEvent.Exchange.Value, outbox.Exchange);
-        Assert.Equal(TestEvent.Symbol.Value, outbox.Symbol);
-        Assert.Equal(TestEvent.NextFundingTime, outbox.NextFundingTime);
+        Assert.NotEqual(Guid.Empty, outbox.Id);
+        Assert.Equal(TestRate.Exchange.Value, outbox.Exchange);
+        Assert.Equal(TestRate.Symbol.Value, outbox.Symbol);
+        Assert.Equal(TestRate.NextFundingTime, outbox.NextFundingTime);
     }
 
     [Fact]
@@ -50,7 +46,6 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         await Assert.ThrowsAsync<InvalidOperationException>(() => repository.StoreSnapshotAsync(
             ExchangeId.Parse("Binance"),
             [TestRate],
-            [TestEvent],
             TestContext.Current.CancellationToken));
 
         await using var verification = await fixture.CreateDbContextAsync();
@@ -70,7 +65,6 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
             await repository.StoreSnapshotAsync(
                 ExchangeId.Parse("Binance"),
                 [TestRate],
-                [],
                 TestContext.Current.CancellationToken);
         }
 
@@ -79,7 +73,6 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
             var repository = secondScope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
             await repository.StoreSnapshotAsync(
                 ExchangeId.Parse("Binance"),
-                [],
                 [],
                 TestContext.Current.CancellationToken);
         }
@@ -98,9 +91,10 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         var initial = TestRate with { BidPrice = 99m, AskPrice = 101m, FundingRate = 0m };
         await using var scope = await fixture.CreateScopeAsync();
         var repository = scope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
-        await repository.StoreSnapshotAsync(initial.Exchange, [initial], [], cancellationToken);
+        await repository.StoreSnapshotAsync(initial.Exchange, [initial], cancellationToken);
 
-        var stored = Assert.Single(await repository.GetAllRatesAsync(cancellationToken));
+        await using var verification = await fixture.CreateDbContextAsync();
+        var stored = await verification.CurrentFundingRates.AsNoTracking().SingleAsync(cancellationToken);
         Assert.Equal(99m, stored.BidPrice);
         Assert.Equal(101m, stored.AskPrice);
         Assert.Equal(0m, stored.FundingRate);
@@ -112,13 +106,50 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
             FundingRate = null,
             LastSeenOnUtc = initial.LastSeenOnUtc.AddSeconds(10)
         };
-        await repository.StoreSnapshotAsync(initial.Exchange, [updated], [], cancellationToken);
+        await repository.StoreSnapshotAsync(initial.Exchange, [updated], cancellationToken);
 
-        stored = Assert.Single(await repository.GetAllRatesAsync(cancellationToken));
+        stored = await verification.CurrentFundingRates.AsNoTracking().SingleAsync(cancellationToken);
         Assert.Null(stored.BidPrice);
         Assert.Null(stored.AskPrice);
         Assert.Null(stored.FundingRate);
         Assert.Equal(updated.LastSeenOnUtc, stored.LastSeenOnUtc);
+        Assert.Equal(1, await verification.OutboxMessages.CountAsync(cancellationToken));
+    }
+
+    [Fact]
+    public async Task StoreSnapshotAsync_ConcurrentExchanges_KeepIndependentRatesAndEvents()
+    {
+        await fixture.ResetAsync();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var binanceRate = TestRate;
+        var okxRate = TestRate with { Exchange = ExchangeId.Parse("OKX") };
+        await using var binanceScope = await fixture.CreateScopeAsync();
+        await using var okxScope = await fixture.CreateScopeAsync();
+        var binanceRepository = binanceScope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
+        var okxRepository = okxScope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
+
+        await Task.WhenAll(
+            binanceRepository.StoreSnapshotAsync(binanceRate.Exchange, [binanceRate], cancellationToken),
+            okxRepository.StoreSnapshotAsync(okxRate.Exchange, [okxRate], cancellationToken));
+
+        var updatedOkxRate = okxRate with { NextFundingTime = okxRate.NextFundingTime!.Value.AddHours(4) };
+        await Task.WhenAll(
+            binanceRepository.StoreSnapshotAsync(binanceRate.Exchange, [], cancellationToken),
+            okxRepository.StoreSnapshotAsync(okxRate.Exchange, [updatedOkxRate], cancellationToken));
+
+        await using var verification = await fixture.CreateDbContextAsync();
+        var rates = await verification.CurrentFundingRates.AsNoTracking().ToDictionaryAsync(
+            rate => rate.Exchange, cancellationToken);
+        Assert.Equal(2, rates.Count);
+        Assert.False(rates["Binance"].IsActive);
+        Assert.True(rates["OKX"].IsActive);
+        Assert.Equal(updatedOkxRate.NextFundingTime, rates["OKX"].NextFundingTime);
+
+        var outbox = await verification.OutboxMessages.AsNoTracking().ToListAsync(cancellationToken);
+        Assert.Equal(3, outbox.Select(message => message.Id).Distinct().Count());
+        Assert.Single(outbox, message => message.Exchange == "Binance");
+        Assert.Single(outbox, message => message.Exchange == "OKX" && message.NextFundingTime == okxRate.NextFundingTime);
+        Assert.Single(outbox, message => message.Exchange == "OKX" && message.NextFundingTime == updatedOkxRate.NextFundingTime);
     }
 
     private static CurrentFundingRate TestRate => new()
@@ -134,13 +165,6 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         NextFundingTime = new DateTimeOffset(2026, 9, 6, 16, 0, 0, TimeSpan.Zero),
         LastSeenOnUtc = new DateTimeOffset(2026, 9, 6, 12, 0, 0, TimeSpan.Zero)
     };
-
-    private static FundingRateChangedIntegrationEvent TestEvent => new(
-        Guid.Parse("10000000-0000-0000-0000-000000000001"),
-        new DateTimeOffset(2026, 9, 6, 12, 0, 0, TimeSpan.Zero),
-        ExchangeId.Parse("Binance"),
-        Symbol.Create("BTC-USDT"),
-        new DateTimeOffset(2026, 9, 6, 16, 0, 0, TimeSpan.Zero));
 
     private sealed class ThrowingSaveChangesInterceptor : SaveChangesInterceptor
     {

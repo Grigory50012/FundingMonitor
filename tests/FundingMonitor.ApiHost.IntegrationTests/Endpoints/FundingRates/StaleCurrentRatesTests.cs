@@ -36,7 +36,8 @@ public sealed class StaleCurrentRatesTests(PostgreSqlFixture database) : Integra
         clock.Now = clock.Now.AddSeconds(1);
         await using (var scope = factory.Services.CreateAsyncScope())
         {
-            await scope.ServiceProvider.GetRequiredService<CurrentFundingRateCollector>().CollectAsync(ct);
+            await scope.ServiceProvider.GetRequiredService<CurrentFundingRateCollector>()
+                .CollectAsync(ExchangeId.Parse("Binance"), ct);
         }
 
         Assert.Empty((await client.GetFromJsonAsync<List<FundingRateDto>>("/api/v1/FundingRates", ct))!);

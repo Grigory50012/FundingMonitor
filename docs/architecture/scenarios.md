@@ -6,7 +6,7 @@
 
 ```mermaid
 sequenceDiagram
-    participant Timer as CurrentRates timer
+    participant Timer as Цикл CurrentRates для одной биржи
     participant CR as CurrentRates
     participant EI as ExchangeIntegration.Contracts
     participant DB as current_rates
