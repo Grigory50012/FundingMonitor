@@ -1,4 +1,4 @@
-using FundingMonitor.CurrentRates.Infrastructure;
+using FundingMonitor.CurrentRates;
 using FundingMonitor.HistoricalRates.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

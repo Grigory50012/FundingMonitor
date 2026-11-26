@@ -4,10 +4,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using FundingMonitor.CurrentRates.Application;
-using FundingMonitor.CurrentRates.Application.Collection;
-using FundingMonitor.CurrentRates.Infrastructure;
-using FundingMonitor.CurrentRates.Infrastructure.Outbox;
+using FundingMonitor.CurrentRates.CollectCurrentRates;
+using FundingMonitor.CurrentRates;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.DatabaseMigrator;
 using FundingMonitor.ExchangeIntegration.Contracts;
 using FundingMonitor.HistoricalRates.Application;
@@ -152,9 +151,8 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
 
         await using (var collectionScope = _host.Services.CreateAsyncScope())
         {
-            var collected = await collectionScope.ServiceProvider
-                .GetRequiredService<ICurrentFundingRateCollector>().CollectAsync(Ct);
-            Assert.Equal(1, collected.EventsCount);
+            await collectionScope.ServiceProvider
+                .GetRequiredService<CurrentFundingRateCollector>().CollectAsync(Ct);
         }
         await EventuallyAsync(async () =>
         {
@@ -235,8 +233,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
             ["HistoricalDataCollectionOptions:RetryDelaySeconds"] = "1"
         });
         builder.Services.AddSingleton<IExchangeMarketDataModule>(_market);
-        builder.Services.AddCurrentRatesApplication(builder.Configuration);
-        builder.Services.AddCurrentRatesInfrastructure(builder.Configuration);
+        builder.Services.AddCurrentRatesModule(builder.Configuration);
         builder.Services.AddHistoricalRatesApplication(builder.Configuration);
         builder.Services.AddHistoricalRatesInfrastructure(builder.Configuration);
         if (fault is not null)
@@ -256,8 +253,7 @@ public sealed class CurrentToHistoricalEndToEndTests : IAsyncLifetime
     private async Task CollectAndAssertTransactionAsync(int expected)
     {
         await using var scope = _host!.Services.CreateAsyncScope();
-        var collected = await scope.ServiceProvider.GetRequiredService<ICurrentFundingRateCollector>().CollectAsync(Ct);
-        Assert.Equal(expected, collected.EventsCount);
+        await scope.ServiceProvider.GetRequiredService<CurrentFundingRateCollector>().CollectAsync(Ct);
         var current = scope.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
         Assert.Equal(expected, await current.CurrentFundingRates.CountAsync(Ct));
         Assert.Equal(expected, await current.OutboxMessages.CountAsync(row => row.ProcessedOnUtc == null, Ct));

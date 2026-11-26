@@ -1,7 +1,8 @@
-using FundingMonitor.CurrentRates.Application.Collection;
-using FundingMonitor.CurrentRates.Application.Persistence;
+using FundingMonitor.CurrentRates.CollectCurrentRates;
+using FundingMonitor.CurrentRates.Infrastructure.Persistence;
 using FundingMonitor.CurrentRates.Contracts;
-using FundingMonitor.CurrentRates.Domain;
+using FundingMonitor.CurrentRates;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.ExchangeIntegration.Contracts;
 using FundingMonitor.SharedKernel;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,17 +20,15 @@ public sealed class CurrentFundingRateCollectorTests
         var collector = new CurrentFundingRateCollector(
             marketData,
             persistence,
-            persistence,
             new FundingRateChangeDetector(NullLogger<FundingRateChangeDetector>.Instance),
             TimeProvider.System,
             NullLogger<CurrentFundingRateCollector>.Instance);
 
-        var result = await collector.CollectAsync(CancellationToken.None);
+        await collector.CollectAsync(CancellationToken.None);
 
-        Assert.Equal(2, result.SuccessfulExchanges);
-        Assert.Equal(1, result.FailedExchanges);
-        Assert.Equal(2, persistence.Stored.Count);
-        Assert.DoesNotContain(persistence.Stored, item => item.Exchange == ExchangeId.Parse("Bybit"));
+        Assert.Equal(
+            [ExchangeId.Parse("Binance"), ExchangeId.Parse("OKX")],
+            persistence.Stored.Select(item => item.Exchange));
     }
 
     private sealed class StubMarketDataModule : IExchangeMarketDataModule
@@ -65,7 +64,7 @@ public sealed class CurrentFundingRateCollectorTests
             CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
-    private sealed class RecordingPersistence : ICurrentRatesRepository, ICurrentRatesUnitOfWork
+    private sealed class RecordingPersistence : ICurrentRatesRepository
     {
         public List<(ExchangeId Exchange, IReadOnlyCollection<CurrentFundingRate> Rates)> Stored { get; } = [];
 

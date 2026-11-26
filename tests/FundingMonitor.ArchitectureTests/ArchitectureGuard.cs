@@ -12,6 +12,7 @@ namespace FundingMonitor.ArchitectureTests;
 internal static class ArchitectureGuard
 {
     private const string ArbitrageAssembly = "FundingMonitor.Arbitrage";
+    private const string CurrentRatesAssembly = "FundingMonitor.CurrentRates";
     private static readonly HashSet<string> Modules = ["CurrentRates", "HistoricalRates", "ExchangeIntegration"];
     private static readonly Dictionary<string, string[]> AllowedLayers = new()
     {
@@ -22,7 +23,6 @@ internal static class ArchitectureGuard
     };
     private static readonly HashSet<(string Owner, string Target)> AllowedCrossModuleReferences =
     [
-        ("FundingMonitor.CurrentRates.Application", "FundingMonitor.ExchangeIntegration.Contracts"),
         ("FundingMonitor.HistoricalRates.Application", "FundingMonitor.ExchangeIntegration.Contracts"),
         ("FundingMonitor.HistoricalRates.Infrastructure", "FundingMonitor.CurrentRates.Contracts")
     ];
@@ -100,6 +100,13 @@ internal static class ArchitectureGuard
         if (target == ArbitrageAssembly)
             return owner == "FundingMonitor.ApiHost"
                 ? null : "only the host may reference the Arbitrage module";
+        if (owner == CurrentRatesAssembly)
+            return target is "FundingMonitor.CurrentRates.Contracts" or "FundingMonitor.ExchangeIntegration.Contracts"
+                or "FundingMonitor.SharedKernel" or "FundingMonitor.Messaging"
+                ? null : "foreign module dependency outside the approved matrix";
+        if (target == CurrentRatesAssembly)
+            return owner is "FundingMonitor.ApiHost" or "FundingMonitor.DatabaseMigrator"
+                ? null : "foreign module dependency on CurrentRates implementation";
         if (owner == "FundingMonitor.Messaging")
             return target == "FundingMonitor.SharedKernel" ? null : "transport surface depends on business module";
         if (owner == "FundingMonitor.ApiHost")

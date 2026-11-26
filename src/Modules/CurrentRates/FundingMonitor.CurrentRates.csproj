@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <DefaultItemExcludes>$(DefaultItemExcludes);FundingMonitor.CurrentRates.Contracts/**;**/bin/**;**/obj/**</DefaultItemExcludes>
+    </PropertyGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj"/>
+        <ProjectReference Include="..\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Contracts\FundingMonitor.ExchangeIntegration.Contracts.csproj"/>
+        <ProjectReference Include="..\..\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj"/>
+        <ProjectReference Include="..\..\FundingMonitor.Messaging\FundingMonitor.Messaging.csproj"/>
+    </ItemGroup>
+</Project>

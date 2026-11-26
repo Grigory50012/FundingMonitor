@@ -1,4 +1,4 @@
-using FundingMonitor.CurrentRates.Domain;
+using FundingMonitor.CurrentRates;
 using FundingMonitor.SharedKernel;
 using Xunit;
 

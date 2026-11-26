@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart LR
-    CR[CurrentRates.Application] -->|IExchangeMarketDataModule| C[Contracts]
+    CR[CurrentRates / CollectCurrentRates] -->|IExchangeMarketDataModule| C[Contracts]
     HR[HistoricalRates.Application] -->|IExchangeMarketDataModule| C
     HTTP[GET exchanges/health] --> P[Presentation]
     P --> A[Application]

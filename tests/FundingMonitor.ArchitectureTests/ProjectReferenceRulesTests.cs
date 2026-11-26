@@ -17,20 +17,20 @@ public sealed class ProjectReferenceRulesTests
             ["FundingMonitor.ApiHost"] =
             [
                 "FundingMonitor.ExchangeIntegration.Presentation",
-                "FundingMonitor.CurrentRates.Presentation",
+                "FundingMonitor.CurrentRates",
                 "FundingMonitor.HistoricalRates.Presentation",
                 "FundingMonitor.Arbitrage"
             ],
             ["FundingMonitor.DatabaseMigrator"] =
             [
-                "FundingMonitor.CurrentRates.Infrastructure",
+                "FundingMonitor.CurrentRates",
                 "FundingMonitor.HistoricalRates.Infrastructure"
             ]
         };
 
         foreach (var module in new[]
                  {
-                     "ExchangeIntegration", "CurrentRates", "HistoricalRates"
+                     "ExchangeIntegration", "HistoricalRates"
                  })
         {
             allowed[$"FundingMonitor.{module}.Contracts"] = ["FundingMonitor.SharedKernel"];
@@ -56,11 +56,7 @@ public sealed class ProjectReferenceRulesTests
             ];
         }
 
-        allowed["FundingMonitor.CurrentRates.Application"] =
-        [
-            .. allowed["FundingMonitor.CurrentRates.Application"],
-            "FundingMonitor.ExchangeIntegration.Contracts"
-        ];
+        allowed["FundingMonitor.CurrentRates.Contracts"] = ["FundingMonitor.SharedKernel"];
         allowed["FundingMonitor.HistoricalRates.Application"] =
         [
             .. allowed["FundingMonitor.HistoricalRates.Application"],
@@ -71,9 +67,11 @@ public sealed class ProjectReferenceRulesTests
             .. allowed["FundingMonitor.HistoricalRates.Infrastructure"],
             "FundingMonitor.CurrentRates.Contracts", "FundingMonitor.Messaging"
         ];
-        allowed["FundingMonitor.CurrentRates.Infrastructure"] =
+        allowed["FundingMonitor.CurrentRates"] =
         [
-            .. allowed["FundingMonitor.CurrentRates.Infrastructure"],
+            "FundingMonitor.CurrentRates.Contracts",
+            "FundingMonitor.ExchangeIntegration.Contracts",
+            "FundingMonitor.SharedKernel",
             "FundingMonitor.Messaging"
         ];
         allowed["FundingMonitor.Arbitrage"] =

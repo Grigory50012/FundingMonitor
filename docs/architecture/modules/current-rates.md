@@ -2,32 +2,31 @@
 
 `CurrentRates` периодически собирает текущие funding rates, хранит последнее состояние каждой пары, исключает устаревшие ставки из выдачи и публикует задания на исторический сбор. Модуль владеет schema `current_rates`, но не обращается к schema истории.
 
-## Граница и слои
+## Сценарии и границы
 
 ```mermaid
 flowchart LR
-    EI[ExchangeIntegration.Contracts] --> A[Application: collector / detector / read service]
-    A --> D[Domain: CurrentFundingRate]
-    A --> C[Contracts: view / integration event]
-    A --> I[Infrastructure: repository / Outbox]
-    I --> DB[(current_rates)]
-    I --> MQ[RabbitMQ via Messaging]
-    HTTP[GET FundingRates] --> P[Presentation]
-    P --> C
-    AR[Arbitrage] -->|ICurrentRatesModule| C
+    HTTP[GET FundingRates] --> R[GetCurrentRates]
+    AR[Arbitrage] -->|ICurrentRatesModule| R
+    C[CollectCurrentRates] --> EI[ExchangeIntegration.Contracts]
+    R --> DB[(current_rates)]
+    C -->|ставки и Outbox в одной транзакции| DB
+    P[PublishPendingEvents] -->|чтение и отметка Outbox| DB
+    P --> MQ[RabbitMQ]
 ```
 
-| Слой | Главное содержимое |
+| Каталог | Главное содержимое |
 | --- | --- |
-| `Contracts` | `ICurrentRatesModule`, `CurrentRatesQuery`, `CurrentRateView`, `FundingRateChangedIntegrationEvent` |
-| `Domain` | `CurrentFundingRate`, включая вычисление `Apr` и `Deviation` |
-| `Application` | Таймер и collector, detector изменений, сценарий чтения, repository ports |
-| `Infrastructure` | `CurrentRatesDbContext`, repository, Outbox publisher и его фоновый цикл |
-| `Presentation` | `FundingRatesController` и mapping в HTTP DTO |
+| `GetCurrentRates` | Контроллер, DTO и чтение ставок через `ICurrentRatesModule` |
+| `CollectCurrentRates` | Таймер, сборщик, настройки и определение событий |
+| `PublishPendingEvents` | Издатель Outbox, фоновый цикл и настройки |
+| `Persistence` | Общие DbContext, репозиторий, EF-сущности и миграции |
 
-`CurrentRates.Application` использует только `ExchangeIntegration.Contracts` для получения market data. `Arbitrage` читает ставки только через `CurrentRates.Contracts`. Событие для `HistoricalRates` также принадлежит `CurrentRates.Contracts`, но доставляется асинхронно через Outbox и RabbitMQ.
+Три среза находятся в одном проекте `FundingMonitor.CurrentRates`. `ApiHost` подключает модуль целиком, а `DatabaseMigrator` регистрирует только БД. Отдельный `CurrentRates.Contracts` содержит интерфейс чтения для `Arbitrage` и тип события для `HistoricalRates`. Сборщик получает котировки через `ExchangeIntegration.Contracts`.
 
-## Периодический сбор
+## Периодический сбор CollectCurrentRates
+
+Сборщик сравнивает полученные ставки с предыдущими и передаёт ставки и события в `StoreSnapshotAsync` для записи в одной транзакции. После сохранения он пишет итог цикла в лог: число ставок, событий, успешных и неуспешных опросов и длительность сбора.
 
 ```mermaid
 sequenceDiagram
@@ -57,7 +56,7 @@ sequenceDiagram
     end
 ```
 
-`CurrentRateSnapshot` — наблюдение одной пары, полученное от `ExchangeIntegration`; `StoreSnapshotAsync` сохраняет уже весь успешный набор ставок конкретной биржи. По умолчанию цикл запускается каждые 10 секунд. Биржи опрашиваются параллельно, результаты сохраняются отдельно; ошибка одной биржи не отменяет данные успешных бирж.
+`CurrentRateSnapshot` описывает наблюдение по одному инструменту. `StoreSnapshotAsync` сохраняет успешный набор ставок конкретной биржи. В `ApiHost/appsettings.json` цикл настроен на 5 секунд. Биржи опрашиваются параллельно. При ошибке одной биржи результаты успешно опрошенных бирж сохраняются отдельно.
 
 Новую задачу истории создаёт новая пара либо изменение `NextFundingTime` у существующей пары. Изменение только `FundingRate` или `FundingIntervalHours` событие не создаёт. Ставки и созданные events коммитятся одной PostgreSQL-транзакцией на биржу: при ошибке записи не сохраняется ни то, ни другое.
 
@@ -65,21 +64,32 @@ sequenceDiagram
 
 ## Чтение текущих ставок
 
+В срезе `GetCurrentRates` контроллер разбирает HTTP-параметры и формирует DTO. Контроллер и `Arbitrage` используют `ICurrentRatesModule`, который реализует `CurrentRatesReader`. Чтение ставок и транзакционная запись снимка используют общий `ICurrentRatesRepository`.
+
 ```mermaid
 sequenceDiagram
-    participant User as HTTP client / Arbitrage
-    participant P as FundingRatesController или ICurrentRatesModule
-    participant S as CurrentRatesService
+    participant User as HTTP client
+    participant AR as Arbitrage
+    participant P as FundingRatesController
+    participant S as ICurrentRatesModule / CurrentRatesReader
     participant R as CurrentRatesRepository
     participant DB as current_rates.CurrentFundingRates
-    User->>P: symbol?, exchanges?
-    P->>S: GetCurrentRatesAsync(query)
+    alt HTTP
+        User->>P: symbol?, exchanges?
+        P->>S: GetCurrentRatesAsync(query)
+    else Arbitrage
+        AR->>S: GetCurrentRatesAsync(query)
+    end
     S->>R: GetRatesAsync(query)
     R->>DB: IsActive и LastSeenOnUtc >= now - threshold
-    DB-->>R: Только актуальные строки
+    DB-->>R: Актуальные строки
     R-->>S: CurrentFundingRate[]
-    S-->>P: CurrentRateView[] с Apr и Deviation
-    P-->>User: HTTP DTO или module view
+    alt HTTP
+        S-->>P: CurrentRateView[] с Apr и Deviation
+        P-->>User: FundingRateDto[]
+    else Arbitrage
+        S-->>AR: CurrentRateView[]
+    end
 ```
 
 Порог `DeactivateMissingAfterMinutes` по умолчанию равен 5 минутам. Проверка свежести выполняется **при каждом чтении**, даже если биржа давно не дала успешный набор и поле `IsActive` в БД ещё равно `true`. Поэтому просроченная ставка не участвует и в расчёте `Arbitrage`.
@@ -87,6 +97,8 @@ sequenceDiagram
 `CurrentRatesQuery.Symbol` фильтрует по `BaseAsset` (например, `BTC`), а не по полной паре `BTC-USDT`. `Apr` и `Deviation` вычисляет доменная модель на backend; HTTP DTO берёт готовый `Apr`, не рассчитывая его на frontend.
 
 ## Публикация Outbox
+
+Хранимую запись `OutboxMessage` используют сборщик при записи ставок и издатель при отправке.
 
 ```mermaid
 sequenceDiagram
@@ -117,11 +129,11 @@ sequenceDiagram
 
 ## Основные файлы и проверки
 
-- [Collector](../../../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Application/Collection/CurrentFundingRateCollector.cs) и [detector](../../../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Application/Collection/FundingRateChangeDetector.cs)
-- [Доменные расчёты](../../../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Domain/CurrentFundingRate.cs)
-- [Repository и транзакция](../../../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Infrastructure/Persistence/CurrentRatesRepository.cs)
-- [Outbox publisher](../../../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Infrastructure/Outbox/OutboxPublisher.cs)
-- [HTTP controller](../../../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Presentation/Controllers/FundingRatesController.cs)
+- [Таймер сбора](../../../src/Modules/CurrentRates/CollectCurrentRates/CurrentCollectionBackgroundService.cs), [сборщик](../../../src/Modules/CurrentRates/CollectCurrentRates/CurrentFundingRateCollector.cs) и [определение событий](../../../src/Modules/CurrentRates/CollectCurrentRates/FundingRateChangeDetector.cs)
+- [Доменные расчёты](../../../src/Modules/CurrentRates/CurrentFundingRate.cs)
+- [Repository и транзакция](../../../src/Modules/CurrentRates/Persistence/CurrentRatesRepository.cs)
+- [Цикл публикации](../../../src/Modules/CurrentRates/PublishPendingEvents/OutboxPublisherBackgroundService.cs) и [обработка ожидающих событий](../../../src/Modules/CurrentRates/PublishPendingEvents/OutboxPublisher.cs)
+- [HTTP-сценарий чтения](../../../src/Modules/CurrentRates/GetCurrentRates/FundingRatesController.cs) и [реализация межмодульного контракта](../../../src/Modules/CurrentRates/GetCurrentRates/CurrentRatesReader.cs)
 - [Unit tests](../../../tests/FundingMonitor.CurrentRates.UnitTests/FundingRateChangeDetectorTests.cs) и [integration tests](../../../tests/FundingMonitor.CurrentRates.IntegrationTests/Outbox/CurrentRatesOutboxTests.cs)
 
 См. также [схему БД](../../database-schema.md) и [ADR 0013](../../adr/0013-simple-outbox-without-inbox.md).

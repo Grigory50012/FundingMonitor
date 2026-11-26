@@ -18,7 +18,6 @@
     <ProjectReference Include="..\..\src\FundingMonitor.SharedKernel\FundingMonitor.SharedKernel.csproj" />
     <ProjectReference Include="..\..\src\Modules\ExchangeIntegration\FundingMonitor.ExchangeIntegration.Contracts\FundingMonitor.ExchangeIntegration.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\CurrentRates\FundingMonitor.CurrentRates.Contracts\FundingMonitor.CurrentRates.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\Modules\CurrentRates\FundingMonitor.CurrentRates.Domain\FundingMonitor.CurrentRates.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Modules\CurrentRates\FundingMonitor.CurrentRates.Application\FundingMonitor.CurrentRates.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\CurrentRates\FundingMonitor.CurrentRates.csproj" />
   </ItemGroup>
 </Project>

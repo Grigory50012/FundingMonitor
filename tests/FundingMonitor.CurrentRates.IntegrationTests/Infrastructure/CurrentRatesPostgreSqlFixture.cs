@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
-using FundingMonitor.CurrentRates.Application.Collection;
-using FundingMonitor.CurrentRates.Application.Persistence;
+using FundingMonitor.CurrentRates.CollectCurrentRates;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
-using FundingMonitor.CurrentRates.Infrastructure.Outbox;
+using FundingMonitor.CurrentRates.Persistence;
+using FundingMonitor.CurrentRates.PublishPendingEvents;
 using FundingMonitor.Messaging;
 using FundingMonitor.Messaging.Abstractions;
 using Microsoft.EntityFrameworkCore;
@@ -69,11 +69,7 @@ public sealed class CurrentRatesPostgreSqlFixture : IAsyncLifetime
             if (interceptor is not null)
                 options.AddInterceptors(interceptor);
         });
-        services.AddScoped<CurrentRatesRepository>();
-        services.AddScoped<ICurrentRatesRepository>(provider =>
-            provider.GetRequiredService<CurrentRatesRepository>());
-        services.AddScoped<ICurrentRatesUnitOfWork>(provider =>
-            provider.GetRequiredService<CurrentRatesRepository>());
+        services.AddScoped<ICurrentRatesRepository, CurrentRatesRepository>();
 
         return ValueTask.FromResult(services.BuildServiceProvider().CreateAsyncScope());
     }
@@ -100,7 +96,6 @@ public sealed class CurrentRatesPostgreSqlFixture : IAsyncLifetime
         });
         services.AddDbContextFactory<CurrentRatesDbContext>(options =>
             options.UseNpgsql(ConnectionString));
-        services.AddSingleton<OutboxMetrics>();
         services.AddSingleton<OutboxPublisher>();
         var provider = services.BuildServiceProvider();
         return ValueTask.FromResult(new OutboxPublisherTestScope(

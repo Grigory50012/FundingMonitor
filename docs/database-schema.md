@@ -50,7 +50,7 @@ Inbox отсутствует. Каждая доставка вызывает с�
 
 Исходники миграций и model snapshots находятся в:
 
-- [CurrentRates Infrastructure/Persistence/Migrations](../src/Modules/CurrentRates/FundingMonitor.CurrentRates.Infrastructure/Persistence/Migrations)
+- [Миграции CurrentRates](../src/Modules/CurrentRates/Persistence/Migrations)
 - [HistoricalRates Infrastructure/Persistence/Migrations](../src/Modules/HistoricalRates/FundingMonitor.HistoricalRates.Infrastructure/Persistence/Migrations)
 
 Применение из корня репозитория:

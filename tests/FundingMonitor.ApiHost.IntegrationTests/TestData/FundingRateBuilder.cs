@@ -1,3 +1,5 @@
+using FundingMonitor.CurrentRates.Persistence;
+
 namespace FundingMonitor.ApiHost.IntegrationTests.TestData;
 
 internal sealed class FundingRateBuilder

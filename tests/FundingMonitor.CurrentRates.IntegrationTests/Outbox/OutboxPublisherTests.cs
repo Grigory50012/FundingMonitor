@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Logging;
 using FundingMonitor.CurrentRates.Contracts;
-using FundingMonitor.CurrentRates.Infrastructure.Outbox;
+using FundingMonitor.CurrentRates.PublishPendingEvents;
 using FundingMonitor.CurrentRates.IntegrationTests.Infrastructure;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.Messaging;
 using FundingMonitor.Messaging.Abstractions;
 using FundingMonitor.SharedKernel;

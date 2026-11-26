@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
-using FundingMonitor.CurrentRates.Application.Collection;
+using FundingMonitor.CurrentRates.CollectCurrentRates;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.ExchangeIntegration.Contracts;
 using FundingMonitor.SharedKernel;
 using Microsoft.AspNetCore.Hosting;
@@ -35,16 +36,16 @@ public sealed class StaleCurrentRatesTests(PostgreSqlFixture database) : Integra
         clock.Now = clock.Now.AddSeconds(1);
         await using (var scope = factory.Services.CreateAsyncScope())
         {
-            var result = await scope.ServiceProvider.GetRequiredService<ICurrentFundingRateCollector>().CollectAsync(ct);
-            Assert.Equal(3, result.FailedExchanges);
+            await scope.ServiceProvider.GetRequiredService<CurrentFundingRateCollector>().CollectAsync(ct);
         }
 
         Assert.Empty((await client.GetFromJsonAsync<List<FundingRateDto>>("/api/v1/FundingRates", ct))!);
         await using var verification = factory.Services.CreateAsyncScope();
-        var stored = await verification.ServiceProvider.GetRequiredService<CurrentRatesDbContext>()
-            .CurrentFundingRates.AsNoTracking().SingleAsync(ct);
+        var currentRates = verification.ServiceProvider.GetRequiredService<CurrentRatesDbContext>();
+        var stored = await currentRates.CurrentFundingRates.AsNoTracking().SingleAsync(ct);
         Assert.Equal(0.0001m, stored.FundingRate);
         Assert.Equal(clock.Now.AddMinutes(-7).AddSeconds(-1), stored.LastSeenOnUtc);
+        Assert.False(await currentRates.OutboxMessages.AnyAsync(ct));
     }
 
     private sealed class AdvancingClock : TimeProvider

@@ -1,3 +1,4 @@
+using FundingMonitor.CurrentRates.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using FundingMonitor.DatabaseMigrator;
 using FundingMonitor.HistoricalRates.Infrastructure.Persistence;

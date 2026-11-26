@@ -21,7 +21,7 @@ Backend остаётся одним deployable приложением, но ра
 - `HistoricalRates` — исторический сбор, RabbitMQ consumers, retry/DLQ и APR;
 - `Arbitrage` — расчёт и выдача арбитражных возможностей.
 
-`ExchangeIntegration`, `CurrentRates` и `HistoricalRates` разделены на проекты по слоям:
+`ExchangeIntegration` и `HistoricalRates` разделены на проекты по слоям:
 
 ```text
 FundingMonitor.<Module>.Contracts
@@ -32,6 +32,8 @@ FundingMonitor.<Module>.Presentation
 ```
 
 С 2026-11-25 `Arbitrage` использует один проект с вертикальным срезом [GetOpportunities](../architecture/modules/arbitrage.md). У модуля один HTTP-сценарий и одна межмодульная зависимость, `CurrentRates.Contracts`. `ApiHost` подключает модуль напрямую.
+
+`CurrentRates` содержит три вертикальных среза в одном проекте реализации. `ApiHost` подключает модуль, а `DatabaseMigrator` использует его регистрацию БД. Остальные модули подключают только [`CurrentRates.Contracts`](../architecture/modules/current-rates.md).
 
 Межмодульные ссылки разрешены только на согласованные проекты `Contracts`. Правило защищается `ProjectReference` и архитектурными тестами.
 

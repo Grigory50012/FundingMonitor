@@ -1,7 +1,8 @@
-using FundingMonitor.CurrentRates.Application.Persistence;
+using FundingMonitor.CurrentRates.Infrastructure.Persistence;
 using FundingMonitor.CurrentRates.Contracts;
-using FundingMonitor.CurrentRates.Domain;
+using FundingMonitor.CurrentRates;
 using FundingMonitor.CurrentRates.IntegrationTests.Infrastructure;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -18,9 +19,9 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
     {
         await fixture.ResetAsync();
         await using var scope = await fixture.CreateScopeAsync();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<ICurrentRatesUnitOfWork>();
+        var repository = scope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
 
-        await unitOfWork.StoreSnapshotAsync(
+        await repository.StoreSnapshotAsync(
             ExchangeId.Parse("Binance"),
             [TestRate],
             [TestEvent],
@@ -44,9 +45,9 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
     {
         await fixture.ResetAsync();
         await using var scope = await fixture.CreateScopeAsync(new ThrowingSaveChangesInterceptor());
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<ICurrentRatesUnitOfWork>();
+        var repository = scope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => unitOfWork.StoreSnapshotAsync(
+        await Assert.ThrowsAsync<InvalidOperationException>(() => repository.StoreSnapshotAsync(
             ExchangeId.Parse("Binance"),
             [TestRate],
             [TestEvent],
@@ -65,8 +66,8 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         await fixture.ResetAsync();
         await using (var firstScope = await fixture.CreateScopeAsync())
         {
-            var unitOfWork = firstScope.ServiceProvider.GetRequiredService<ICurrentRatesUnitOfWork>();
-            await unitOfWork.StoreSnapshotAsync(
+            var repository = firstScope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
+            await repository.StoreSnapshotAsync(
                 ExchangeId.Parse("Binance"),
                 [TestRate],
                 [],
@@ -75,8 +76,8 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
 
         await using (var secondScope = await fixture.CreateScopeAsync())
         {
-            var unitOfWork = secondScope.ServiceProvider.GetRequiredService<ICurrentRatesUnitOfWork>();
-            await unitOfWork.StoreSnapshotAsync(
+            var repository = secondScope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
+            await repository.StoreSnapshotAsync(
                 ExchangeId.Parse("Binance"),
                 [],
                 [],
@@ -96,9 +97,8 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
         var cancellationToken = TestContext.Current.CancellationToken;
         var initial = TestRate with { BidPrice = 99m, AskPrice = 101m, FundingRate = 0m };
         await using var scope = await fixture.CreateScopeAsync();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<ICurrentRatesUnitOfWork>();
         var repository = scope.ServiceProvider.GetRequiredService<ICurrentRatesRepository>();
-        await unitOfWork.StoreSnapshotAsync(initial.Exchange, [initial], [], cancellationToken);
+        await repository.StoreSnapshotAsync(initial.Exchange, [initial], [], cancellationToken);
 
         var stored = Assert.Single(await repository.GetAllRatesAsync(cancellationToken));
         Assert.Equal(99m, stored.BidPrice);
@@ -112,7 +112,7 @@ public sealed class CurrentRatesOutboxTests(CurrentRatesPostgreSqlFixture fixtur
             FundingRate = null,
             LastSeenOnUtc = initial.LastSeenOnUtc.AddSeconds(10)
         };
-        await unitOfWork.StoreSnapshotAsync(initial.Exchange, [updated], [], cancellationToken);
+        await repository.StoreSnapshotAsync(initial.Exchange, [updated], [], cancellationToken);
 
         stored = Assert.Single(await repository.GetAllRatesAsync(cancellationToken));
         Assert.Null(stored.BidPrice);

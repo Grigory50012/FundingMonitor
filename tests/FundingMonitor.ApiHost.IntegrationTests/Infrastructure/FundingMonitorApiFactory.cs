@@ -1,3 +1,4 @@
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

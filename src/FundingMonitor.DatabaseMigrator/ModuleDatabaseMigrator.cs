@@ -1,4 +1,5 @@
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

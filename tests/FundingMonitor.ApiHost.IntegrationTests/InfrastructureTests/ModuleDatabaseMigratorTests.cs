@@ -1,5 +1,6 @@
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
-using FundingMonitor.CurrentRates.Infrastructure;
+using FundingMonitor.CurrentRates;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.DatabaseMigrator;
 using FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 using FundingMonitor.HistoricalRates.Infrastructure;

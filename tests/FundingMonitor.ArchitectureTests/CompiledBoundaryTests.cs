@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.EntityFrameworkCore;
 using FundingMonitor.CurrentRates.Infrastructure.Persistence;
+using FundingMonitor.CurrentRates.Persistence;
 using FundingMonitor.HistoricalRates.Infrastructure.Persistence;
 using Xunit;
 
@@ -11,19 +12,19 @@ public sealed class CompiledBoundaryTests
 {
     [Theory]
     [InlineData("FundingMonitor.Arbitrage", "public class Leak { public FundingMonitor.CurrentRates.Infrastructure.Persistence.CurrentRatesDbContext Value = null!; }", "foreign module")]
-    [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.Arbitrage.GetOpportunities.FundingArbitrageDto Value = null!; }", "only the host")]
-    [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.HistoricalRates.Infrastructure.Persistence.HistoricalRatesDbContext Value = null!; }", "foreign module")]
-    [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.CurrentRates.Infrastructure.Persistence.CurrentRatesDbContext Value = null!; }", "reverse layer")]
-    [InlineData("FundingMonitor.CurrentRates.Domain", "public class Leak { public Microsoft.Extensions.Logging.ILogger Value = null!; }", "framework")]
+    [InlineData("FundingMonitor.CurrentRates", "public class Leak { public FundingMonitor.Arbitrage.GetOpportunities.FundingArbitrageDto Value = null!; }", "only the host")]
+    [InlineData("FundingMonitor.CurrentRates", "public class Leak { public FundingMonitor.HistoricalRates.Infrastructure.Persistence.HistoricalRatesDbContext Value = null!; }", "foreign module")]
+    [InlineData("FundingMonitor.HistoricalRates.Application", "public class Leak { public FundingMonitor.HistoricalRates.Infrastructure.Persistence.HistoricalRatesDbContext Value = null!; }", "reverse layer")]
+    [InlineData("FundingMonitor.HistoricalRates.Domain", "public class Leak { public Microsoft.Extensions.Logging.ILogger Value = null!; }", "framework")]
     [InlineData("FundingMonitor.SharedKernel", "public class Leak { public Microsoft.EntityFrameworkCore.DbContext Value = null!; }", "framework")]
     [InlineData("FundingMonitor.Messaging", "namespace FundingMonitor.Messaging; internal record FundingRateChanged(decimal Rate);", "transport surface")]
     [InlineData("FundingMonitor.ApiHost", "namespace FundingMonitor.ApiHost.Services; internal class FundingCalculator { public decimal Calculate(decimal rate) => rate * 3; }", "host surface")]
     [InlineData("FundingMonitor.ApiHost", "namespace FundingMonitor.ApiHost.Shared.Middleware; internal class RatesRepository { }", "host surface")]
     [InlineData("FundingMonitor.Messaging", "namespace FundingMonitor.Messaging; public class RabbitMqOptions { public record FundingRateChanged(decimal Rate); }", "transport surface")]
     [InlineData("FundingMonitor.ApiHost", "public class Program { private class RatesRepository { } }", "host surface")]
-    [InlineData("FundingMonitor.CurrentRates.Contracts", "public class Leak { public FundingMonitor.CurrentRates.Domain.CurrentFundingRate Value = null!; }", "reverse layer")]
-    [InlineData("FundingMonitor.CurrentRates.Application", "public class Leak { public FundingMonitor.Messaging.Abstractions.IMessagePublisher Value = null!; }", "reverse layer")]
-    [InlineData("FundingMonitor.CurrentRates.Infrastructure", "public class Leak { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }", "foreign module")]
+    [InlineData("FundingMonitor.CurrentRates.Contracts", "public class Leak { public FundingMonitor.CurrentRates.Infrastructure.Persistence.CurrentRatesDbContext Value = null!; }", "foreign module")]
+    [InlineData("FundingMonitor.HistoricalRates.Application", "public class Leak { public FundingMonitor.Messaging.Abstractions.IMessagePublisher Value = null!; }", "reverse layer")]
+    [InlineData("FundingMonitor.HistoricalRates.Infrastructure", "public class Leak { public FundingMonitor.CurrentRates.Infrastructure.Persistence.CurrentRatesDbContext Value = null!; }", "foreign module")]
     [InlineData("FundingMonitor.HistoricalRates.Presentation", "public class Leak { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }", "foreign module")]
     [InlineData("FundingMonitor.ExchangeIntegration.Application", "public class Leak { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }", "foreign module")]
     [InlineData("FundingMonitor.HistoricalRates.Application", "public class Leak { public FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent Value = null!; }", "foreign module")]
@@ -64,11 +65,13 @@ public sealed class CompiledBoundaryTests
     }
 
     [Theory]
-    [InlineData("FundingMonitor.CurrentRates.Application", "public class Port { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }")]
+    [InlineData("FundingMonitor.CurrentRates", "public class Port { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }")]
     [InlineData("FundingMonitor.HistoricalRates.Application", "public class Port { public FundingMonitor.ExchangeIntegration.Contracts.IExchangeMarketDataModule Value = null!; }")]
     [InlineData("FundingMonitor.HistoricalRates.Infrastructure", "public class Port { public FundingMonitor.CurrentRates.Contracts.FundingRateChangedIntegrationEvent Value = null!; }")]
     [InlineData("FundingMonitor.Arbitrage", "public class Port { public FundingMonitor.CurrentRates.Contracts.ICurrentRatesModule Value = null!; }")]
-    [InlineData("FundingMonitor.CurrentRates.Infrastructure", "public class Port { public FundingMonitor.Messaging.Abstractions.IMessagePublisher Value = null!; }")]
+    [InlineData("FundingMonitor.CurrentRates", "public class Port { public FundingMonitor.Messaging.Abstractions.IMessagePublisher Value = null!; }")]
+    [InlineData("FundingMonitor.ApiHost", "public class Program { public System.Type CurrentRates => typeof(FundingMonitor.CurrentRates.CurrentRatesModule); }")]
+    [InlineData("FundingMonitor.DatabaseMigrator", "public class Port { public FundingMonitor.CurrentRates.Infrastructure.Persistence.CurrentRatesDbContext Value = null!; }")]
     [InlineData("FundingMonitor.Messaging", "namespace FundingMonitor.Messaging.Abstractions; public interface IMessagePublisher { }")]
     [InlineData("FundingMonitor.ApiHost", "public class Program { public void Configure() { System.Action action = () => System.Console.WriteLine(1); action(); } }")]
     public void Guard_AcceptsAllowedCompiledBoundary(string assemblyName, string source) =>
@@ -94,7 +97,8 @@ public sealed class CompiledBoundaryTests
         foreach (var context in new[] { typeof(CurrentRatesDbContext), typeof(HistoricalRatesDbContext) })
         {
             Assert.True(context.IsPublic, "DbContexts remain public for the standalone migrator");
-            var repository = context.Assembly.GetTypes().Single(type => type.Name.EndsWith("RatesRepository", StringComparison.Ordinal));
+            var repository = context.Assembly.GetTypes().Single(type =>
+                type.IsClass && type.Name.EndsWith("RatesRepository", StringComparison.Ordinal));
             Assert.False(repository.IsPublic, $"{repository.FullName} must be internal");
         }
     }

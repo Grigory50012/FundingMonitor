@@ -1,0 +1,13 @@
+namespace FundingMonitor.CurrentRates.Persistence;
+
+internal sealed class OutboxMessage
+{
+    public Guid Id { get; init; }
+    public required string Exchange { get; init; }
+    public required string Symbol { get; init; }
+    public DateTimeOffset? NextFundingTime { get; init; }
+    public DateTimeOffset OccurredOnUtc { get; init; }
+    public DateTimeOffset? ProcessedOnUtc { get; set; }
+    public int Attempts { get; set; }
+    public string? Error { get; set; }
+}

@@ -1,6 +1,6 @@
 # Архитектура FundingMonitor
 
-FundingMonitor — модульный монолит. Один `FundingMonitor.ApiHost` собирает четыре изолированных бизнес-модуля. Межмодульные зависимости проходят через `Contracts`. Модуль `Arbitrage` организован по сценариям в одном проекте.
+FundingMonitor — модульный монолит. Один `FundingMonitor.ApiHost` собирает четыре изолированных бизнес-модуля. Межмодульные зависимости проходят через `Contracts`. `CurrentRates` и `Arbitrage` группируют реализацию по сценариям внутри своих проектов.
 
 ## Общая карта
 
@@ -8,7 +8,7 @@ FundingMonitor — модульный монолит. Один `FundingMonitor.A
 flowchart LR
     UI[React frontend] --> Host[ApiHost]
     Host --> EP[ExchangeIntegration.Presentation]
-    Host --> CP[CurrentRates.Presentation]
+    Host --> CR[CurrentRates]
     Host --> HP[HistoricalRates.Presentation]
     Host --> AR[Arbitrage]
     CR[CurrentRates] -->|sync via Contracts| EI[ExchangeIntegration]
@@ -31,7 +31,7 @@ flowchart LR
 
 Подробная карта и статус проверки: [модули](modules/index.md). Межмодульные потоки: [сквозные сценарии](scenarios.md).
 
-## Слои ExchangeIntegration, CurrentRates и HistoricalRates
+## Слои ExchangeIntegration и HistoricalRates
 
 ```mermaid
 flowchart BT

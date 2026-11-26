@@ -23,7 +23,7 @@ public decimal APR => FundingIntervalHours > 0
     : 0m;
 ```
 
-Для отображения числа выплат в сутки `FundingRateMapper` рассчитывает `24 / FundingIntervalHours` и подставляет `3` при неизвестном интервале.
+При формировании HTTP-ответа `FundingRatesController` рассчитывает число выплат в сутки как `24 / FundingIntervalHours` и подставляет `3` при неизвестном интервале.
 
 Формула: `FundingRate * (365 * 24 / IntervalHours) * 100%`
 

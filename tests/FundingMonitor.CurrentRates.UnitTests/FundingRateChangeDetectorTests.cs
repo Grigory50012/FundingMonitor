@@ -1,5 +1,5 @@
-using FundingMonitor.CurrentRates.Application.Collection;
-using FundingMonitor.CurrentRates.Domain;
+using FundingMonitor.CurrentRates.CollectCurrentRates;
+using FundingMonitor.CurrentRates;
 using FundingMonitor.SharedKernel;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
